@@ -1,0 +1,134 @@
+@import "tailwindcss";
+@import "@fontsource-variable/manrope";
+@import "@fontsource-variable/inter";
+
+:root {
+  color-scheme: light;
+  --background: #f4f7fb;
+  --surface: #ffffff;
+  --surface-subtle: #eaf0f7;
+  --foreground: #10243a;
+  --muted: #526378;
+  --brand: #06365b;
+  --primary: #2563eb;
+  --primary-foreground: #ffffff;
+  --brand-accent: #a3e635;
+  --brand-accent-foreground: #10243a;
+  --success: #15803d;
+  --warning: #b45309;
+  --destructive: #dc2626;
+  --separator: #d8e1ec;
+  --focus: #2563eb;
+  --input-edge: #8aa0b8;
+  --shadow-card: 0 1px 2px rgb(16 36 58 / 0.05), 0 4px 14px rgb(16 36 58 / 0.035);
+  --shadow-float: 0 12px 30px rgb(16 36 58 / 0.14);
+  --auth-glow: rgb(37 99 235 / 0.2);
+  --auth-accent-glow: rgb(163 230 53 / 0.18);
+}
+
+.dark {
+  color-scheme: dark;
+  --background: #0b1220;
+  --surface: #131f32;
+  --surface-subtle: #1b2a40;
+  --foreground: #f1f5f9;
+  --muted: #a9b7cb;
+  --brand: #60a5fa;
+  --primary: #2563eb;
+  --primary-foreground: #ffffff;
+  --brand-accent: #a3e635;
+  --brand-accent-foreground: #10243a;
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --destructive: #f87171;
+  --separator: #2a3b52;
+  --focus: #60a5fa;
+  --input-edge: #4b6280;
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.2), 0 4px 14px rgb(0 0 0 / 0.16);
+  --shadow-float: 0 12px 30px rgb(0 0 0 / 0.34);
+  --auth-glow: rgb(37 99 235 / 0.28);
+  --auth-accent-glow: rgb(163 230 53 / 0.12);
+}
+
+@theme inline {
+  --font-sans: "Inter Variable", Inter, "Segoe UI", sans-serif;
+  --font-display: "Manrope Variable", Manrope, "Segoe UI", sans-serif;
+}
+
+html,
+body {
+  min-height: 100%;
+  max-width: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+h1,
+h2,
+h3,
+.font-display,
+button {
+  font-family: var(--font-display);
+}
+
+:focus-visible {
+  outline: 1px solid var(--focus);
+  outline-offset: 2px;
+}
+
+:is(input, button, select, textarea):focus-visible {
+  outline: none;
+}
+
+@keyframes modal-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modal-content-in {
+  from { opacity: 0; transform: translateY(calc(-50% + 12px)) scale(0.985); }
+  to { opacity: 1; transform: translateY(-50%) scale(1); }
+}
+
+@keyframes modal-content-out {
+  from { opacity: 1; transform: translateY(-50%) scale(1); }
+  to { opacity: 0; transform: translateY(calc(-50% + 8px)) scale(0.99); }
+}
+
+@keyframes surface-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.ui-surface-enter {
+  animation: surface-enter 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+[data-slot="modal-overlay"][data-state="open"] {
+  animation: modal-overlay-in 180ms ease-out;
+}
+
+[data-slot="modal-content"][data-state="open"] {
+  animation: modal-content-in 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+[data-slot="modal-content"][data-state="closed"] {
+  animation: modal-content-out 150ms ease-in;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

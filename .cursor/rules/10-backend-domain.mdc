@@ -1,0 +1,11 @@
+---
+description: "API NestJS, argent, stock, workflow et transactions"
+globs: "apps/api/**,apps/worker/**,packages/domain/**,packages/contracts/**"
+alwaysApply: false
+---
+
+Lire docs/04-architecture.md, docs/01-regles-metier.md, docs/02-permissions.md et le workflow concerné.
+Next.js présente ; NestJS/Fastify décide et poste les commandes. Contrôleurs fins, services communs ONLINE/OFFLINE_REPLAY, DTO explicitement filtrés. Ne pas écrire le métier dans les server actions Next.js.
+Valider droits, état/version, session et plafonds dans la transaction. Pas de floats monétaires, pas de stock négatif officiel, pas de correction silencieuse. Approbation != paiement != réception.
+Prisma/PostgreSQL avec verrous ciblés paramétrés. Audit, journal, projection, idempotence et outbox dans la transaction ; appels tiers après commit. BullMQ idempotent, Redis jamais seul détenteur d’un fait métier.
+Deux circuits achats obligatoires : gérant achète après approbation ; propriétaire achète et transfère, gérant confirme réception. Lire docs/conception/01-transitions.md avant de créer un nouveau statut.

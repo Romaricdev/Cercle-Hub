@@ -1,0 +1,7 @@
+Mode: built-in image_gen
+Status: proposal V1, not approved final brand identity.
+
+Use case: logo-brand.
+Create one polished original corporate logo proposal for the company named exactly "Cercle Complet Sarl", a company operating several retail shops. This is the company identity, not a logo for accounting software.
+Design a distinctive simple circular emblem suggesting completeness and continuity with a subtle double C in negative space. Strong balanced geometry, thoughtful optical spacing, recognizable silhouette at small size. Refined contemporary typography, legible and professional, friendly but serious. Exact wordmark "Cercle Complet" with subordinate "Sarl". No slogan or other text.
+One centered horizontal brand lockup, emblem to the left of the wordmark, generous white margins on a pure white background. Flat vector-like graphic, crisp edges, restrained designer-chosen corporate colors that also work in monochrome. No gradient, no 3D, no shadows, no mockup, no stationery, no shopping cart, no currency symbol, no stock clipart or decorative flourishes. Deliver a high-resolution landscape logo image.

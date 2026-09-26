@@ -1,0 +1,3317 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-09-24",
+  "scope": "P00 documentaire réalisée ; P01, P02 et P03 réalisées localement ; P04–P12 non commencées",
+  "tasks": [
+    {
+      "id": "P01-01",
+      "phase": "P01",
+      "title": "Actualiser versions et verrouiller le workspace",
+      "status": "TERMINE",
+      "dependencies": [],
+      "acceptance": [
+        "Registre actualisé, préversions exclues, lockfile et scripts reproductibles",
+        "Packages parents et auxiliaires recensés ; aucune clé de production"
+      ],
+      "references": [
+        "docs/15-phases-developpement.md",
+        "docs/11-stack-et-strategie-tests.md",
+        "docs/14-securite-conception-et-recette.md"
+      ],
+      "screens": [],
+      "transitions": [],
+      "tests": [],
+      "responsive": [],
+      "security": [],
+      "deliverables": [
+        "Code, tests et preuve de recette du périmètre"
+      ],
+      "evidence": [
+        "pnpm-lock.yaml",
+        "pnpm-workspace.yaml",
+        "docs/p01/README.md"
+      ]
+    },
+    {
+      "id": "P01-02",
+      "phase": "P01",
+      "title": "Compiler web/API/worker et installer les tests",
+      "status": "TERMINE",
+      "dependencies": [
+        "P01-01"
+      ],
+      "acceptance": [
+        "Nest/Fastify DI et Next/React compilent avec TypeScript retenu",
+        "Vitest Node/DOM et Playwright smoke fonctionnent ; lint/typecheck/build"
+      ],
+      "references": [
+        "docs/15-phases-developpement.md",
+        "docs/11-stack-et-strategie-tests.md",
+        "docs/14-securite-conception-et-recette.md"
+      ],
+      "screens": [],
+      "transitions": [],
+      "tests": [],
+      "responsive": [],
+      "security": [],
+      "deliverables": [
+        "Code, tests et preuve de recette du périmètre"
+      ],
+      "evidence": [
+        "apps/web",
+        "apps/api",
+        "apps/worker",
+        "pnpm test, pnpm typecheck, pnpm lint, pnpm build, pnpm test:e2e"
+      ]
+    },
+    {
+      "id": "P01-03",
+      "phase": "P01",
+      "title": "Démontrer le pont Better Auth/Fastify/Prisma",
+      "status": "TERMINE",
+      "dependencies": [
+        "P01-02"
+      ],
+      "acceptance": [
+        "Cookies multiples, login/logout, session et TOTP prouvés sur base de test",
+        "Pas de wrapper Fastify bêta requis ; génération/migration auth revue"
+      ],
+      "references": [
+        "docs/15-phases-developpement.md",
+        "docs/11-stack-et-strategie-tests.md",
+        "docs/14-securite-conception-et-recette.md"
+      ],
+      "screens": [],
+      "transitions": [],
+      "tests": [],
+      "responsive": [],
+      "security": [
+        "SEC06",
+        "SEC07"
+      ],
+      "deliverables": [
+        "Code, tests et preuve de recette du périmètre"
+      ],
+      "evidence": [
+        "tests/integration/auth.test.ts",
+        "tests/e2e/auth-browser.spec.ts"
+      ]
+    },
+    {
+      "id": "P01-04",
+      "phase": "P01",
+      "title": "Contrats et transactions de référence",
+      "status": "TERMINE",
+      "dependencies": [
+        "P01-02"
+      ],
+      "acceptance": [
+        "Money/Quantity, enveloppe et erreurs versionnées ; canonicalisation et hash testés",
+        "Transaction Prisma avec verrou SQL, rollback, journal et outbox atomiques"
+      ],
+      "references": [
+        "docs/15-phases-developpement.md",
+        "docs/11-stack-et-strategie-tests.md",
+        "docs/14-securite-conception-et-recette.md"
+      ],
+      "screens": [],
+      "transitions": [],
+      "tests": [
+        "T57",
+        "T58"
+      ],
+      "responsive": [],
+      "security": [
+        "SEC03",
+        "SEC15"
+      ],
+      "deliverables": [
+        "Code, tests et preuve de recette du périmètre"
+      ],
+      "evidence": [
+        "packages/contracts",
+        "packages/domain",
+        "tests/integration/foundation.test.ts"
+      ]
+    },
+    {
+      "id": "P01-05",
+      "phase": "P01",
+      "title": "Services Docker et stockage privé",
+      "status": "TERMINE",
+      "dependencies": [
+        "P01-02"
+      ],
+      "acceptance": [
+        "Digests et volumes vérifiés ; test S3 privé, persistance redémarrage",
+        "BullMQ/Redis : retry sans double effet ; réseau et logs bornés"
+      ],
+      "references": [
+        "docs/15-phases-developpement.md",
+        "docs/11-stack-et-strategie-tests.md",
+        "docs/14-securite-conception-et-recette.md"
+      ],
+      "screens": [],
+      "transitions": [],
+      "tests": [],
+      "responsive": [],
+      "security": [
+        "SEC12",
+        "SEC17"
+      ],
+      "deliverables": [
+        "Code, tests et preuve de recette du périmètre"
+      ],
+      "evidence": [
+        "docker-compose.yml",
+        "tests/integration/foundation.test.ts"
+      ]
+    },
+    {
+      "id": "P01-GATE",
+      "phase": "P01",
+      "title": "Valider la sortie P01",
+      "status": "TERMINE",
+      "dependencies": [
+        "P01-01",
+        "P01-02",
+        "P01-03",
+        "P01-04",
+        "P01-05"
+      ],
+      "acceptance": [
+        "Preuves de chaque tâche du périmètre consignées, aucun défaut critique non résolu",
+        "Mettre à jour IMPLEMENTATION_STATUS et matrice de couverture ; pas de validation implicite des assertions reportées"
+      ],
+      "references": [
+        "docs/15-phases-developpement.md"
+      ],
+      "screens": [],
+      "transitions": [],
+      "tests": [],
+      "responsive": [],
+      "security": [],
+      "deliverables": [
+        "Compte rendu de phase"
+      ],
+      "evidence": [
+        "docs/IMPLEMENTATION_STATUS.md"
+      ]
+    },
+    {
+      "id": "P02-01",
+      "phase": "P02",
+      "title": "Design tokens, thèmes, navigation et logo",
+      "status": "TERMINE",
+      "dependencies": [
+        "P01-GATE"
+      ],
+      "acceptance": [
+        "Manrope/Inter locales ; thèmes persistants, composants peu bordés",
+        "Logo adapté sans altérer identité ; clavier et reduced-motion vérifiés"
+      ],
+      "references": [
+        "docs/15-phases-developpement.md",
+        "docs/11-stack-et-strategie-tests.md",
+        "docs/14-securite-conception-et-recette.md"
+      ],
+      "screens": [],
+      "transitions": [],
+      "tests": [],
+      "responsive": [
+        "RSP01",
+        "RSP02",
+        "RSP03",
+        "RSP04",
+        "RSP05",
+        "RSP06",
+        "RSP07"
+      ],
+      "security": [],
+      "deliverables": [
+        "Code, tests et preuve de recette du périmètre"
+      ],
+      "evidence": [
+        "apps/web/src/app/globals.css",
+        "apps/web/src/components/shell",
+        "tests/e2e/p02-responsive.spec.ts",
+        "tests/e2e/p02-visual.spec.ts"
+      ]
+    },
+    {
+      "id": "P02-02",
+      "phase": "P02",
+      "title": "Protections HTTP et secrets",
+      "status": "TERMINE",
+      "dependencies": [
+        "P01-GATE"
+      ],
+      "acceptance": [
+        "CSP production, CSRF, origins, rate limit compte/IP/proxy et récupération testés",
+        "MFA propriétaire requis ; fuite/erreurs génériques et contrôle objet testés"
+      ],
+      "references": [
+        "docs/15-phases-developpement.md",
+        "docs/11-stack-et-strategie-tests.md",
+        "docs/14-securite-conception-et-recette.md"
+      ],
+      "screens": [],
+      "transitions": [],
+      "tests": [],
+      "responsive": [],
+      "security": [
+        "SEC01",
+        "SEC02",
+        "SEC04",
+        "SEC05",
+        "SEC06",
+        "SEC07",
+        "SEC08",
+        "SEC17"
+      ],
+      "deliverables": [
+        "Code, tests et preuve de recette du périmètre"
+      ],
+      "evidence": [
+        "apps/api/src/http/security.ts",
+        "apps/api/src/create-app.ts",
+        "tests/integration/access.test.ts",
+        "tests/integration/auth.test.ts"
+      ]
+    },
+    {
+      "id": "P02-E01",
+      "phase": "P02",
+      "title": "Connexion",
+      "status": "TERMINE",
+      "dependencies": [
+        "P01-GATE",
+        "P02-02"
+      ],
+      "acceptance": [
+        "Réaliser le parcours Lien ou session expirée → E02 si entreprise non initialisée, sinon E03 ou E17",
+        "Action : Se connecter ; champs/DTO et droits de la fiche respectés",
+        "Données : app_users ; états et effets selon S01",
+        "UI et API réelles, vide/erreur/chargement et recette du périmètre disponible ; assertions de domaines futurs explicitement reprises par les tâches transversales P07/P08/P10"
+      ],
+      "references": [
+        "docs/conception/03-fiches-ecrans.md",
+        "docs/conception/01-transitions.md",
+        "docs/api/contrats.md",
+        "docs/13-design-system.md"
+      ],
+      "screens": [
+        "E01"
+      ],
+      "transitions": [
+        "S01"
+      ],
+      "tests": [
+        "T02"
+      ],
+      "responsive": [
+        "RSP01",
+        "RSP02",
+        "RSP03",
+        "RSP04",
+        "RSP05",
+        "RSP06",
+        "RSP07"
+      ],
+      "security": [
+        "SEC08",
+        "SEC09"
+      ],
+      "deliverables": [
+        "/api/auth/*",
+        "Tests et états UI de E01"
+      ],
+      "evidence": [
+        "apps/web/src/app/login/page.tsx",
+        "tests/e2e/connexion.spec.ts",
+        "tests/integration/auth.test.ts"
+      ]
+    },
+    {
+      "id": "P02-E37",
+      "phase": "P02",
+      "title": "Utilisateurs et affectations",
+      "status": "TERMINE",
+      "dependencies": [
+        "P01-GATE",
+        "P02-02"
+      ],
+      "acceptance": [
+        "Réaliser le parcours Paramètres > Utilisateurs → Confirmation étapes, pas deux affectations actives",
+        "Action : Inviter ou remplacer le gérant ; champs/DTO et droits de la fiche respectés",
+        "Données : app_users, manager_assignments ; états et effets selon S01, S15",
+        "UI et API réelles, vide/erreur/chargement et recette du périmètre disponible ; assertions de domaines futurs explicitement reprises par les tâches transversales P07/P08/P10"
+      ],
+      "references": [
+        "docs/conception/03-fiches-ecrans.md",
+        "docs/conception/01-transitions.md",
+        "docs/api/contrats.md",
+        "docs/13-design-system.md"
+      ],
+      "screens": [
+        "E37"
+      ],
+      "transitions": [
+        "S01",
+        "S15"
+      ],
+      "tests": [
+        "T02",
+        "T61",
+        "T77"
+      ],
+      "responsive": [
+        "RSP01",
+        "RSP02",
+        "RSP03",
+        "RSP04",
+        "RSP05",
+        "RSP06",
+        "RSP07"
+      ],
+      "security": [
+        "SEC08",
+        "SEC09"
+      ],
+      "deliverables": [
+        "POST /users",
+        "POST /shops/:id/assign-manager",
+        "POST /users/:id/deactivate",
+        "Tests et états UI de E37"
+      ],
+      "evidence": [
+        "apps/api/src/access/access.controller.ts",
+        "apps/web/src/app/owner/users/page.tsx",
+        "tests/integration/access.test.ts"
+      ]
+    },
+    {
+      "id": "P02-E38",
+      "phase": "P02",
+      "title": "Appareil principal",
+      "status": "TERMINE",
+      "dependencies": [
+        "P01-GATE",
+        "P02-02"
+      ],
+      "acceptance": [
+        "Réaliser le parcours Première utilisation ou Paramètres → Confirmation principale, gérant peut ouvrir caisse ; secours E36",
+        "Action : Approuver cet appareil ou révoquer ; champs/DTO et droits de la fiche respectés",
+        "Données : devices, device_capabilities ; états et effets selon S01, S14",
+        "UI et API réelles, vide/erreur/chargement et recette du périmètre disponible ; assertions de domaines futurs explicitement reprises par les tâches transversales P07/P08/P10"
+      ],
+      "references": [
+        "docs/conception/03-fiches-ecrans.md",
+        "docs/conception/01-transitions.md",
+        "docs/api/contrats.md",
+        "docs/13-design-system.md"
+      ],
+      "screens": [
+        "E38"
+      ],
+      "transitions": [
+        "S01",
+        "S14"
+      ],
+      "tests": [
+        "T48",
+        "T51",
+        "T61",
+        "T62"
+      ],
+      "responsive": [
+        "RSP01",
+        "RSP02",
+        "RSP03",
+        "RSP04",
+        "RSP05",
+        "RSP06",
+        "RSP07"
+      ],
+      "security": [
+        "SEC08",
+        "SEC09"
+      ],
+      "deliverables": [
+        "POST /devices/register",
+        "POST /devices/:id/approve",
+        "POST /devices/:id/revoke",
+        "Tests et états UI de E38"
+      ],
+      "evidence": [
+        "packages/domain/src/devices.ts",
+        "apps/web/src/app/owner/devices/page.tsx",
+        "apps/web/src/app/manager/device/page.tsx",
+        "tests/integration/access.test.ts"
+      ]
+    },
+    {
+      "id": "P02-GATE",
+      "phase": "P02",
+      "title": "Valider la sortie P02",
+      "status": "TERMINE",
+      "dependencies": [
+        "P02-01",
+        "P02-02",
+        "P02-E01",
+        "P02-E37",
+        "P02-E38"
+      ],
+      "acceptance": [
+        "Preuves de chaque tâche du périmètre consignées, aucun défaut critique non résolu",
+        "Mettre à jour IMPLEMENTATION_STATUS et matrice de couverture ; pas de validation implicite des assertions reportées"
+      ],
+      "references": [
+        "docs/15-phases-developpement.md"
+      ],
+      "screens": [],
+      "transitions": [],
+      "tests": [],
+      "responsive": [],
+      "security": [],
+      "deliverables": [
+        "Compte rendu de phase"
+      ],
+      "evidence": [
+        "docs/IMPLEMENTATION_STATUS.md",
+        "docs/p02/README.md"
+      ]
+    },
+    {
+      "id": "P03-01",
+      "phase": "P03",
+      "title": "Moteur de journaux, couches et nombres",
+      "status": "TERMINE",
+      "dependencies": [
+        "P02-GATE"
+      ],
+      "acceptance": [
+        "Contraintes bigint/numeric et journal équilibré",
+        "FEFO/FIFO, valeur résiduelle et initialisation sans chiffre d’affaires artificiel"
+      ],
+      "references": [
+        "docs/15-phases-developpement.md",
+        "docs/11-stack-et-strategie-tests.md",
+        "docs/14-securite-conception-et-recette.md"
+      ],
+      "screens": [],
+      "transitions": [],
+      "tests": [
+        "T57",
+        "T58",
+        "T66",
+        "T78"
+      ],
+      "responsive": [],
+      "security": [
+        "SEC03",
+        "SEC09",
+        "SEC15"
+      ],
+      "deliverables": [
+        "Code, tests et preuve de recette du périmètre"
+      ],
+      "evidence": [
+        "packages/domain/src/p03.ts",
+        "packages/database/prisma/migrations/20260925120000_p03_business/migration.sql",
+        "tests/integration/p03.test.ts"
+      ]
+    },
+    {
+      "id": "P03-E02",
+      "phase": "P03",
+      "title": "Initialisation",
+      "status": "TERMINE",
+      "dependencies": [
+        "P02-GATE",
+        "P03-01"
+      ],
+      "acceptance": [
+        "Réaliser le parcours Première connexion ou nouvelle boutique E26 → Récapitulatif figé puis E26 ACTIVE ; accueil gérant E03 reste en P04",
+        "Action : Valider les données initiales (owner) ; champs/DTO et droits de la fiche respectés",
+        "Données : opening_drafts, opening_stock_lines, opening_obligations, shops ; états et effets selon S01, S12",
+        "UI et API réelles, vide/erreur/chargement et recette du périmètre disponible ; assertions de domaines futurs explicitement reprises par les tâches transversales P07/P08/P10"
+      ],
+      "references": [
+        "docs/conception/03-fiches-ecrans.md",
+        "docs/conception/01-transitions.md",
+        "docs/api/contrats.md",
+        "docs/13-design-system.md"
+      ],
+      "screens": [
+        "E02"
+      ],
+      "transitions": [
+        "S01",
+        "S12"
+      ],
+      "tests": [
+        "T01",
+        "T78"
+      ],
+      "responsive": [
+        "RSP01",
+        "RSP02",
+        "RSP03",
+        "RSP04",
+        "RSP05",
+        "RSP06",
+        "RSP07"
+      ],
+      "security": [
+        "SEC08",
+        "SEC09"
+      ],
+      "deliverables": [
+        "POST /shops/:id/opening-balances",
+        "POST /shops/:id/activate",
+        "Tests et états UI de E02"
+      ],
+      "evidence": [
+        "apps/web/src/app/setup/page.tsx",
+        "apps/api/src/p03/p03.controller.ts",
+        "tests/e2e/p03-business.spec.ts"
+      ]
+    },
+    {
+      "id": "P03-E14",
+      "phase": "P03",
+      "title": "Stock boutique",
+      "status": "TERMINE",
+      "dependencies": [
+        "P02-GATE"
+      ],
+      "acceptance": [
+        "Réaliser le parcours Navigation Stock → consultation et détail des mouvements ; demandes E10 et pertes E31 restent dans leurs phases",
+        "Action P03 : rechercher et filtrer le stock autorisé ; aucun workflow futur simulé",
+        "Données : stock_balances, stock_entries, lots ; états et effets selon S04, S11",
+        "UI et API réelles, vide/erreur/chargement et recette du périmètre disponible ; assertions de domaines futurs explicitement reprises par les tâches transversales P07/P08/P10"
+      ],
+      "references": [
+        "docs/conception/03-fiches-ecrans.md",
+        "docs/conception/01-transitions.md",
+        "docs/api/contrats.md",
+        "docs/13-design-system.md"
+      ],
+      "screens": [
+        "E14"
+      ],
+      "transitions": [
+        "S04",
+        "S11"
+      ],
+      "tests": [
+        "T12",
+        "T13",
+        "T44"
+      ],
+      "responsive": [
+        "RSP01",
+        "RSP02",
+        "RSP03",
+        "RSP04",
+        "RSP05",
+        "RSP06",
+        "RSP07"
+      ],
+      "security": [
+        "SEC08",
+        "SEC09"
+      ],
+      "deliverables": [
+        "GET /stock",
+        "GET /stock/movements",
+        "Tests et états UI de E14"
+      ],
+      "evidence": [
+        "apps/web/src/app/owner/stock/page.tsx",
+        "apps/web/src/app/manager/stock/page.tsx",
+        "tests/integration/p03.test.ts"
+      ]
+    },
+    {
+      "id": "P03-E25",
+      "phase": "P03",
+      "title": "Catalogue et prix",
+      "status": "TERMINE",
+      "dependencies": [
+        "P02-GATE"
+      ],
+      "acceptance": [
+        "Réaliser le parcours Navigation Produits → Liste filtrée et détail ; jamais stock créé par catalogue",
+        "Action : Enregistrer produit ou nouvelle version de prix ; champs/DTO et droits de la fiche respectés",
+        "Données : products, variants, sale_units, prices, shop_products ; états et effets selon S01",
+        "UI et API réelles, vide/erreur/chargement et recette du périmètre disponible ; assertions de domaines futurs explicitement reprises par les tâches transversales P07/P08/P10"
+      ],
+      "references": [
+        "docs/conception/03-fiches-ecrans.md",
+        "docs/conception/01-transitions.md",
+        "docs/api/contrats.md",
+        "docs/13-design-system.md"
+      ],
+      "screens": [
+        "E25"
+      ],
+      "transitions": [
+        "S01"
+      ],
+      "tests": [
+        "T10",
+        "T11",
+        "T12",
+        "T13"
+      ],
+      "responsive": [
+        "RSP01",
+        "RSP02",
+        "RSP03",
+        "RSP04",
+        "RSP05",
+        "RSP06",
+        "RSP07"
+      ],
+      "security": [
+        "SEC08",
+        "SEC09"
+      ],
+      "deliverables": [
+        "POST /products",
+        "POST /products/:id/variants",
+        "POST /variants/:id/units",
+        "POST /prices",
+        "Tests et états UI de E25"
+      ],
+      "evidence": [
+        "apps/web/src/app/owner/products/page.tsx",
+        "apps/api/src/p03/p03.controller.ts",
+        "tests/e2e/p03-business.spec.ts"
+      ]
+    },
+    {
+      "id": "P03-E26",
+      "phase": "P03",
+      "title": "Boutique et responsabilité",
+      "status": "TERMINE",
+      "dependencies": [
+        "P02-GATE"
+      ],
+      "acceptance": [
+        "Réaliser le parcours Liste boutiques → E02 pour initialisation ; E36 secours ; historique conservé",
+        "Action : Activer / suspendre / remplacer selon état ; champs/DTO et droits de la fiche respectés",
+        "Données : shops, manager_assignments, opening_drafts ; états et effets selon S01, S15",
+        "UI et API réelles, vide/erreur/chargement et recette du périmètre disponible ; assertions de domaines futurs explicitement reprises par les tâches transversales P07/P08/P10"
+      ],
+      "references": [
+        "docs/conception/03-fiches-ecrans.md",
+        "docs/conception/01-transitions.md",
+        "docs/api/contrats.md",
+        "docs/13-design-system.md"
+      ],
+      "screens": [
+        "E26"
+      ],
+      "transitions": [
+        "S01",
+        "S15"
+      ],
+      "tests": [
+        "T01",
+        "T56",
+        "T77"
+      ],
+      "responsive": [
+        "RSP01",
+        "RSP02",
+        "RSP03",
+        "RSP04",
+        "RSP05",
+        "RSP06",
+        "RSP07"
+      ],
+      "security": [
+        "SEC08",
+        "SEC09"
+      ],
+      "deliverables": [
+        "POST /shops",
+        "POST /shops/:id/activate",
+        "POST /shops/:id/suspend",
+        "POST /shops/:id/close",
+        "Tests et états UI de E26"
+      ],
+      "evidence": [
+        "apps/web/src/app/owner/shops/page.tsx",
+        "apps/web/src/app/owner/shops/[id]/page.tsx",
+        "tests/integration/p03.test.ts"
+      ]
+    },
+    {
+      "id": "P03-E28",
+      "phase": "P03",
+      "title": "Paramètres métier",
+      "status": "TERMINE",
+      "dependencies": [
+        "P02-GATE"
+      ],
+      "acceptance": [
+        "Réaliser le parcours Navigation Paramètres → Résumé des changements et date d’effet ; historiques inchangés",
+        "Action : Enregistrer nouvelle version ; champs/DTO et droits de la fiche respectés",
+        "Données : policies ; états et effets selon S04, S12",
+        "UI et API réelles, vide/erreur/chargement et recette du périmètre disponible ; assertions de domaines futurs explicitement reprises par les tâches transversales P07/P08/P10"
+      ],
+      "references": [
+        "docs/conception/03-fiches-ecrans.md",
+        "docs/conception/01-transitions.md",
+        "docs/api/contrats.md",
+        "docs/13-design-system.md"
+      ],
+      "screens": [
+        "E28"
+      ],
+      "transitions": [
+        "S04",
+        "S12"
+      ],
+      "tests": [
+        "T26",
+        "T55",
+        "T83"
+      ],
+      "responsive": [
+        "RSP01",
+        "RSP02",
+        "RSP03",
+        "RSP04",
+        "RSP05",
+        "RSP06",
+        "RSP07"
+      ],
+      "security": [
+        "SEC08",
+        "SEC09"
+      ],
+      "deliverables": [
+        "GET /policies",
+        "POST /policies",
+        "Tests et états UI de E28"
+      ],
+      "evidence": [
+        "apps/web/src/app/owner/settings/page.tsx",
+        "packages/domain/src/p03.ts",
+        "tests/e2e/p03-business.spec.ts"
+      ]
+    },
+    {
+      "id": "P03-E39",
+      "phase": "P03",
+      "title": "Sources de paiement",
+      "status": "TERMINE",
+      "dependencies": [
+        "P02-GATE"
+      ],
+      "acceptance": [
+        "Réaliser le parcours Paramètres > Sources de fonds → Compte et historique ; solde jamais édité directement après usage",
+        "Action : Créer source ou enregistrer apport réel ; champs/DTO et droits de la fiche respectés",
+        "Données : payment_sources, money_accounts, money_events ; états et effets selon S01, S09",
+        "UI et API réelles, vide/erreur/chargement et recette du périmètre disponible ; assertions de domaines futurs explicitement reprises par les tâches transversales P07/P08/P10"
+      ],
+      "references": [
+        "docs/conception/03-fiches-ecrans.md",
+        "docs/conception/01-transitions.md",
+        "docs/api/contrats.md",
+        "docs/13-design-system.md"
+      ],
+      "screens": [
+        "E39"
+      ],
+      "transitions": [
+        "S01",
+        "S09"
+      ],
+      "tests": [
+        "T25",
+        "T29",
+        "T66"
+      ],
+      "responsive": [
+        "RSP01",
+        "RSP02",
+        "RSP03",
+        "RSP04",
+        "RSP05",
+        "RSP06",
+        "RSP07"
+      ],
+      "security": [
+        "SEC08",
+        "SEC09"
+      ],
+      "deliverables": [
+        "POST /payment-sources",
+        "POST /owner-fund-events",
+        "Tests et états UI de E39"
+      ],
+      "evidence": [
+        "apps/web/src/app/owner/sources/page.tsx",
+        "packages/domain/src/p03.ts",
+        "tests/integration/p03.test.ts"
+      ]
+    },
+    {
+      "id": "P03-E40",
+      "phase": "P03",
+      "title": "Lieux et dépôt",
+      "status": "TERMINE",
+      "dependencies": [
+        "P02-GATE"
+      ],
+      "acceptance": [
+        "Réaliser le parcours Stock > Lieux → activation facultative du dépôt ; transfert E20 reste en P06",
+        "Action P03 : activer, consulter ou désactiver un lieu cohérent ; aucun déplacement de stock",
+        "Données : locations, stock_balances ; états et effets selon S08, S15",
+        "UI et API réelles, vide/erreur/chargement et recette du périmètre disponible ; assertions de domaines futurs explicitement reprises par les tâches transversales P07/P08/P10"
+      ],
+      "references": [
+        "docs/conception/03-fiches-ecrans.md",
+        "docs/conception/01-transitions.md",
+        "docs/api/contrats.md",
+        "docs/13-design-system.md"
+      ],
+      "screens": [
+        "E40"
+      ],
+      "transitions": [
+        "S08",
+        "S15"
+      ],
+      "tests": [
+        "T31",
+        "T56",
+        "T67"
+      ],
+      "responsive": [
+        "RSP01",
+        "RSP02",
+        "RSP03",
+        "RSP04",
+        "RSP05",
+        "RSP06",
+        "RSP07"
+      ],
+      "security": [
+        "SEC08",
+        "SEC09"
+      ],
+      "deliverables": [
+        "GET /locations",
+        "POST /locations/depot",
+        "PATCH /locations/:id",
+        "Tests et états UI de E40"
+      ],
+      "evidence": [
+        "apps/web/src/app/owner/locations/page.tsx",
+        "packages/domain/src/p03.ts",
+        "tests/e2e/p03-business.spec.ts"
+      ]
+    },
+    {
+      "id": "P03-GATE",
+      "phase": "P03",
+      "title": "Valider la sortie P03",
+      "status": "TERMINE",
+      "dependencies": [
+        "P03-01",
+        "P03-E02",
+        "P03-E14",
+        "P03-E25",
+        "P03-E26",
+        "P03-E28",
+        "P03-E39",
+        "P03-E40"
+      ],
+      "acceptance": [
+        "Preuves de chaque tâche du périmètre consignées, aucun défaut critique non résolu",
+        "Mettre à jour IMPLEMENTATION_STATUS et matrice de couverture ; pas de validation implicite des assertions reportées"
+      ],
+      "references": [
+        "docs/15-phases-developpement.md"
+      ],
+      "screens": [],
+      "transitions": [],
+      "tests": [],
+      "responsive": [],
+      "security": [],
+      "deliverables": [
+        "Compte rendu de phase"
+      ],
+      "evidence": [
+        "docs/IMPLEMENTATION_STATUS.md",
+        "tests/integration/p03.test.ts",
+        "tests/e2e/p03-business.spec.ts"
+      ]
+    },
+    {
+      "id": "P04-01",
+      "phase": "P04",
+      "title": "File séquencée et posting de vente en ligne",
+      "status": "A_FAIRE",
+      "dependencies": [
+        "P03-GATE"
+      ],
+      "acceptance": [
+        "Transport document 06 P00, preuve ONLINE distincte de capacité cash-only",
+        "Retry même ID, validation refusée finalisée, concurrence stock/session correcte"
+      ],
+      "references": [
+        "docs/15-phases-developpement.md",
+        "docs/11-stack-et-strategie-tests.md",
+        "docs/14-securite-conception-et-recette.md"
+      ],
+      "screens": [],
+      "transitions": [],
+      "tests": [
+        "T03",
+        "T04",
+        "T05",
+        "T06",
+        "T07",
+        "T08",
+        "T58",
+        "T62",
+        "T63",
+        "T81"
+      ],
+      "responsive": [],
+      "security": [
+        "SEC09",
+        "SEC15"
+      ],
+      "deliverables": [
+        "Code, tests et preuve de recette du périmètre"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P04-E03",
+      "phase": "P04",
+      "title": "Accueil gérant",
+      "status": "A_FAIRE",
+      "dependencies": [
+        "P03-GATE"
+      ],
+      "acceptance": [
+        "Réaliser le parcours Connexion réussie → E04 ou ouverture E07 si nécessaire",
+        "Action : Nouvelle vente ; champs/DTO et droits de la fiche respectés",
+        "Données : cash_sessions, notifications, devices ; états et effets selon S01, S02, S03",
+        "UI et API réelles, vide/erreur/chargement et recette du périmètre disponible ; assertions de domaines futurs explicitement reprises par les tâches transversales P07/P08/P10"
+      ],
+      "references": [
+        "docs/conception/03-fiches-ecrans.md",
+        "docs/conception/01-transitions.md",
+        "docs/api/contrats.md",
+        "docs/13-design-system.md"
+      ],
+      "screens": [
+        "E03"
+      ],
+      "transitions": [
+        "S01",
+        "S02",
+        "S03"
+      ],
+      "tests": [
+        "T02",
+        "T38"
+      ],
+      "responsive": [
+        "RSP01",
+        "RSP02",
+        "RSP03",
+        "RSP04",
+        "RSP05",
+        "RSP06",
+        "RSP07"
+      ],
+      "security": [
+        "SEC08",
+        "SEC09"
+      ],
+      "deliverables": [
+        "GET /me",
+        "GET /notifications",
+        "GET /cash-sessions/current",
+        "Tests et états UI de E03"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P04-E04",
+      "phase": "P04",
+      "title": "Panier de vente",
+      "status": "A_FAIRE",
+      "dependencies": [
+        "P03-GATE"
+      ],
+      "acceptance": [
+        "Réaliser le parcours E03 ou navigation Vendre → E05 avec panier conservé ; retour depuis E05 sans perte",
+        "Action : Passer au paiement ; champs/DTO et droits de la fiche respectés",
+        "Données : products, variants, sale_units, prices, stock_balances ; états et effets selon S02",
+        "UI et API réelles, vide/erreur/chargement et recette du périmètre disponible ; assertions de domaines futurs explicitement reprises par les tâches transversales P07/P08/P10"
+      ],
+      "references": [
+        "docs/conception/03-fiches-ecrans.md",
+        "docs/conception/01-transitions.md",
+        "docs/api/contrats.md",
+        "docs/13-design-system.md"
+      ],
+      "screens": [
+        "E04"
+      ],
+      "transitions": [
+        "S02"
+      ],
+      "tests": [
+        "T08",
+        "T09",
+        "T10",
+        "T11",
+        "T12",
+        "T15",
+        "T14"
+      ],
+      "responsive": [
+        "RSP01",
+        "RSP02",
+        "RSP03",
+        "RSP04",
+        "RSP05",
+        "RSP06",
+        "RSP07"
+      ],
+      "security": [
+        "SEC08",
+        "SEC09"
+      ],
+      "deliverables": [
+        "GET /stock",
+        "POST /sales/quote",
+        "Tests et états UI de E04"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P04-E05",
+      "phase": "P04",
+      "title": "Paiement vente",
+      "status": "A_FAIRE",
+      "dependencies": [
+        "P03-GATE",
+        "P04-01"
+      ],
+      "acceptance": [
+        "Réaliser le parcours Panier valide E04 → E06 après POSTED ; reçu local si offline ; erreur conserve panier",
+        "Action : Confirmer la vente ; champs/DTO et droits de la fiche respectés",
+        "Données : sales, sale_lines, payments, customer_payment_allocations ; états et effets selon S02, S12, S14",
+        "UI et API réelles, vide/erreur/chargement et recette du périmètre disponible ; assertions de domaines futurs explicitement reprises par les tâches transversales P07/P08/P10"
+      ],
+      "references": [
+        "docs/conception/03-fiches-ecrans.md",
+        "docs/conception/01-transitions.md",
+        "docs/api/contrats.md",
+        "docs/13-design-system.md"
+      ],
+      "screens": [
+        "E05"
+      ],
+      "transitions": [
+        "S02",
+        "S12",
+        "S14"
+      ],
+      "tests": [
+        "T03",
+        "T04",
+        "T05",
+        "T06",
+        "T07",
+        "T16",
+        "T45"
+      ],
+      "responsive": [
+        "RSP01",
+        "RSP02",
+        "RSP03",
+        "RSP04",
+        "RSP05",
+        "RSP06",
+        "RSP07"
+      ],
+      "security": [
+        "SEC08",
+        "SEC09"
+      ],
+      "deliverables": [
+        "POST /sales/quote",
+        "POST /sales",
+        "Tests et états UI de E05"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P04-E06",
+      "phase": "P04",
+      "title": "Reçu et détail vente",
+      "status": "A_FAIRE",
+      "dependencies": [
+        "P03-GATE"
+      ],
+      "acceptance": [
+        "Réaliser le parcours Confirmation vente ou recherche historique → Impression même page ; retour E33 ; nouvelle vente E04",
+        "Action : Imprimer ou demander un retour ; champs/DTO et droits de la fiche respectés",
+        "Données : sales, returns, payments ; états et effets selon S02, S06",
+        "UI et API réelles, vide/erreur/chargement et recette du périmètre disponible ; assertions de domaines futurs explicitement reprises par les tâches transversales P07/P08/P10"
+      ],
+      "references": [
+        "docs/conception/03-fiches-ecrans.md",
+        "docs/conception/01-transitions.md",
+        "docs/api/contrats.md",
+        "docs/13-design-system.md"
+      ],
+      "screens": [
+        "E06"
+      ],
+      "transitions": [
+        "S02",
+        "S06"
+      ],
+      "tests": [
+        "T20",
+        "T21",
+        "T22"
+      ],
+      "responsive": [
+        "RSP01",
+        "RSP02",
+        "RSP03",
+        "RSP04",
+        "RSP05",
+        "RSP06",
+        "RSP07"
+      ],
+      "security": [
+        "SEC08",
+        "SEC09"
+      ],
+      "deliverables": [
+        "GET /sales/:id",
+        "POST /sales/:id/reversal-request",
+        "Tests et états UI de E06"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P04-E07",
+      "phase": "P04",
+      "title": "Session de caisse",
+      "status": "A_FAIRE",
+      "dependencies": [
+        "P03-GATE"
+      ],
+      "acceptance": [
+        "Réaliser le parcours Navigation Plus ou vente sans session → E08 si comptage, E03 si ouverture",
+        "Action : Ouvrir ou compter ma caisse ; champs/DTO et droits de la fiche respectés",
+        "Données : cash_sessions, cash_closures ; états et effets selon S01, S03",
+        "UI et API réelles, vide/erreur/chargement et recette du périmètre disponible ; assertions de domaines futurs explicitement reprises par les tâches transversales P07/P08/P10"
+      ],
+      "references": [
+        "docs/conception/03-fiches-ecrans.md",
+        "docs/conception/01-transitions.md",
+        "docs/api/contrats.md",
+        "docs/13-design-system.md"
+      ],
+      "screens": [
+        "E07"
+      ],
+      "transitions": [
+        "S01",
+        "S03"
+      ],
+      "tests": [
+        "T37",
+        "T38",
+        "T61"
+      ],
+      "responsive": [
+        "RSP01",
+        "RSP02",
+        "RSP03",
+        "RSP04",
+        "RSP05",
+        "RSP06",
+        "RSP07"
+      ],
+      "security": [
+        "SEC08",
+        "SEC09"
+      ],
+      "deliverables": [
+        "POST /cash-sessions/open",
+        "POST /cash-sessions/:id/start-count",
+        "Tests et états UI de E07"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P04-GATE",
+      "phase": "P04",
+      "title": "Valider la sortie P04",
+      "status": "A_FAIRE",
+      "dependencies": [
+        "P04-01",
+        "P04-E03",
+        "P04-E04",
+        "P04-E05",
+        "P04-E06",
+        "P04-E07"
+      ],
+      "acceptance": [
+        "Preuves de chaque tâche du périmètre consignées, aucun défaut critique non résolu",
+        "Mettre à jour IMPLEMENTATION_STATUS et matrice de couverture ; pas de validation implicite des assertions reportées"
+      ],
+      "references": [
+        "docs/15-phases-developpement.md"
+      ],
+      "screens": [],
+      "transitions": [],
+      "tests": [],
+      "responsive": [],
+      "security": [],
+      "deliverables": [
+        "Compte rendu de phase"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P05-01",
+      "phase": "P05",
+      "title": "Fichiers privés et quarantaine antivirus",
+      "status": "A_FAIRE",
+      "dependencies": [
+        "P04-GATE"
+      ],
+      "acceptance": [
+        "PDF/images contrôlés, CLEAN requis et téléchargement scoped",
+        "Antivirus indisponible garde quarantaine, fichiers orphelins traités"
+      ],
+      "references": [
+        "docs/15-phases-developpement.md",
+        "docs/11-stack-et-strategie-tests.md",
+        "docs/14-securite-conception-et-recette.md"
+      ],
+      "screens": [],
+      "transitions": [],
+      "tests": [],
+      "responsive": [],
+      "security": [
+        "SEC11",
+        "SEC12",
+        "SEC13"
+      ],
+      "deliverables": [
+        "Code, tests et preuve de recette du périmètre"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P05-E08",
+      "phase": "P05",
+      "title": "Comptage aveugle",
+      "status": "A_FAIRE",
+      "dependencies": [
+        "P04-GATE"
+      ],
+      "acceptance": [
+        "Réaliser le parcours Session COUNTING ou comptage local autorisé → Résultat figé sur même écran ; correction ouvre E36 avec type RECOUNT",
+        "Action : Enregistrer mon comptage ; champs/DTO et droits de la fiche respectés",
+        "Données : cash_closures, money_events, discrepancy_cases ; états et effets selon S03, S14",
+        "UI et API réelles, vide/erreur/chargement et recette du périmètre disponible ; assertions de domaines futurs explicitement reprises par les tâches transversales P07/P08/P10"
+      ],
+      "references": [
+        "docs/conception/03-fiches-ecrans.md",
+        "docs/conception/01-transitions.md",
+        "docs/api/contrats.md",
+        "docs/13-design-system.md"
+      ],
+      "screens": [
+        "E08"
+      ],
+      "transitions": [
+        "S03",
+        "S14"
+      ],
+      "tests": [
+        "T37",
+        "T38",
+        "T39",
+        "T41",
+        "T50",
+        "T64"
+      ],
+      "responsive": [
+        "RSP01",
+        "RSP02",
+        "RSP03",
+        "RSP04",
+        "RSP05",
+        "RSP06",
+        "RSP07"
+      ],
+      "security": [
+        "SEC08",
+        "SEC09",
+        "SEC10"
+      ],
+      "deliverables": [
+        "POST /cash-sessions/:id/submit-count",
+        "POST /cash-sessions/:id/cancel-count",
+        "Tests et états UI de E08"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P05-E09",
+      "phase": "P05",
+      "title": "Dépense",
+      "status": "A_FAIRE",
+      "dependencies": [
+        "P04-GATE",
+        "P05-01"
+      ],
+      "acceptance": [
+        "Réaliser le parcours Plus ou demande autorisée E11 → E11 si accord demandé ; détail dépense si paiement confirmé",
+        "Action : Demander accord ou enregistrer paiement (libellés distincts) ; champs/DTO et droits de la fiche respectés",
+        "Données : expenses, requests, approvals, payments ; états et effets selon S05",
+        "UI et API réelles, vide/erreur/chargement et recette du périmètre disponible ; assertions de domaines futurs explicitement reprises par les tâches transversales P07/P08/P10"
+      ],
+      "references": [
+        "docs/conception/03-fiches-ecrans.md",
+        "docs/conception/01-transitions.md",
+        "docs/api/contrats.md",
+        "docs/13-design-system.md"
+      ],
+      "screens": [
+        "E09"
+      ],
+      "transitions": [
+        "S05"
+      ],
+      "tests": [
+        "T23",
+        "T24",
+        "T25",
+        "T26",
+        "T53"
+      ],
+      "responsive": [
+        "RSP01",
+        "RSP02",
+        "RSP03",
+        "RSP04",
+        "RSP05",
+        "RSP06",
+        "RSP07"
+      ],
+      "security": [
+        "SEC08",
+        "SEC09"
+      ],
+      "deliverables": [
+        "POST /expenses",
+        "POST /expenses/:id/submit",
+        "POST /expenses/:id/pay",
+        "POST /expenses/declare-irregular",
+        "Tests et états UI de E09"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P05-E21",
+      "phase": "P05",
+      "title": "Fonds propriétaire",
+      "status": "A_FAIRE",
+      "dependencies": [
+        "P04-GATE"
+      ],
+      "acceptance": [
+        "Réaliser le parcours Navigation Fonds → Détail remise avec transit/reliquat distinct",
+        "Action : Enregistrer remise ou confirmer réception ; champs/DTO et droits de la fiche respectés",
+        "Données : fund_transfers, fund_receipts, money_entries ; états et effets selon S09",
+        "UI et API réelles, vide/erreur/chargement et recette du périmètre disponible ; assertions de domaines futurs explicitement reprises par les tâches transversales P07/P08/P10"
+      ],
+      "references": [
+        "docs/conception/03-fiches-ecrans.md",
+        "docs/conception/01-transitions.md",
+        "docs/api/contrats.md",
+        "docs/13-design-system.md"
+      ],
+      "screens": [
+        "E21"
+      ],
+      "transitions": [
+        "S09"
+      ],
+      "tests": [
+        "T29",
+        "T30",
+        "T65"
+      ],
+      "responsive": [
+        "RSP01",
+        "RSP02",
+        "RSP03",
+        "RSP04",
+        "RSP05",
+        "RSP06",
+        "RSP07"
+      ],
+      "security": [
+        "SEC08",
+        "SEC09"
+      ],
+      "deliverables": [
+        "GET /fund-transfers",
+        "POST /fund-transfers",
+        "POST /fund-transfers/:id/send",
+        "POST /fund-transfers/:id/receive",
+        "Tests et états UI de E21"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P05-E22",
+      "phase": "P05",
+      "title": "Liste des contrôles",
+      "status": "A_FAIRE",
+      "dependencies": [
+        "P04-GATE"
+      ],
+      "acceptance": [
+        "Réaliser le parcours Navigation Contrôles → E23, E24 ou E36 selon type",
+        "Action : Examiner un dossier ; champs/DTO et droits de la fiche respectés",
+        "Données : discrepancy_cases, cash_closures, stock_counts ; états et effets selon S13",
+        "UI et API réelles, vide/erreur/chargement et recette du périmètre disponible ; assertions de domaines futurs explicitement reprises par les tâches transversales P07/P08/P10"
+      ],
+      "references": [
+        "docs/conception/03-fiches-ecrans.md",
+        "docs/conception/01-transitions.md",
+        "docs/api/contrats.md",
+        "docs/13-design-system.md"
+      ],
+      "screens": [
+        "E22"
+      ],
+      "transitions": [
+        "S13"
+      ],
+      "tests": [
+        "T37",
+        "T40",
+        "T42"
+      ],
+      "responsive": [
+        "RSP01",
+        "RSP02",
+        "RSP03",
+        "RSP04",
+        "RSP05",
+        "RSP06",
+        "RSP07"
+      ],
+      "security": [
+        "SEC08",
+        "SEC09"
+      ],
+      "deliverables": [
+        "GET /discrepancies",
+        "GET /stock-counts",
+        "Tests et états UI de E22"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P05-E23",
+      "phase": "P05",
+      "title": "Dossier d’écart",
+      "status": "A_FAIRE",
+      "dependencies": [
+        "P04-GATE"
+      ],
+      "acceptance": [
+        "Réaliser le parcours E22 ou opération signalée → Dossier mis à jour ; ne résoudre que résiduel traité",
+        "Action : Appliquer décision ; champs/DTO et droits de la fiche respectés",
+        "Données : discrepancy_cases, discrepancy_actions, money_events, stock_events ; états et effets selon S13",
+        "UI et API réelles, vide/erreur/chargement et recette du périmètre disponible ; assertions de domaines futurs explicitement reprises par les tâches transversales P07/P08/P10"
+      ],
+      "references": [
+        "docs/conception/03-fiches-ecrans.md",
+        "docs/conception/01-transitions.md",
+        "docs/api/contrats.md",
+        "docs/13-design-system.md"
+      ],
+      "screens": [
+        "E23"
+      ],
+      "transitions": [
+        "S13"
+      ],
+      "tests": [
+        "T40",
+        "T41",
+        "T73",
+        "T74"
+      ],
+      "responsive": [
+        "RSP01",
+        "RSP02",
+        "RSP03",
+        "RSP04",
+        "RSP05",
+        "RSP06",
+        "RSP07"
+      ],
+      "security": [
+        "SEC08",
+        "SEC09"
+      ],
+      "deliverables": [
+        "GET /discrepancies/:id",
+        "POST /discrepancies/:id/resolve",
+        "Tests et états UI de E23"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P05-E30",
+      "phase": "P05",
+      "title": "Fonds du gérant",
+      "status": "A_FAIRE",
+      "dependencies": [
+        "P04-GATE"
+      ],
+      "acceptance": [
+        "Réaliser le parcours Plus > Fonds ou notification remise → Détail reçus et reliquat ; jamais attendu courant",
+        "Action : Confirmer reçu ou enregistrer remise réelle ; champs/DTO et droits de la fiche respectés",
+        "Données : fund_transfers, fund_receipts ; états et effets selon S09",
+        "UI et API réelles, vide/erreur/chargement et recette du périmètre disponible ; assertions de domaines futurs explicitement reprises par les tâches transversales P07/P08/P10"
+      ],
+      "references": [
+        "docs/conception/03-fiches-ecrans.md",
+        "docs/conception/01-transitions.md",
+        "docs/api/contrats.md",
+        "docs/13-design-system.md"
+      ],
+      "screens": [
+        "E30"
+      ],
+      "transitions": [
+        "S09"
+      ],
+      "tests": [
+        "T29",
+        "T30",
+        "T65"
+      ],
+      "responsive": [
+        "RSP01",
+        "RSP02",
+        "RSP03",
+        "RSP04",
+        "RSP05",
+        "RSP06",
+        "RSP07"
+      ],
+      "security": [
+        "SEC08",
+        "SEC09"
+      ],
+      "deliverables": [
+        "POST /fund-transfers",
+        "POST /fund-transfers/:id/send",
+        "POST /fund-transfers/:id/receive",
+        "Tests et états UI de E30"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P05-GATE",
+      "phase": "P05",
+      "title": "Valider la sortie P05",
+      "status": "A_FAIRE",
+      "dependencies": [
+        "P05-01",
+        "P05-E08",
+        "P05-E09",
+        "P05-E21",
+        "P05-E22",
+        "P05-E23",
+        "P05-E30"
+      ],
+      "acceptance": [
+        "Preuves de chaque tâche du périmètre consignées, aucun défaut critique non résolu",
+        "Mettre à jour IMPLEMENTATION_STATUS et matrice de couverture ; pas de validation implicite des assertions reportées"
+      ],
+      "references": [
+        "docs/15-phases-developpement.md"
+      ],
+      "screens": [],
+      "transitions": [],
+      "tests": [],
+      "responsive": [],
+      "security": [],
+      "deliverables": [
+        "Compte rendu de phase"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P06-01",
+      "phase": "P06",
+      "title": "Réapprovisionnement dans les deux circuits",
+      "status": "A_FAIRE",
+      "dependencies": [
+        "P05-GATE"
+      ],
+      "acceptance": [
+        "Gérant achète après accord ; owner achète/transfère puis gérant reçoit",
+        "Paiement/réception/contrôle distincts ; frais et surplus non doublés"
+      ],
+      "references": [
+        "docs/15-phases-developpement.md",
+        "docs/11-stack-et-strategie-tests.md",
+        "docs/14-securite-conception-et-recette.md"
+      ],
+      "screens": [],
+      "transitions": [],
+      "tests": [
+        "T27",
+        "T28",
+        "T31",
+        "T68",
+        "T69",
+        "T71",
+        "T72",
+        "T73"
+      ],
+      "responsive": [],
+      "security": [
+        "SEC08",
+        "SEC09",
+        "SEC15"
+      ],
+      "deliverables": [
+        "Code, tests et preuve de recette du périmètre"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P06-E10",
+      "phase": "P06",
+      "title": "Demandes",
+      "status": "A_FAIRE",
+      "dependencies": [
+        "P05-GATE"
+      ],
+      "acceptance": [
+        "Réaliser le parcours Navigation Demandes → Formulaire puis E11 ; brouillon offline indiqué non envoyé",
+        "Action : Demander des produits ou des fonds ; champs/DTO et droits de la fiche respectés",
+        "Données : requests, request_lines ; états et effets selon S04",
+        "UI et API réelles, vide/erreur/chargement et recette du périmètre disponible ; assertions de domaines futurs explicitement reprises par les tâches transversales P07/P08/P10"
+      ],
+      "references": [
+        "docs/conception/03-fiches-ecrans.md",
+        "docs/conception/01-transitions.md",
+        "docs/api/contrats.md",
+        "docs/13-design-system.md"
+      ],
+      "screens": [
+        "E10"
+      ],
+      "transitions": [
+        "S04"
+      ],
+      "tests": [
+        "T27",
+        "T28"
+      ],
+      "responsive": [
+        "RSP01",
+        "RSP02",
+        "RSP03",
+        "RSP04",
+        "RSP05",
+        "RSP06",
+        "RSP07"
+      ],
+      "security": [
+        "SEC08",
+        "SEC09"
+      ],
+      "deliverables": [
+        "GET /requests",
+        "POST /requests",
+        "Tests et états UI de E10"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P06-E11",
+      "phase": "P06",
+      "title": "Détail demande",
+      "status": "A_FAIRE",
+      "dependencies": [
+        "P05-GATE"
+      ],
+      "acceptance": [
+        "Réaliser le parcours Liste ou notification → Reste détail après soumission ; E12 pour achat autorisé",
+        "Action : Soumettre / compléter / acheter selon état ; champs/DTO et droits de la fiche respectés",
+        "Données : requests, approvals, approval_lines ; états et effets selon S04, S07",
+        "UI et API réelles, vide/erreur/chargement et recette du périmètre disponible ; assertions de domaines futurs explicitement reprises par les tâches transversales P07/P08/P10"
+      ],
+      "references": [
+        "docs/conception/03-fiches-ecrans.md",
+        "docs/conception/01-transitions.md",
+        "docs/api/contrats.md",
+        "docs/13-design-system.md"
+      ],
+      "screens": [
+        "E11"
+      ],
+      "transitions": [
+        "S04",
+        "S07"
+      ],
+      "tests": [
+        "T27",
+        "T28",
+        "T72"
+      ],
+      "responsive": [
+        "RSP01",
+        "RSP02",
+        "RSP03",
+        "RSP04",
+        "RSP05",
+        "RSP06",
+        "RSP07"
+      ],
+      "security": [
+        "SEC08",
+        "SEC09"
+      ],
+      "deliverables": [
+        "PATCH /requests/:id",
+        "POST /requests/:id/submit",
+        "GET /requests/:id",
+        "Tests et états UI de E11"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P06-E12",
+      "phase": "P06",
+      "title": "Achat par gérant",
+      "status": "A_FAIRE",
+      "dependencies": [
+        "P05-GATE",
+        "P06-01"
+      ],
+      "acceptance": [
+        "Réaliser le parcours Demande approuvée E11 → Détail achat ; E13 si réception différée ; écart renvoie demande de complément",
+        "Action : Acheter et recevoir ou enregistrer achat ; champs/DTO et droits de la fiche respectés",
+        "Données : purchases, purchase_lines, purchase_fees, receipts ; états et effets selon S07, S08",
+        "UI et API réelles, vide/erreur/chargement et recette du périmètre disponible ; assertions de domaines futurs explicitement reprises par les tâches transversales P07/P08/P10"
+      ],
+      "references": [
+        "docs/conception/03-fiches-ecrans.md",
+        "docs/conception/01-transitions.md",
+        "docs/api/contrats.md",
+        "docs/13-design-system.md"
+      ],
+      "screens": [
+        "E12"
+      ],
+      "transitions": [
+        "S07",
+        "S08"
+      ],
+      "tests": [
+        "T27",
+        "T29",
+        "T34",
+        "T68"
+      ],
+      "responsive": [
+        "RSP01",
+        "RSP02",
+        "RSP03",
+        "RSP04",
+        "RSP05",
+        "RSP06",
+        "RSP07"
+      ],
+      "security": [
+        "SEC08",
+        "SEC09"
+      ],
+      "deliverables": [
+        "POST /purchases",
+        "POST /purchases/with-receipt",
+        "Tests et états UI de E12"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P06-E13",
+      "phase": "P06",
+      "title": "Réception",
+      "status": "A_FAIRE",
+      "dependencies": [
+        "P05-GATE"
+      ],
+      "acceptance": [
+        "Réaliser le parcours Accueil ou notification livraison → Résumé quantités mises en stock et restant ; dossier si écart",
+        "Action : Confirmer cette réception ; champs/DTO et droits de la fiche respectés",
+        "Données : receipts, receipt_lines, cost_layers, discrepancy_cases ; états et effets selon S08",
+        "UI et API réelles, vide/erreur/chargement et recette du périmètre disponible ; assertions de domaines futurs explicitement reprises par les tâches transversales P07/P08/P10"
+      ],
+      "references": [
+        "docs/conception/03-fiches-ecrans.md",
+        "docs/conception/01-transitions.md",
+        "docs/api/contrats.md",
+        "docs/13-design-system.md"
+      ],
+      "screens": [
+        "E13"
+      ],
+      "transitions": [
+        "S08"
+      ],
+      "tests": [
+        "T31",
+        "T32",
+        "T33",
+        "T71"
+      ],
+      "responsive": [
+        "RSP01",
+        "RSP02",
+        "RSP03",
+        "RSP04",
+        "RSP05",
+        "RSP06",
+        "RSP07"
+      ],
+      "security": [
+        "SEC08",
+        "SEC09"
+      ],
+      "deliverables": [
+        "POST /receipts",
+        "GET /shipments/:id",
+        "Tests et états UI de E13"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P06-E18",
+      "phase": "P06",
+      "title": "Décider une demande",
+      "status": "A_FAIRE",
+      "dependencies": [
+        "P05-GATE"
+      ],
+      "acceptance": [
+        "Réaliser le parcours Liste des demandes ou notification → Même dossier avec décision figée ; gérant notifié",
+        "Action : Approuver, demander complément ou refuser ; champs/DTO et droits de la fiche respectés",
+        "Données : requests, approvals, approval_lines ; états et effets selon S04",
+        "UI et API réelles, vide/erreur/chargement et recette du périmètre disponible ; assertions de domaines futurs explicitement reprises par les tâches transversales P07/P08/P10"
+      ],
+      "references": [
+        "docs/conception/03-fiches-ecrans.md",
+        "docs/conception/01-transitions.md",
+        "docs/api/contrats.md",
+        "docs/13-design-system.md"
+      ],
+      "screens": [
+        "E18"
+      ],
+      "transitions": [
+        "S04"
+      ],
+      "tests": [
+        "T27",
+        "T28",
+        "T72"
+      ],
+      "responsive": [
+        "RSP01",
+        "RSP02",
+        "RSP03",
+        "RSP04",
+        "RSP05",
+        "RSP06",
+        "RSP07"
+      ],
+      "security": [
+        "SEC08",
+        "SEC09"
+      ],
+      "deliverables": [
+        "POST /requests/:id/decision",
+        "Tests et états UI de E18"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P06-E19",
+      "phase": "P06",
+      "title": "Achats propriétaire",
+      "status": "A_FAIRE",
+      "dependencies": [
+        "P05-GATE",
+        "P06-01"
+      ],
+      "acceptance": [
+        "Réaliser le parcours Navigation Achats → Détail avec réception/répartition/règlement ; E20 envoi ou E34 paiement",
+        "Action : Enregistrer achat ; champs/DTO et droits de la fiche respectés",
+        "Données : purchases, purchase_destinations, purchase_fees ; états et effets selon S07, S08",
+        "UI et API réelles, vide/erreur/chargement et recette du périmètre disponible ; assertions de domaines futurs explicitement reprises par les tâches transversales P07/P08/P10"
+      ],
+      "references": [
+        "docs/conception/03-fiches-ecrans.md",
+        "docs/conception/01-transitions.md",
+        "docs/api/contrats.md",
+        "docs/13-design-system.md"
+      ],
+      "screens": [
+        "E19"
+      ],
+      "transitions": [
+        "S07",
+        "S08"
+      ],
+      "tests": [
+        "T31",
+        "T34",
+        "T68",
+        "T69"
+      ],
+      "responsive": [
+        "RSP01",
+        "RSP02",
+        "RSP03",
+        "RSP04",
+        "RSP05",
+        "RSP06",
+        "RSP07"
+      ],
+      "security": [
+        "SEC08",
+        "SEC09"
+      ],
+      "deliverables": [
+        "GET /purchases",
+        "POST /purchases",
+        "POST /purchases/with-receipt",
+        "Tests et états UI de E19"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P06-E20",
+      "phase": "P06",
+      "title": "Transferts propriétaire",
+      "status": "A_FAIRE",
+      "dependencies": [
+        "P05-GATE"
+      ],
+      "acceptance": [
+        "Réaliser le parcours Navigation Stock/transferts ou achat → Détail transfert, bordereau, notification destinataire",
+        "Action : Autoriser puis expédier si détenteur ; champs/DTO et droits de la fiche respectés",
+        "Données : shipments, shipment_lines, shipment_cost_allocations ; états et effets selon S08",
+        "UI et API réelles, vide/erreur/chargement et recette du périmètre disponible ; assertions de domaines futurs explicitement reprises par les tâches transversales P07/P08/P10"
+      ],
+      "references": [
+        "docs/conception/03-fiches-ecrans.md",
+        "docs/conception/01-transitions.md",
+        "docs/api/contrats.md",
+        "docs/13-design-system.md"
+      ],
+      "screens": [
+        "E20"
+      ],
+      "transitions": [
+        "S08"
+      ],
+      "tests": [
+        "T31",
+        "T32",
+        "T60",
+        "T71"
+      ],
+      "responsive": [
+        "RSP01",
+        "RSP02",
+        "RSP03",
+        "RSP04",
+        "RSP05",
+        "RSP06",
+        "RSP07"
+      ],
+      "security": [
+        "SEC08",
+        "SEC09"
+      ],
+      "deliverables": [
+        "POST /shipments",
+        "POST /shipments/:id/approve",
+        "POST /shipments/:id/dispatch",
+        "Tests et états UI de E20"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P06-E29",
+      "phase": "P06",
+      "title": "Expédition gérant",
+      "status": "A_FAIRE",
+      "dependencies": [
+        "P05-GATE"
+      ],
+      "acceptance": [
+        "Réaliser le parcours Plus > Transferts ou notification accord → Bordereau et transit ; pas réception automatique",
+        "Action : Confirmer l’expédition ; champs/DTO et droits de la fiche respectés",
+        "Données : shipments, shipment_lines, stock_entries ; états et effets selon S08",
+        "UI et API réelles, vide/erreur/chargement et recette du périmètre disponible ; assertions de domaines futurs explicitement reprises par les tâches transversales P07/P08/P10"
+      ],
+      "references": [
+        "docs/conception/03-fiches-ecrans.md",
+        "docs/conception/01-transitions.md",
+        "docs/api/contrats.md",
+        "docs/13-design-system.md"
+      ],
+      "screens": [
+        "E29"
+      ],
+      "transitions": [
+        "S08"
+      ],
+      "tests": [
+        "T32",
+        "T71"
+      ],
+      "responsive": [
+        "RSP01",
+        "RSP02",
+        "RSP03",
+        "RSP04",
+        "RSP05",
+        "RSP06",
+        "RSP07"
+      ],
+      "security": [
+        "SEC08",
+        "SEC09"
+      ],
+      "deliverables": [
+        "POST /shipments/:id/dispatch",
+        "POST /shipments/:id/submit",
+        "Tests et états UI de E29"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P06-GATE",
+      "phase": "P06",
+      "title": "Valider la sortie P06",
+      "status": "A_FAIRE",
+      "dependencies": [
+        "P06-01",
+        "P06-E10",
+        "P06-E11",
+        "P06-E12",
+        "P06-E13",
+        "P06-E18",
+        "P06-E19",
+        "P06-E20",
+        "P06-E29"
+      ],
+      "acceptance": [
+        "Preuves de chaque tâche du périmètre consignées, aucun défaut critique non résolu",
+        "Mettre à jour IMPLEMENTATION_STATUS et matrice de couverture ; pas de validation implicite des assertions reportées"
+      ],
+      "references": [
+        "docs/15-phases-developpement.md"
+      ],
+      "screens": [],
+      "transitions": [],
+      "tests": [],
+      "responsive": [],
+      "security": [],
+      "deliverables": [
+        "Compte rendu de phase"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P07-01",
+      "phase": "P07",
+      "title": "Finaliser crédit et retours dans la vente",
+      "status": "A_FAIRE",
+      "dependencies": [
+        "P06-GATE"
+      ],
+      "acceptance": [
+        "Règlement ne crée pas de nouvelle vente ; retour après abandon plafonné",
+        "Options désactivées laissent solder ; reçus historiques fidèles"
+      ],
+      "references": [
+        "docs/15-phases-developpement.md",
+        "docs/11-stack-et-strategie-tests.md",
+        "docs/14-securite-conception-et-recette.md"
+      ],
+      "screens": [
+        "E02",
+        "E05",
+        "E06",
+        "E28"
+      ],
+      "transitions": [
+        "S01",
+        "S02",
+        "S04",
+        "S06",
+        "S12",
+        "S14"
+      ],
+      "tests": [
+        "T16",
+        "T17",
+        "T18",
+        "T19",
+        "T20",
+        "T21",
+        "T22",
+        "T70",
+        "T78",
+        "T79",
+        "T82",
+        "T83"
+      ],
+      "responsive": [],
+      "security": [
+        "SEC09",
+        "SEC15"
+      ],
+      "deliverables": [
+        "Code, tests et preuve de recette du périmètre"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P07-02",
+      "phase": "P07",
+      "title": "Passation et suspension sans perte",
+      "status": "A_FAIRE",
+      "dependencies": [
+        "P06-GATE"
+      ],
+      "acceptance": [
+        "SETTLEMENT versus SECURITY, clôture et révocation ancien appareil",
+        "Fermeture exige soldes/dossiers résolus ; dépôt non supprimé avec stock"
+      ],
+      "references": [
+        "docs/15-phases-developpement.md",
+        "docs/11-stack-et-strategie-tests.md",
+        "docs/14-securite-conception-et-recette.md"
+      ],
+      "screens": [
+        "E26",
+        "E37",
+        "E38",
+        "E40"
+      ],
+      "transitions": [
+        "S01",
+        "S08",
+        "S14",
+        "S15"
+      ],
+      "tests": [
+        "T56",
+        "T61",
+        "T67",
+        "T75",
+        "T76",
+        "T77",
+        "T83"
+      ],
+      "responsive": [],
+      "security": [
+        "SEC08",
+        "SEC16",
+        "SEC21"
+      ],
+      "deliverables": [
+        "Code, tests et preuve de recette du périmètre"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P07-E15",
+      "phase": "P07",
+      "title": "Clients et créances",
+      "status": "A_FAIRE",
+      "dependencies": [
+        "P06-GATE"
+      ],
+      "acceptance": [
+        "Réaliser le parcours Plus si crédit actif ou dette existante → Reçu et dettes restantes sur détail client",
+        "Action : Enregistrer le règlement ; champs/DTO et droits de la fiche respectés",
+        "Données : customers, customer_payment_allocations, opening_obligations ; états et effets selon S12",
+        "UI et API réelles, vide/erreur/chargement et recette du périmètre disponible ; assertions de domaines futurs explicitement reprises par les tâches transversales P07/P08/P10"
+      ],
+      "references": [
+        "docs/conception/03-fiches-ecrans.md",
+        "docs/conception/01-transitions.md",
+        "docs/api/contrats.md",
+        "docs/13-design-system.md"
+      ],
+      "screens": [
+        "E15"
+      ],
+      "transitions": [
+        "S12"
+      ],
+      "tests": [
+        "T17",
+        "T18",
+        "T19",
+        "T55",
+        "T78"
+      ],
+      "responsive": [
+        "RSP01",
+        "RSP02",
+        "RSP03",
+        "RSP04",
+        "RSP05",
+        "RSP06",
+        "RSP07"
+      ],
+      "security": [
+        "SEC08",
+        "SEC09"
+      ],
+      "deliverables": [
+        "GET /customers",
+        "POST /customers",
+        "POST /customer-payments/preview",
+        "POST /customer-payments",
+        "Tests et états UI de E15"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P07-E24",
+      "phase": "P07",
+      "title": "Inventaire propriétaire",
+      "status": "A_FAIRE",
+      "dependencies": [
+        "P06-GATE"
+      ],
+      "acceptance": [
+        "Réaliser le parcours Créer depuis Contrôles ou demande soumise → Rapport ajustements et historique ; notifications gérant",
+        "Action : Démarrer / demander recomptage / valider selon état ; champs/DTO et droits de la fiche respectés",
+        "Données : stock_counts, stock_count_lines, stock_count_locks ; états et effets selon S11",
+        "UI et API réelles, vide/erreur/chargement et recette du périmètre disponible ; assertions de domaines futurs explicitement reprises par les tâches transversales P07/P08/P10"
+      ],
+      "references": [
+        "docs/conception/03-fiches-ecrans.md",
+        "docs/conception/01-transitions.md",
+        "docs/api/contrats.md",
+        "docs/13-design-system.md"
+      ],
+      "screens": [
+        "E24"
+      ],
+      "transitions": [
+        "S11"
+      ],
+      "tests": [
+        "T42",
+        "T43",
+        "T75",
+        "T76"
+      ],
+      "responsive": [
+        "RSP01",
+        "RSP02",
+        "RSP03",
+        "RSP04",
+        "RSP05",
+        "RSP06",
+        "RSP07"
+      ],
+      "security": [
+        "SEC08",
+        "SEC09"
+      ],
+      "deliverables": [
+        "POST /stock-counts",
+        "POST /stock-counts/:id/start",
+        "POST /stock-counts/:id/decision",
+        "Tests et états UI de E24"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P07-E31",
+      "phase": "P07",
+      "title": "Perte ou casse",
+      "status": "A_FAIRE",
+      "dependencies": [
+        "P06-GATE"
+      ],
+      "acceptance": [
+        "Réaliser le parcours Stock > Signaler problème → Quantité isolée, dossier en attente, lien suivi",
+        "Action : Déclarer le problème ; champs/DTO et droits de la fiche respectés",
+        "Données : loss_reports, stock_entries, discrepancy_cases ; états et effets selon S11",
+        "UI et API réelles, vide/erreur/chargement et recette du périmètre disponible ; assertions de domaines futurs explicitement reprises par les tâches transversales P07/P08/P10"
+      ],
+      "references": [
+        "docs/conception/03-fiches-ecrans.md",
+        "docs/conception/01-transitions.md",
+        "docs/api/contrats.md",
+        "docs/13-design-system.md"
+      ],
+      "screens": [
+        "E31"
+      ],
+      "transitions": [
+        "S11"
+      ],
+      "tests": [
+        "T44",
+        "T75"
+      ],
+      "responsive": [
+        "RSP01",
+        "RSP02",
+        "RSP03",
+        "RSP04",
+        "RSP05",
+        "RSP06",
+        "RSP07"
+      ],
+      "security": [
+        "SEC08",
+        "SEC09"
+      ],
+      "deliverables": [
+        "POST /loss-reports",
+        "Tests et états UI de E31"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P07-E32",
+      "phase": "P07",
+      "title": "Comptage inventaire gérant",
+      "status": "A_FAIRE",
+      "dependencies": [
+        "P06-GATE"
+      ],
+      "acceptance": [
+        "Réaliser le parcours Notification inventaire ouvert → Lecture figée en attente owner ; aucun déblocage automatique",
+        "Action : Soumettre le comptage ; champs/DTO et droits de la fiche respectés",
+        "Données : stock_counts, stock_count_lines ; états et effets selon S11",
+        "UI et API réelles, vide/erreur/chargement et recette du périmètre disponible ; assertions de domaines futurs explicitement reprises par les tâches transversales P07/P08/P10"
+      ],
+      "references": [
+        "docs/conception/03-fiches-ecrans.md",
+        "docs/conception/01-transitions.md",
+        "docs/api/contrats.md",
+        "docs/13-design-system.md"
+      ],
+      "screens": [
+        "E32"
+      ],
+      "transitions": [
+        "S11"
+      ],
+      "tests": [
+        "T42",
+        "T43",
+        "T76"
+      ],
+      "responsive": [
+        "RSP01",
+        "RSP02",
+        "RSP03",
+        "RSP04",
+        "RSP05",
+        "RSP06",
+        "RSP07"
+      ],
+      "security": [
+        "SEC08",
+        "SEC09"
+      ],
+      "deliverables": [
+        "PUT /stock-counts/:id/lines",
+        "POST /stock-counts/:id/submit",
+        "Tests et états UI de E32"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P07-E33",
+      "phase": "P07",
+      "title": "Retour et remboursement client",
+      "status": "A_FAIRE",
+      "dependencies": [
+        "P06-GATE"
+      ],
+      "acceptance": [
+        "Réaliser le parcours Vente E06 ou liste retours → Détail retour avec obligation restante ; reçu remboursement",
+        "Action : Demander / recevoir / rembourser selon étape ; champs/DTO et droits de la fiche respectés",
+        "Données : returns, return_receipts, return_value_allocations, refund_allocations ; états et effets selon S06",
+        "UI et API réelles, vide/erreur/chargement et recette du périmètre disponible ; assertions de domaines futurs explicitement reprises par les tâches transversales P07/P08/P10"
+      ],
+      "references": [
+        "docs/conception/03-fiches-ecrans.md",
+        "docs/conception/01-transitions.md",
+        "docs/api/contrats.md",
+        "docs/13-design-system.md"
+      ],
+      "screens": [
+        "E33"
+      ],
+      "transitions": [
+        "S06"
+      ],
+      "tests": [
+        "T20",
+        "T21",
+        "T22",
+        "T70",
+        "T82"
+      ],
+      "responsive": [
+        "RSP01",
+        "RSP02",
+        "RSP03",
+        "RSP04",
+        "RSP05",
+        "RSP06",
+        "RSP07"
+      ],
+      "security": [
+        "SEC08",
+        "SEC09"
+      ],
+      "deliverables": [
+        "POST /returns",
+        "POST /returns/:id/receive",
+        "POST /returns/:id/refund",
+        "Tests et états UI de E33"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P07-E34",
+      "phase": "P07",
+      "title": "Fournisseurs et paiements",
+      "status": "A_FAIRE",
+      "dependencies": [
+        "P06-GATE"
+      ],
+      "acceptance": [
+        "Réaliser le parcours Achats > Fournisseur → Reçu et solde restant ; retour fournisseur sous onglet dédié",
+        "Action : Payer ou enregistrer remboursement fournisseur ; champs/DTO et droits de la fiche respectés",
+        "Données : suppliers, supplier_payment_allocations, supplier_returns ; états et effets selon S10, S12",
+        "UI et API réelles, vide/erreur/chargement et recette du périmètre disponible ; assertions de domaines futurs explicitement reprises par les tâches transversales P07/P08/P10"
+      ],
+      "references": [
+        "docs/conception/03-fiches-ecrans.md",
+        "docs/conception/01-transitions.md",
+        "docs/api/contrats.md",
+        "docs/13-design-system.md"
+      ],
+      "screens": [
+        "E34"
+      ],
+      "transitions": [
+        "S10",
+        "S12"
+      ],
+      "tests": [
+        "T35",
+        "T36",
+        "T79"
+      ],
+      "responsive": [
+        "RSP01",
+        "RSP02",
+        "RSP03",
+        "RSP04",
+        "RSP05",
+        "RSP06",
+        "RSP07"
+      ],
+      "security": [
+        "SEC08",
+        "SEC09"
+      ],
+      "deliverables": [
+        "POST /supplier-payments",
+        "POST /supplier-returns",
+        "POST /supplier-returns/:id/confirm-credit",
+        "Tests et états UI de E34"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P07-E35",
+      "phase": "P07",
+      "title": "Historique détaillé propriétaire",
+      "status": "A_FAIRE",
+      "dependencies": [
+        "P06-GATE"
+      ],
+      "acceptance": [
+        "Réaliser le parcours Rapport ventes ou recherche référence → Gérant notifié pour exécution physique ; pas sortie cash immédiate",
+        "Action : Autoriser/refuser une correction ; champs/DTO et droits de la fiche respectés",
+        "Données : sales, approvals, returns ; états et effets selon S02, S06",
+        "UI et API réelles, vide/erreur/chargement et recette du périmètre disponible ; assertions de domaines futurs explicitement reprises par les tâches transversales P07/P08/P10"
+      ],
+      "references": [
+        "docs/conception/03-fiches-ecrans.md",
+        "docs/conception/01-transitions.md",
+        "docs/api/contrats.md",
+        "docs/13-design-system.md"
+      ],
+      "screens": [
+        "E35"
+      ],
+      "transitions": [
+        "S02",
+        "S06"
+      ],
+      "tests": [
+        "T20",
+        "T22",
+        "T74"
+      ],
+      "responsive": [
+        "RSP01",
+        "RSP02",
+        "RSP03",
+        "RSP04",
+        "RSP05",
+        "RSP06",
+        "RSP07"
+      ],
+      "security": [
+        "SEC08",
+        "SEC09"
+      ],
+      "deliverables": [
+        "GET /sales/:id",
+        "POST /returns/:id/decision",
+        "POST /requests/:id/decision",
+        "Tests et états UI de E35"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P07-GATE",
+      "phase": "P07",
+      "title": "Valider la sortie P07",
+      "status": "A_FAIRE",
+      "dependencies": [
+        "P07-01",
+        "P07-02",
+        "P07-E15",
+        "P07-E24",
+        "P07-E31",
+        "P07-E32",
+        "P07-E33",
+        "P07-E34",
+        "P07-E35"
+      ],
+      "acceptance": [
+        "Preuves de chaque tâche du périmètre consignées, aucun défaut critique non résolu",
+        "Mettre à jour IMPLEMENTATION_STATUS et matrice de couverture ; pas de validation implicite des assertions reportées"
+      ],
+      "references": [
+        "docs/15-phases-developpement.md"
+      ],
+      "screens": [],
+      "transitions": [],
+      "tests": [],
+      "responsive": [],
+      "security": [],
+      "deliverables": [
+        "Compte rendu de phase"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P08-01",
+      "phase": "P08",
+      "title": "Activer offline, PWA et reprise durable",
+      "status": "A_FAIRE",
+      "dependencies": [
+        "P07-GATE"
+      ],
+      "acceptance": [
+        "Cash-only <=24h ; coupure/veille/reload/replay sans doublon",
+        "Clôture offline dernier événement ; file préservée sur logout/update",
+        "Tester appareil réel, quotas et manque d’API ; résultat inconnu visible"
+      ],
+      "references": [
+        "docs/15-phases-developpement.md",
+        "docs/11-stack-et-strategie-tests.md",
+        "docs/14-securite-conception-et-recette.md"
+      ],
+      "screens": [
+        "E05",
+        "E07",
+        "E08",
+        "E16",
+        "E36",
+        "E38"
+      ],
+      "transitions": [
+        "S01",
+        "S02",
+        "S03",
+        "S12",
+        "S13",
+        "S14",
+        "S15"
+      ],
+      "tests": [
+        "T45",
+        "T46",
+        "T47",
+        "T48",
+        "T49",
+        "T50",
+        "T51",
+        "T52",
+        "T61",
+        "T62",
+        "T63",
+        "T64",
+        "T74",
+        "T80"
+      ],
+      "responsive": [
+        "RSP08",
+        "RSP09",
+        "RSP10"
+      ],
+      "security": [
+        "SEC10",
+        "SEC15",
+        "SEC16",
+        "SEC21",
+        "SEC10"
+      ],
+      "deliverables": [
+        "Code, tests et preuve de recette du périmètre"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P08-E16",
+      "phase": "P08",
+      "title": "Synchronisation",
+      "status": "A_FAIRE",
+      "dependencies": [
+        "P07-GATE",
+        "P08-01"
+      ],
+      "acceptance": [
+        "Réaliser le parcours Bandeau statut ou Plus → Même écran, lien dossier de conflit ; aucun bouton effacer",
+        "Action : Réessayer la synchronisation ; champs/DTO et droits de la fiche respectés",
+        "Données : device_events, sync_changes, devices ; états et effets selon S14",
+        "UI et API réelles, vide/erreur/chargement et recette du périmètre disponible ; assertions de domaines futurs explicitement reprises par les tâches transversales P07/P08/P10"
+      ],
+      "references": [
+        "docs/conception/03-fiches-ecrans.md",
+        "docs/conception/01-transitions.md",
+        "docs/api/contrats.md",
+        "docs/13-design-system.md"
+      ],
+      "screens": [
+        "E16"
+      ],
+      "transitions": [
+        "S14"
+      ],
+      "tests": [
+        "T45",
+        "T46",
+        "T47",
+        "T48",
+        "T49",
+        "T50",
+        "T51",
+        "T52",
+        "T62",
+        "T63"
+      ],
+      "responsive": [
+        "RSP01",
+        "RSP02",
+        "RSP03",
+        "RSP04",
+        "RSP05",
+        "RSP06",
+        "RSP07"
+      ],
+      "security": [
+        "SEC08",
+        "SEC09"
+      ],
+      "deliverables": [
+        "POST /sync/handshake",
+        "POST /sync/push",
+        "GET /sync/pull",
+        "Tests et états UI de E16"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P08-E36",
+      "phase": "P08",
+      "title": "Correction et reprise",
+      "status": "A_FAIRE",
+      "dependencies": [
+        "P07-GATE",
+        "P08-01"
+      ],
+      "acceptance": [
+        "Réaliser le parcours Écart, recomptage ou appareil perdu → Chronologie, opérations liées, reprise appareil après rapprochement",
+        "Action : Valider une étape de reprise ; champs/DTO et droits de la fiche respectés",
+        "Données : recount_requests, opening_and_recovery_cases, device_sequence_resolutions ; états et effets selon S03, S13, S14, S15",
+        "UI et API réelles, vide/erreur/chargement et recette du périmètre disponible ; assertions de domaines futurs explicitement reprises par les tâches transversales P07/P08/P10"
+      ],
+      "references": [
+        "docs/conception/03-fiches-ecrans.md",
+        "docs/conception/01-transitions.md",
+        "docs/api/contrats.md",
+        "docs/13-design-system.md"
+      ],
+      "screens": [
+        "E36"
+      ],
+      "transitions": [
+        "S03",
+        "S13",
+        "S14",
+        "S15"
+      ],
+      "tests": [
+        "T41",
+        "T48",
+        "T63",
+        "T77"
+      ],
+      "responsive": [
+        "RSP01",
+        "RSP02",
+        "RSP03",
+        "RSP04",
+        "RSP05",
+        "RSP06",
+        "RSP07"
+      ],
+      "security": [
+        "SEC08",
+        "SEC09"
+      ],
+      "deliverables": [
+        "POST /cash-closures/:id/recounts",
+        "POST /recounts/:id/decision",
+        "POST /recovery-cases",
+        "Tests et états UI de E36"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P08-GATE",
+      "phase": "P08",
+      "title": "Valider la sortie P08",
+      "status": "A_FAIRE",
+      "dependencies": [
+        "P08-01",
+        "P08-E16",
+        "P08-E36"
+      ],
+      "acceptance": [
+        "Preuves de chaque tâche du périmètre consignées, aucun défaut critique non résolu",
+        "Mettre à jour IMPLEMENTATION_STATUS et matrice de couverture ; pas de validation implicite des assertions reportées"
+      ],
+      "references": [
+        "docs/15-phases-developpement.md"
+      ],
+      "screens": [],
+      "transitions": [],
+      "tests": [],
+      "responsive": [],
+      "security": [],
+      "deliverables": [
+        "Compte rendu de phase"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P09-01",
+      "phase": "P09",
+      "title": "Worker exports et indicateurs réconciliés",
+      "status": "A_FAIRE",
+      "dependencies": [
+        "P08-GATE"
+      ],
+      "acceptance": [
+        "CSV sans formule, PDF contrôlé et liens privés périssables",
+        "Chiffres T84 et fraîcheur T80 cohérents avec journaux ; pas de faux zéro"
+      ],
+      "references": [
+        "docs/15-phases-developpement.md",
+        "docs/11-stack-et-strategie-tests.md",
+        "docs/14-securite-conception-et-recette.md"
+      ],
+      "screens": [
+        "E03",
+        "E17",
+        "E22",
+        "E23",
+        "E27"
+      ],
+      "transitions": [
+        "S01",
+        "S02",
+        "S03",
+        "S13"
+      ],
+      "tests": [
+        "T53",
+        "T54",
+        "T60",
+        "T80",
+        "T81",
+        "T84"
+      ],
+      "responsive": [],
+      "security": [
+        "SEC08",
+        "SEC10",
+        "SEC13",
+        "SEC19"
+      ],
+      "deliverables": [
+        "Code, tests et preuve de recette du périmètre"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P09-E17",
+      "phase": "P09",
+      "title": "Vue propriétaire",
+      "status": "A_FAIRE",
+      "dependencies": [
+        "P08-GATE",
+        "P09-01"
+      ],
+      "acceptance": [
+        "Réaliser le parcours Connexion ou navigation → E18 ou listes détaillées E27/E35",
+        "Conserver /owner comme entrée décisionnelle unique et gérer SETUP, EMPTY, ACTIVE, STALE, PARTIAL et ERROR",
+        "Action : Traiter les actions prioritaires ou ouvrir un indicateur jusqu’aux écritures sources autorisées",
+        "Données : sales, payments, money_entries, stock_balances, discrepancy_cases, sync_cursors ; états et effets selon S13",
+        "Afficher période, périmètre boutique, fraîcheur et couverture ; absence de données distincte de zéro",
+        "Consolider ventes, encaissements, dépenses, créances, résultat brut estimé, stock, écarts, décisions et alertes sans chiffre fictif",
+        "UI et API réelles, vide/erreur/chargement et recette du périmètre disponible ; assertions de domaines futurs explicitement reprises par les tâches transversales P07/P08/P10"
+      ],
+      "references": [
+        "docs/conception/03-fiches-ecrans.md",
+        "docs/conception/01-transitions.md",
+        "docs/api/contrats.md",
+        "docs/13-design-system.md",
+        "docs/17-dashboard-proprietaire.md"
+      ],
+      "screens": [
+        "E17"
+      ],
+      "transitions": [
+        "S13"
+      ],
+      "tests": [
+        "T60",
+        "T80",
+        "T84"
+      ],
+      "responsive": [
+        "RSP01",
+        "RSP02",
+        "RSP03",
+        "RSP04",
+        "RSP05",
+        "RSP06",
+        "RSP07"
+      ],
+      "security": [
+        "SEC08",
+        "SEC09"
+      ],
+      "deliverables": [
+        "GET /reports/overview",
+        "GET /notifications",
+        "Tests et états UI de E17"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P09-E27",
+      "phase": "P09",
+      "title": "Rapports",
+      "status": "A_FAIRE",
+      "dependencies": [
+        "P08-GATE",
+        "P09-01"
+      ],
+      "acceptance": [
+        "Réaliser le parcours Navigation Rapports → Table détail ; état job puis téléchargement autorisé",
+        "Action : Afficher ou exporter ; champs/DTO et droits de la fiche respectés",
+        "Données : export_jobs, sales, money_entries, stock_entries ; états et effets selon S13",
+        "UI et API réelles, vide/erreur/chargement et recette du périmètre disponible ; assertions de domaines futurs explicitement reprises par les tâches transversales P07/P08/P10"
+      ],
+      "references": [
+        "docs/conception/03-fiches-ecrans.md",
+        "docs/conception/01-transitions.md",
+        "docs/api/contrats.md",
+        "docs/13-design-system.md"
+      ],
+      "screens": [
+        "E27"
+      ],
+      "transitions": [
+        "S13"
+      ],
+      "tests": [
+        "T54",
+        "T60",
+        "T80",
+        "T81"
+      ],
+      "responsive": [
+        "RSP01",
+        "RSP02",
+        "RSP03",
+        "RSP04",
+        "RSP05",
+        "RSP06",
+        "RSP07"
+      ],
+      "security": [
+        "SEC08",
+        "SEC09"
+      ],
+      "deliverables": [
+        "GET /reports/overview",
+        "POST /exports",
+        "GET /exports/:id",
+        "Tests et états UI de E27"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P09-GATE",
+      "phase": "P09",
+      "title": "Valider la sortie P09",
+      "status": "A_FAIRE",
+      "dependencies": [
+        "P09-01",
+        "P09-E17",
+        "P09-E27"
+      ],
+      "acceptance": [
+        "Preuves de chaque tâche du périmètre consignées, aucun défaut critique non résolu",
+        "Mettre à jour IMPLEMENTATION_STATUS et matrice de couverture ; pas de validation implicite des assertions reportées"
+      ],
+      "references": [
+        "docs/15-phases-developpement.md"
+      ],
+      "screens": [],
+      "transitions": [],
+      "tests": [],
+      "responsive": [],
+      "security": [],
+      "deliverables": [
+        "Compte rendu de phase"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P10-01",
+      "phase": "P10",
+      "title": "Recette complète et charge",
+      "status": "A_FAIRE",
+      "dependencies": [
+        "P09-GATE"
+      ],
+      "acceptance": [
+        "Chaque T/RSP/SEC a une preuve ou inapplicabilité motivée",
+        "Aucune fuite/erreur financière, charge mesurée et navigateurs/appareils listés"
+      ],
+      "references": [
+        "docs/15-phases-developpement.md",
+        "docs/11-stack-et-strategie-tests.md",
+        "docs/14-securite-conception-et-recette.md"
+      ],
+      "screens": [],
+      "transitions": [],
+      "tests": [
+        "T58"
+      ],
+      "responsive": [],
+      "security": [
+        "SEC14",
+        "SEC17",
+        "SEC19"
+      ],
+      "deliverables": [
+        "Code, tests et preuve de recette du périmètre"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P10-02",
+      "phase": "P10",
+      "title": "Préparer VPS et restaurer hors serveur",
+      "status": "A_FAIRE",
+      "dependencies": [
+        "P09-GATE"
+      ],
+      "acceptance": [
+        "Ports externes/TLS/roles/secrets vérifiés sur cible autorisée",
+        "PITR/objets restaurés, RPO/RTO mesurés et séquences rapprochées"
+      ],
+      "references": [
+        "docs/15-phases-developpement.md",
+        "docs/11-stack-et-strategie-tests.md",
+        "docs/14-securite-conception-et-recette.md"
+      ],
+      "screens": [],
+      "transitions": [],
+      "tests": [
+        "T59"
+      ],
+      "responsive": [],
+      "security": [
+        "SEC18",
+        "SEC19",
+        "SEC20",
+        "SEC21"
+      ],
+      "deliverables": [
+        "Code, tests et preuve de recette du périmètre"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P10-GATE",
+      "phase": "P10",
+      "title": "Valider la sortie P10",
+      "status": "A_FAIRE",
+      "dependencies": [
+        "P10-01",
+        "P10-02"
+      ],
+      "acceptance": [
+        "Preuves de chaque tâche du périmètre consignées, aucun défaut critique non résolu",
+        "Mettre à jour IMPLEMENTATION_STATUS et matrice de couverture ; pas de validation implicite des assertions reportées"
+      ],
+      "references": [
+        "docs/15-phases-developpement.md"
+      ],
+      "screens": [],
+      "transitions": [],
+      "tests": [],
+      "responsive": [],
+      "security": [],
+      "deliverables": [
+        "Compte rendu de phase"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P11-01",
+      "phase": "P11",
+      "title": "Formation et initialisation réelle",
+      "status": "A_FAIRE",
+      "dependencies": [
+        "P10-GATE"
+      ],
+      "acceptance": [
+        "Comptes nominatifs et soldes validés avec provenance",
+        "Production autorisée sans démo ; guide des limites offline remis"
+      ],
+      "references": [
+        "docs/15-phases-developpement.md",
+        "docs/11-stack-et-strategie-tests.md",
+        "docs/14-securite-conception-et-recette.md"
+      ],
+      "screens": [],
+      "transitions": [],
+      "tests": [
+        "T01",
+        "T61",
+        "T78"
+      ],
+      "responsive": [],
+      "security": [
+        "SEC07",
+        "SEC21"
+      ],
+      "deliverables": [
+        "Code, tests et preuve de recette du périmètre"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P11-02",
+      "phase": "P11",
+      "title": "Pilote puis généralisation",
+      "status": "A_FAIRE",
+      "dependencies": [
+        "P11-01"
+      ],
+      "acceptance": [
+        "Un cycle boutique complet et écarts rapprochés avant extension",
+        "Décision de généralisation et limites tracées ; pas de restauration aveugle"
+      ],
+      "references": [
+        "docs/15-phases-developpement.md",
+        "docs/11-stack-et-strategie-tests.md",
+        "docs/14-securite-conception-et-recette.md"
+      ],
+      "screens": [],
+      "transitions": [],
+      "tests": [
+        "T84"
+      ],
+      "responsive": [],
+      "security": [],
+      "deliverables": [
+        "Code, tests et preuve de recette du périmètre"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P11-GATE",
+      "phase": "P11",
+      "title": "Valider la sortie P11",
+      "status": "A_FAIRE",
+      "dependencies": [
+        "P11-01",
+        "P11-02"
+      ],
+      "acceptance": [
+        "Preuves de chaque tâche du périmètre consignées, aucun défaut critique non résolu",
+        "Mettre à jour IMPLEMENTATION_STATUS et matrice de couverture ; pas de validation implicite des assertions reportées"
+      ],
+      "references": [
+        "docs/15-phases-developpement.md"
+      ],
+      "screens": [],
+      "transitions": [],
+      "tests": [],
+      "responsive": [],
+      "security": [],
+      "deliverables": [
+        "Compte rendu de phase"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P12-01",
+      "phase": "P12",
+      "title": "Maintenance et revue périodique",
+      "status": "A_FAIRE",
+      "dependencies": [
+        "P11-GATE"
+      ],
+      "acceptance": [
+        "Runbook incidents, accès, correctifs et backlog de demandes opérationnel",
+        "Contrôles de sauvegardes/restore trimestriels avec destinataire réel"
+      ],
+      "references": [
+        "docs/15-phases-developpement.md",
+        "docs/11-stack-et-strategie-tests.md",
+        "docs/14-securite-conception-et-recette.md"
+      ],
+      "screens": [],
+      "transitions": [],
+      "tests": [
+        "T59"
+      ],
+      "responsive": [],
+      "security": [
+        "SEC17",
+        "SEC19",
+        "SEC20",
+        "SEC21"
+      ],
+      "deliverables": [
+        "Code, tests et preuve de recette du périmètre"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "P12-GATE",
+      "phase": "P12",
+      "title": "Valider la sortie P12",
+      "status": "A_FAIRE",
+      "dependencies": [
+        "P12-01"
+      ],
+      "acceptance": [
+        "Preuves de chaque tâche du périmètre consignées, aucun défaut critique non résolu",
+        "Mettre à jour IMPLEMENTATION_STATUS et matrice de couverture ; pas de validation implicite des assertions reportées"
+      ],
+      "references": [
+        "docs/15-phases-developpement.md"
+      ],
+      "screens": [],
+      "transitions": [],
+      "tests": [],
+      "responsive": [],
+      "security": [],
+      "deliverables": [
+        "Compte rendu de phase"
+      ],
+      "evidence": []
+    }
+  ]
+}

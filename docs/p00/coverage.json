@@ -1,0 +1,2248 @@
+[
+  {
+    "reference": "E01",
+    "tasks": [
+      "P02-E01"
+    ],
+    "consolidationPhase": "P02",
+    "status": "TESTE",
+    "evidence": [
+      "tests/e2e/connexion.spec.ts",
+      "tests/integration/auth.test.ts"
+    ]
+  },
+  {
+    "reference": "E02",
+    "tasks": [
+      "P03-E02",
+      "P07-01"
+    ],
+    "consolidationPhase": "P07",
+    "status": "PARTIEL",
+    "evidence": [
+      "tests/e2e/p03-business.spec.ts — initialisation P03 ; extensions crédit P07 restantes"
+    ]
+  },
+  {
+    "reference": "E03",
+    "tasks": [
+      "P04-E03",
+      "P09-01"
+    ],
+    "consolidationPhase": "P09",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "E04",
+    "tasks": [
+      "P04-E04"
+    ],
+    "consolidationPhase": "P04",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "E05",
+    "tasks": [
+      "P04-E05",
+      "P07-01",
+      "P08-01"
+    ],
+    "consolidationPhase": "P08",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "E06",
+    "tasks": [
+      "P04-E06",
+      "P07-01"
+    ],
+    "consolidationPhase": "P07",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "E07",
+    "tasks": [
+      "P04-E07",
+      "P08-01"
+    ],
+    "consolidationPhase": "P08",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "E08",
+    "tasks": [
+      "P05-E08",
+      "P08-01"
+    ],
+    "consolidationPhase": "P08",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "E09",
+    "tasks": [
+      "P05-E09"
+    ],
+    "consolidationPhase": "P05",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "E10",
+    "tasks": [
+      "P06-E10"
+    ],
+    "consolidationPhase": "P06",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "E11",
+    "tasks": [
+      "P06-E11"
+    ],
+    "consolidationPhase": "P06",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "E12",
+    "tasks": [
+      "P06-E12"
+    ],
+    "consolidationPhase": "P06",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "E13",
+    "tasks": [
+      "P06-E13"
+    ],
+    "consolidationPhase": "P06",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "E14",
+    "tasks": [
+      "P03-E14"
+    ],
+    "consolidationPhase": "P03",
+    "status": "TESTE",
+    "evidence": [
+      "tests/integration/p03.test.ts",
+      "tests/e2e/p03-business.spec.ts"
+    ]
+  },
+  {
+    "reference": "E15",
+    "tasks": [
+      "P07-E15"
+    ],
+    "consolidationPhase": "P07",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "E16",
+    "tasks": [
+      "P08-01",
+      "P08-E16"
+    ],
+    "consolidationPhase": "P08",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "E17",
+    "tasks": [
+      "P09-01",
+      "P09-E17"
+    ],
+    "consolidationPhase": "P09",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "E18",
+    "tasks": [
+      "P06-E18"
+    ],
+    "consolidationPhase": "P06",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "E19",
+    "tasks": [
+      "P06-E19"
+    ],
+    "consolidationPhase": "P06",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "E20",
+    "tasks": [
+      "P06-E20"
+    ],
+    "consolidationPhase": "P06",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "E21",
+    "tasks": [
+      "P05-E21"
+    ],
+    "consolidationPhase": "P05",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "E22",
+    "tasks": [
+      "P05-E22",
+      "P09-01"
+    ],
+    "consolidationPhase": "P09",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "E23",
+    "tasks": [
+      "P05-E23",
+      "P09-01"
+    ],
+    "consolidationPhase": "P09",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "E24",
+    "tasks": [
+      "P07-E24"
+    ],
+    "consolidationPhase": "P07",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "E25",
+    "tasks": [
+      "P03-E25"
+    ],
+    "consolidationPhase": "P03",
+    "status": "TESTE",
+    "evidence": [
+      "tests/integration/p03.test.ts",
+      "tests/e2e/p03-business.spec.ts"
+    ]
+  },
+  {
+    "reference": "E26",
+    "tasks": [
+      "P03-E26",
+      "P07-02"
+    ],
+    "consolidationPhase": "P07",
+    "status": "PARTIEL",
+    "evidence": [
+      "tests/integration/p03.test.ts — cycle P03 ; passation avancée P07 restante",
+      "tests/e2e/p03-business.spec.ts"
+    ]
+  },
+  {
+    "reference": "E27",
+    "tasks": [
+      "P09-01",
+      "P09-E27"
+    ],
+    "consolidationPhase": "P09",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "E28",
+    "tasks": [
+      "P03-E28",
+      "P07-01"
+    ],
+    "consolidationPhase": "P07",
+    "status": "PARTIEL",
+    "evidence": [
+      "tests/integration/p03.test.ts — politiques P03 ; options P07 restantes"
+    ]
+  },
+  {
+    "reference": "E29",
+    "tasks": [
+      "P06-E29"
+    ],
+    "consolidationPhase": "P06",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "E30",
+    "tasks": [
+      "P05-E30"
+    ],
+    "consolidationPhase": "P05",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "E31",
+    "tasks": [
+      "P07-E31"
+    ],
+    "consolidationPhase": "P07",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "E32",
+    "tasks": [
+      "P07-E32"
+    ],
+    "consolidationPhase": "P07",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "E33",
+    "tasks": [
+      "P07-E33"
+    ],
+    "consolidationPhase": "P07",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "E34",
+    "tasks": [
+      "P07-E34"
+    ],
+    "consolidationPhase": "P07",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "E35",
+    "tasks": [
+      "P07-E35"
+    ],
+    "consolidationPhase": "P07",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "E36",
+    "tasks": [
+      "P08-01",
+      "P08-E36"
+    ],
+    "consolidationPhase": "P08",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "E37",
+    "tasks": [
+      "P02-E37",
+      "P07-02"
+    ],
+    "consolidationPhase": "P07",
+    "status": "PARTIEL",
+    "evidence": [
+      "tests/integration/access.test.ts",
+      "tests/e2e/connexion.spec.ts — état vide sans boutique"
+    ]
+  },
+  {
+    "reference": "E38",
+    "tasks": [
+      "P02-E38",
+      "P07-02",
+      "P08-01"
+    ],
+    "consolidationPhase": "P08",
+    "status": "PARTIEL",
+    "evidence": [
+      "tests/integration/access.test.ts",
+      "tests/e2e/p02-responsive.spec.ts — écran gérant"
+    ]
+  },
+  {
+    "reference": "E39",
+    "tasks": [
+      "P03-E39"
+    ],
+    "consolidationPhase": "P03",
+    "status": "TESTE",
+    "evidence": [
+      "tests/integration/p03.test.ts",
+      "tests/e2e/p03-business.spec.ts"
+    ]
+  },
+  {
+    "reference": "E40",
+    "tasks": [
+      "P03-E40",
+      "P07-02"
+    ],
+    "consolidationPhase": "P07",
+    "status": "PARTIEL",
+    "evidence": [
+      "tests/integration/p03.test.ts — dépôt P03 ; transferts et clôture P06/P07 restants",
+      "tests/e2e/p03-business.spec.ts"
+    ]
+  },
+  {
+    "reference": "S01",
+    "tasks": [
+      "P02-E01",
+      "P02-E37",
+      "P02-E38",
+      "P03-E02",
+      "P03-E25",
+      "P03-E26",
+      "P03-E39",
+      "P04-E03",
+      "P04-E07",
+      "P07-01",
+      "P07-02",
+      "P08-01",
+      "P09-01"
+    ],
+    "consolidationPhase": "P09",
+    "status": "PARTIEL",
+    "evidence": [
+      "tests/integration/access.test.ts — sessions, invitations, appareils"
+    ]
+  },
+  {
+    "reference": "S02",
+    "tasks": [
+      "P04-E03",
+      "P04-E04",
+      "P04-E05",
+      "P04-E06",
+      "P07-01",
+      "P07-E35",
+      "P08-01",
+      "P09-01"
+    ],
+    "consolidationPhase": "P09",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "S03",
+    "tasks": [
+      "P04-E03",
+      "P04-E07",
+      "P05-E08",
+      "P08-01",
+      "P08-E36",
+      "P09-01"
+    ],
+    "consolidationPhase": "P09",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "S04",
+    "tasks": [
+      "P03-E14",
+      "P03-E28",
+      "P06-E10",
+      "P06-E11",
+      "P06-E18",
+      "P07-01"
+    ],
+    "consolidationPhase": "P07",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "S05",
+    "tasks": [
+      "P05-E09"
+    ],
+    "consolidationPhase": "P05",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "S06",
+    "tasks": [
+      "P04-E06",
+      "P07-01",
+      "P07-E33",
+      "P07-E35"
+    ],
+    "consolidationPhase": "P07",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "S07",
+    "tasks": [
+      "P06-E11",
+      "P06-E12",
+      "P06-E19"
+    ],
+    "consolidationPhase": "P06",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "S08",
+    "tasks": [
+      "P03-E40",
+      "P06-E12",
+      "P06-E13",
+      "P06-E19",
+      "P06-E20",
+      "P06-E29",
+      "P07-02"
+    ],
+    "consolidationPhase": "P07",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "S09",
+    "tasks": [
+      "P03-E39",
+      "P05-E21",
+      "P05-E30"
+    ],
+    "consolidationPhase": "P05",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "S10",
+    "tasks": [
+      "P07-E34"
+    ],
+    "consolidationPhase": "P07",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "S11",
+    "tasks": [
+      "P03-E14",
+      "P07-E24",
+      "P07-E31",
+      "P07-E32"
+    ],
+    "consolidationPhase": "P07",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "S12",
+    "tasks": [
+      "P03-E02",
+      "P03-E28",
+      "P04-E05",
+      "P07-01",
+      "P07-E15",
+      "P07-E34",
+      "P08-01"
+    ],
+    "consolidationPhase": "P08",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "S13",
+    "tasks": [
+      "P05-E22",
+      "P05-E23",
+      "P08-01",
+      "P08-E36",
+      "P09-01",
+      "P09-E17",
+      "P09-E27"
+    ],
+    "consolidationPhase": "P09",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "S14",
+    "tasks": [
+      "P02-E38",
+      "P04-E05",
+      "P05-E08",
+      "P07-01",
+      "P07-02",
+      "P08-01",
+      "P08-E16",
+      "P08-E36"
+    ],
+    "consolidationPhase": "P08",
+    "status": "PARTIEL",
+    "evidence": [
+      "tests/integration/access.test.ts — register/approve/revoke sans capacité"
+    ]
+  },
+  {
+    "reference": "S15",
+    "tasks": [
+      "P02-E37",
+      "P03-E26",
+      "P03-E40",
+      "P07-02",
+      "P08-01",
+      "P08-E36"
+    ],
+    "consolidationPhase": "P08",
+    "status": "PARTIEL",
+    "evidence": [
+      "tests/integration/access.test.ts — un seul gérant actif, concurrence"
+    ]
+  },
+  {
+    "reference": "T01",
+    "tasks": [
+      "P03-E02",
+      "P03-E26",
+      "P11-01"
+    ],
+    "consolidationPhase": "P11",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T02",
+    "tasks": [
+      "P02-E01",
+      "P02-E37",
+      "P04-E03"
+    ],
+    "consolidationPhase": "P04",
+    "status": "PARTIEL",
+    "evidence": [
+      "tests/e2e/connexion.spec.ts",
+      "tests/integration/access.test.ts"
+    ]
+  },
+  {
+    "reference": "T03",
+    "tasks": [
+      "P04-01",
+      "P04-E05"
+    ],
+    "consolidationPhase": "P04",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T04",
+    "tasks": [
+      "P04-01",
+      "P04-E05"
+    ],
+    "consolidationPhase": "P04",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T05",
+    "tasks": [
+      "P04-01",
+      "P04-E05"
+    ],
+    "consolidationPhase": "P04",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T06",
+    "tasks": [
+      "P04-01",
+      "P04-E05"
+    ],
+    "consolidationPhase": "P04",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T07",
+    "tasks": [
+      "P04-01",
+      "P04-E05"
+    ],
+    "consolidationPhase": "P04",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T08",
+    "tasks": [
+      "P04-01",
+      "P04-E04"
+    ],
+    "consolidationPhase": "P04",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T09",
+    "tasks": [
+      "P04-E04"
+    ],
+    "consolidationPhase": "P04",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T10",
+    "tasks": [
+      "P03-E25",
+      "P04-E04"
+    ],
+    "consolidationPhase": "P04",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T11",
+    "tasks": [
+      "P03-E25",
+      "P04-E04"
+    ],
+    "consolidationPhase": "P04",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T12",
+    "tasks": [
+      "P03-E14",
+      "P03-E25",
+      "P04-E04"
+    ],
+    "consolidationPhase": "P04",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T13",
+    "tasks": [
+      "P03-E14",
+      "P03-E25"
+    ],
+    "consolidationPhase": "P03",
+    "status": "TESTE",
+    "evidence": [
+      "tests/integration/p03.test.ts"
+    ]
+  },
+  {
+    "reference": "T14",
+    "tasks": [
+      "P04-E04"
+    ],
+    "consolidationPhase": "P04",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T15",
+    "tasks": [
+      "P04-E04"
+    ],
+    "consolidationPhase": "P04",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T16",
+    "tasks": [
+      "P04-E05",
+      "P07-01"
+    ],
+    "consolidationPhase": "P07",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T17",
+    "tasks": [
+      "P07-01",
+      "P07-E15"
+    ],
+    "consolidationPhase": "P07",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T18",
+    "tasks": [
+      "P07-01",
+      "P07-E15"
+    ],
+    "consolidationPhase": "P07",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T19",
+    "tasks": [
+      "P07-01",
+      "P07-E15"
+    ],
+    "consolidationPhase": "P07",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T20",
+    "tasks": [
+      "P04-E06",
+      "P07-01",
+      "P07-E33",
+      "P07-E35"
+    ],
+    "consolidationPhase": "P07",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T21",
+    "tasks": [
+      "P04-E06",
+      "P07-01",
+      "P07-E33"
+    ],
+    "consolidationPhase": "P07",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T22",
+    "tasks": [
+      "P04-E06",
+      "P07-01",
+      "P07-E33",
+      "P07-E35"
+    ],
+    "consolidationPhase": "P07",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T23",
+    "tasks": [
+      "P05-E09"
+    ],
+    "consolidationPhase": "P05",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T24",
+    "tasks": [
+      "P05-E09"
+    ],
+    "consolidationPhase": "P05",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T25",
+    "tasks": [
+      "P03-E39",
+      "P05-E09"
+    ],
+    "consolidationPhase": "P05",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T26",
+    "tasks": [
+      "P03-E28",
+      "P05-E09"
+    ],
+    "consolidationPhase": "P05",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T27",
+    "tasks": [
+      "P06-01",
+      "P06-E10",
+      "P06-E11",
+      "P06-E12",
+      "P06-E18"
+    ],
+    "consolidationPhase": "P06",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T28",
+    "tasks": [
+      "P06-01",
+      "P06-E10",
+      "P06-E11",
+      "P06-E18"
+    ],
+    "consolidationPhase": "P06",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T29",
+    "tasks": [
+      "P03-E39",
+      "P05-E21",
+      "P05-E30",
+      "P06-E12"
+    ],
+    "consolidationPhase": "P06",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T30",
+    "tasks": [
+      "P05-E21",
+      "P05-E30"
+    ],
+    "consolidationPhase": "P05",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T31",
+    "tasks": [
+      "P03-E40",
+      "P06-01",
+      "P06-E13",
+      "P06-E19",
+      "P06-E20"
+    ],
+    "consolidationPhase": "P06",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T32",
+    "tasks": [
+      "P06-E13",
+      "P06-E20",
+      "P06-E29"
+    ],
+    "consolidationPhase": "P06",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T33",
+    "tasks": [
+      "P06-E13"
+    ],
+    "consolidationPhase": "P06",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T34",
+    "tasks": [
+      "P06-E12",
+      "P06-E19"
+    ],
+    "consolidationPhase": "P06",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T35",
+    "tasks": [
+      "P07-E34"
+    ],
+    "consolidationPhase": "P07",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T36",
+    "tasks": [
+      "P07-E34"
+    ],
+    "consolidationPhase": "P07",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T37",
+    "tasks": [
+      "P04-E07",
+      "P05-E08",
+      "P05-E22"
+    ],
+    "consolidationPhase": "P05",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T38",
+    "tasks": [
+      "P04-E03",
+      "P04-E07",
+      "P05-E08"
+    ],
+    "consolidationPhase": "P05",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T39",
+    "tasks": [
+      "P05-E08"
+    ],
+    "consolidationPhase": "P05",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T40",
+    "tasks": [
+      "P05-E22",
+      "P05-E23"
+    ],
+    "consolidationPhase": "P05",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T41",
+    "tasks": [
+      "P05-E08",
+      "P05-E23",
+      "P08-E36"
+    ],
+    "consolidationPhase": "P08",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T42",
+    "tasks": [
+      "P05-E22",
+      "P07-E24",
+      "P07-E32"
+    ],
+    "consolidationPhase": "P07",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T43",
+    "tasks": [
+      "P07-E24",
+      "P07-E32"
+    ],
+    "consolidationPhase": "P07",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T44",
+    "tasks": [
+      "P03-E14",
+      "P07-E31"
+    ],
+    "consolidationPhase": "P07",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T45",
+    "tasks": [
+      "P04-E05",
+      "P08-01",
+      "P08-E16"
+    ],
+    "consolidationPhase": "P08",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T46",
+    "tasks": [
+      "P08-01",
+      "P08-E16"
+    ],
+    "consolidationPhase": "P08",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T47",
+    "tasks": [
+      "P08-01",
+      "P08-E16"
+    ],
+    "consolidationPhase": "P08",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T48",
+    "tasks": [
+      "P02-E38",
+      "P08-01",
+      "P08-E16",
+      "P08-E36"
+    ],
+    "consolidationPhase": "P08",
+    "status": "PARTIEL",
+    "evidence": [
+      "tests/integration/access.test.ts — appareil révoqué"
+    ]
+  },
+  {
+    "reference": "T49",
+    "tasks": [
+      "P08-01",
+      "P08-E16"
+    ],
+    "consolidationPhase": "P08",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T50",
+    "tasks": [
+      "P05-E08",
+      "P08-01",
+      "P08-E16"
+    ],
+    "consolidationPhase": "P08",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T51",
+    "tasks": [
+      "P02-E38",
+      "P08-01",
+      "P08-E16"
+    ],
+    "consolidationPhase": "P08",
+    "status": "PARTIEL",
+    "evidence": [
+      "tests/integration/access.test.ts — approbation sans capability"
+    ]
+  },
+  {
+    "reference": "T52",
+    "tasks": [
+      "P08-01",
+      "P08-E16"
+    ],
+    "consolidationPhase": "P08",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T53",
+    "tasks": [
+      "P05-E09",
+      "P09-01"
+    ],
+    "consolidationPhase": "P09",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T54",
+    "tasks": [
+      "P09-01",
+      "P09-E27"
+    ],
+    "consolidationPhase": "P09",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T55",
+    "tasks": [
+      "P03-E28",
+      "P07-E15"
+    ],
+    "consolidationPhase": "P07",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T56",
+    "tasks": [
+      "P03-E26",
+      "P03-E40",
+      "P07-02"
+    ],
+    "consolidationPhase": "P07",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T57",
+    "tasks": [
+      "P01-04",
+      "P03-01"
+    ],
+    "consolidationPhase": "P03",
+    "status": "TESTE",
+    "evidence": [
+      "packages/contracts/src/contracts.test.ts",
+      "packages/contracts/src/allocation.test.ts",
+      "tests/integration/p03.test.ts — couches de coût"
+    ]
+  },
+  {
+    "reference": "T58",
+    "tasks": [
+      "P01-04",
+      "P03-01",
+      "P04-01",
+      "P10-01"
+    ],
+    "consolidationPhase": "P10",
+    "status": "PARTIEL",
+    "evidence": [
+      "tests/integration/foundation.test.ts — rollback de la transaction technique, pas une vente"
+    ]
+  },
+  {
+    "reference": "T59",
+    "tasks": [
+      "P10-02",
+      "P12-01"
+    ],
+    "consolidationPhase": "P12",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T60",
+    "tasks": [
+      "P06-E20",
+      "P09-01",
+      "P09-E17",
+      "P09-E27"
+    ],
+    "consolidationPhase": "P09",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T61",
+    "tasks": [
+      "P02-E37",
+      "P02-E38",
+      "P04-E07",
+      "P07-02",
+      "P08-01",
+      "P11-01"
+    ],
+    "consolidationPhase": "P11",
+    "status": "PARTIEL",
+    "evidence": [
+      "tests/integration/access.test.ts — audit USER_* DEVICE_*"
+    ]
+  },
+  {
+    "reference": "T62",
+    "tasks": [
+      "P02-E38",
+      "P04-01",
+      "P08-01",
+      "P08-E16"
+    ],
+    "consolidationPhase": "P08",
+    "status": "PARTIEL",
+    "evidence": [
+      "tests/integration/access.test.ts — révocation d’appareil"
+    ]
+  },
+  {
+    "reference": "T63",
+    "tasks": [
+      "P04-01",
+      "P08-01",
+      "P08-E16",
+      "P08-E36"
+    ],
+    "consolidationPhase": "P08",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T64",
+    "tasks": [
+      "P05-E08",
+      "P08-01"
+    ],
+    "consolidationPhase": "P08",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T65",
+    "tasks": [
+      "P05-E21",
+      "P05-E30"
+    ],
+    "consolidationPhase": "P05",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T66",
+    "tasks": [
+      "P03-01",
+      "P03-E39"
+    ],
+    "consolidationPhase": "P03",
+    "status": "TESTE",
+    "evidence": [
+      "tests/integration/p03.test.ts — fonds, journal et correction liée"
+    ]
+  },
+  {
+    "reference": "T67",
+    "tasks": [
+      "P03-E40",
+      "P07-02"
+    ],
+    "consolidationPhase": "P07",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T68",
+    "tasks": [
+      "P06-01",
+      "P06-E12",
+      "P06-E19"
+    ],
+    "consolidationPhase": "P06",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T69",
+    "tasks": [
+      "P06-01",
+      "P06-E19"
+    ],
+    "consolidationPhase": "P06",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T70",
+    "tasks": [
+      "P07-01",
+      "P07-E33"
+    ],
+    "consolidationPhase": "P07",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T71",
+    "tasks": [
+      "P06-01",
+      "P06-E13",
+      "P06-E20",
+      "P06-E29"
+    ],
+    "consolidationPhase": "P06",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T72",
+    "tasks": [
+      "P06-01",
+      "P06-E11",
+      "P06-E18"
+    ],
+    "consolidationPhase": "P06",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T73",
+    "tasks": [
+      "P05-E23",
+      "P06-01"
+    ],
+    "consolidationPhase": "P06",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T74",
+    "tasks": [
+      "P05-E23",
+      "P07-E35",
+      "P08-01"
+    ],
+    "consolidationPhase": "P08",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T75",
+    "tasks": [
+      "P07-02",
+      "P07-E24",
+      "P07-E31"
+    ],
+    "consolidationPhase": "P07",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T76",
+    "tasks": [
+      "P07-02",
+      "P07-E24",
+      "P07-E32"
+    ],
+    "consolidationPhase": "P07",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T77",
+    "tasks": [
+      "P02-E37",
+      "P03-E26",
+      "P07-02",
+      "P08-E36"
+    ],
+    "consolidationPhase": "P08",
+    "status": "PARTIEL",
+    "evidence": [
+      "tests/integration/access.test.ts — remplacement concurrent"
+    ]
+  },
+  {
+    "reference": "T78",
+    "tasks": [
+      "P03-01",
+      "P03-E02",
+      "P07-01",
+      "P07-E15",
+      "P11-01"
+    ],
+    "consolidationPhase": "P11",
+    "status": "PARTIEL",
+    "evidence": [
+      "tests/integration/p03.test.ts — obligations d’ouverture sans vente ; consolidation P07/P11 restante"
+    ]
+  },
+  {
+    "reference": "T79",
+    "tasks": [
+      "P07-01",
+      "P07-E34"
+    ],
+    "consolidationPhase": "P07",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T80",
+    "tasks": [
+      "P08-01",
+      "P09-01",
+      "P09-E17",
+      "P09-E27"
+    ],
+    "consolidationPhase": "P09",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T81",
+    "tasks": [
+      "P04-01",
+      "P09-01",
+      "P09-E27"
+    ],
+    "consolidationPhase": "P09",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T82",
+    "tasks": [
+      "P07-01",
+      "P07-E33"
+    ],
+    "consolidationPhase": "P07",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T83",
+    "tasks": [
+      "P03-E28",
+      "P07-01",
+      "P07-02"
+    ],
+    "consolidationPhase": "P07",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "T84",
+    "tasks": [
+      "P09-01",
+      "P09-E17",
+      "P11-02"
+    ],
+    "consolidationPhase": "P11",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "RSP01",
+    "tasks": [
+      "P02-01",
+      "P02-E01",
+      "P02-E37",
+      "P02-E38",
+      "P03-E02",
+      "P03-E14",
+      "P03-E25",
+      "P03-E26",
+      "P03-E28",
+      "P03-E39",
+      "P03-E40",
+      "P04-E03",
+      "P04-E04",
+      "P04-E05",
+      "P04-E06",
+      "P04-E07",
+      "P05-E08",
+      "P05-E09",
+      "P05-E21",
+      "P05-E22",
+      "P05-E23",
+      "P05-E30",
+      "P06-E10",
+      "P06-E11",
+      "P06-E12",
+      "P06-E13",
+      "P06-E18",
+      "P06-E19",
+      "P06-E20",
+      "P06-E29",
+      "P07-E15",
+      "P07-E24",
+      "P07-E31",
+      "P07-E32",
+      "P07-E33",
+      "P07-E34",
+      "P07-E35",
+      "P08-E16",
+      "P08-E36",
+      "P09-E17",
+      "P09-E27"
+    ],
+    "consolidationPhase": "P09",
+    "status": "PARTIEL",
+    "evidence": [
+      "tests/e2e/p02-responsive.spec.ts"
+    ]
+  },
+  {
+    "reference": "RSP02",
+    "tasks": [
+      "P02-01",
+      "P02-E01",
+      "P02-E37",
+      "P02-E38",
+      "P03-E02",
+      "P03-E14",
+      "P03-E25",
+      "P03-E26",
+      "P03-E28",
+      "P03-E39",
+      "P03-E40",
+      "P04-E03",
+      "P04-E04",
+      "P04-E05",
+      "P04-E06",
+      "P04-E07",
+      "P05-E08",
+      "P05-E09",
+      "P05-E21",
+      "P05-E22",
+      "P05-E23",
+      "P05-E30",
+      "P06-E10",
+      "P06-E11",
+      "P06-E12",
+      "P06-E13",
+      "P06-E18",
+      "P06-E19",
+      "P06-E20",
+      "P06-E29",
+      "P07-E15",
+      "P07-E24",
+      "P07-E31",
+      "P07-E32",
+      "P07-E33",
+      "P07-E34",
+      "P07-E35",
+      "P08-E16",
+      "P08-E36",
+      "P09-E17",
+      "P09-E27"
+    ],
+    "consolidationPhase": "P09",
+    "status": "PARTIEL",
+    "evidence": [
+      "tests/e2e/p02-responsive.spec.ts",
+      "tests/e2e/p02-visual.spec.ts"
+    ]
+  },
+  {
+    "reference": "RSP03",
+    "tasks": [
+      "P02-01",
+      "P02-E01",
+      "P02-E37",
+      "P02-E38",
+      "P03-E02",
+      "P03-E14",
+      "P03-E25",
+      "P03-E26",
+      "P03-E28",
+      "P03-E39",
+      "P03-E40",
+      "P04-E03",
+      "P04-E04",
+      "P04-E05",
+      "P04-E06",
+      "P04-E07",
+      "P05-E08",
+      "P05-E09",
+      "P05-E21",
+      "P05-E22",
+      "P05-E23",
+      "P05-E30",
+      "P06-E10",
+      "P06-E11",
+      "P06-E12",
+      "P06-E13",
+      "P06-E18",
+      "P06-E19",
+      "P06-E20",
+      "P06-E29",
+      "P07-E15",
+      "P07-E24",
+      "P07-E31",
+      "P07-E32",
+      "P07-E33",
+      "P07-E34",
+      "P07-E35",
+      "P08-E16",
+      "P08-E36",
+      "P09-E17",
+      "P09-E27"
+    ],
+    "consolidationPhase": "P09",
+    "status": "PARTIEL",
+    "evidence": [
+      "tests/e2e/p02-responsive.spec.ts — 320 à 1920"
+    ]
+  },
+  {
+    "reference": "RSP04",
+    "tasks": [
+      "P02-01",
+      "P02-E01",
+      "P02-E37",
+      "P02-E38",
+      "P03-E02",
+      "P03-E14",
+      "P03-E25",
+      "P03-E26",
+      "P03-E28",
+      "P03-E39",
+      "P03-E40",
+      "P04-E03",
+      "P04-E04",
+      "P04-E05",
+      "P04-E06",
+      "P04-E07",
+      "P05-E08",
+      "P05-E09",
+      "P05-E21",
+      "P05-E22",
+      "P05-E23",
+      "P05-E30",
+      "P06-E10",
+      "P06-E11",
+      "P06-E12",
+      "P06-E13",
+      "P06-E18",
+      "P06-E19",
+      "P06-E20",
+      "P06-E29",
+      "P07-E15",
+      "P07-E24",
+      "P07-E31",
+      "P07-E32",
+      "P07-E33",
+      "P07-E34",
+      "P07-E35",
+      "P08-E16",
+      "P08-E36",
+      "P09-E17",
+      "P09-E27"
+    ],
+    "consolidationPhase": "P09",
+    "status": "PARTIEL",
+    "evidence": [
+      "tests/e2e/connexion.spec.ts — clavier"
+    ]
+  },
+  {
+    "reference": "RSP05",
+    "tasks": [
+      "P02-01",
+      "P02-E01",
+      "P02-E37",
+      "P02-E38",
+      "P03-E02",
+      "P03-E14",
+      "P03-E25",
+      "P03-E26",
+      "P03-E28",
+      "P03-E39",
+      "P03-E40",
+      "P04-E03",
+      "P04-E04",
+      "P04-E05",
+      "P04-E06",
+      "P04-E07",
+      "P05-E08",
+      "P05-E09",
+      "P05-E21",
+      "P05-E22",
+      "P05-E23",
+      "P05-E30",
+      "P06-E10",
+      "P06-E11",
+      "P06-E12",
+      "P06-E13",
+      "P06-E18",
+      "P06-E19",
+      "P06-E20",
+      "P06-E29",
+      "P07-E15",
+      "P07-E24",
+      "P07-E31",
+      "P07-E32",
+      "P07-E33",
+      "P07-E34",
+      "P07-E35",
+      "P08-E16",
+      "P08-E36",
+      "P09-E17",
+      "P09-E27"
+    ],
+    "consolidationPhase": "P09",
+    "status": "PARTIEL",
+    "evidence": [
+      "tests/e2e/p02-responsive.spec.ts — menu téléphone"
+    ]
+  },
+  {
+    "reference": "RSP06",
+    "tasks": [
+      "P02-01",
+      "P02-E01",
+      "P02-E37",
+      "P02-E38",
+      "P03-E02",
+      "P03-E14",
+      "P03-E25",
+      "P03-E26",
+      "P03-E28",
+      "P03-E39",
+      "P03-E40",
+      "P04-E03",
+      "P04-E04",
+      "P04-E05",
+      "P04-E06",
+      "P04-E07",
+      "P05-E08",
+      "P05-E09",
+      "P05-E21",
+      "P05-E22",
+      "P05-E23",
+      "P05-E30",
+      "P06-E10",
+      "P06-E11",
+      "P06-E12",
+      "P06-E13",
+      "P06-E18",
+      "P06-E19",
+      "P06-E20",
+      "P06-E29",
+      "P07-E15",
+      "P07-E24",
+      "P07-E31",
+      "P07-E32",
+      "P07-E33",
+      "P07-E34",
+      "P07-E35",
+      "P08-E16",
+      "P08-E36",
+      "P09-E17",
+      "P09-E27"
+    ],
+    "consolidationPhase": "P09",
+    "status": "PARTIEL",
+    "evidence": [
+      "tests/e2e/connexion.spec.ts — reduced-motion"
+    ]
+  },
+  {
+    "reference": "RSP07",
+    "tasks": [
+      "P02-01",
+      "P02-E01",
+      "P02-E37",
+      "P02-E38",
+      "P03-E02",
+      "P03-E14",
+      "P03-E25",
+      "P03-E26",
+      "P03-E28",
+      "P03-E39",
+      "P03-E40",
+      "P04-E03",
+      "P04-E04",
+      "P04-E05",
+      "P04-E06",
+      "P04-E07",
+      "P05-E08",
+      "P05-E09",
+      "P05-E21",
+      "P05-E22",
+      "P05-E23",
+      "P05-E30",
+      "P06-E10",
+      "P06-E11",
+      "P06-E12",
+      "P06-E13",
+      "P06-E18",
+      "P06-E19",
+      "P06-E20",
+      "P06-E29",
+      "P07-E15",
+      "P07-E24",
+      "P07-E31",
+      "P07-E32",
+      "P07-E33",
+      "P07-E34",
+      "P07-E35",
+      "P08-E16",
+      "P08-E36",
+      "P09-E17",
+      "P09-E27"
+    ],
+    "consolidationPhase": "P09",
+    "status": "PARTIEL",
+    "evidence": [
+      "tests/e2e/p02-visual.spec.ts — clair/sombre"
+    ]
+  },
+  {
+    "reference": "RSP08",
+    "tasks": [
+      "P08-01"
+    ],
+    "consolidationPhase": "P08",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "RSP09",
+    "tasks": [
+      "P08-01"
+    ],
+    "consolidationPhase": "P08",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "RSP10",
+    "tasks": [
+      "P08-01"
+    ],
+    "consolidationPhase": "P08",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "SEC01",
+    "tasks": [
+      "P02-02"
+    ],
+    "consolidationPhase": "P02",
+    "status": "TESTE",
+    "evidence": [
+      "apps/api/src/create-app.ts — Helmet CSP",
+      "apps/web/next.config.ts"
+    ]
+  },
+  {
+    "reference": "SEC02",
+    "tasks": [
+      "P02-02"
+    ],
+    "consolidationPhase": "P02",
+    "status": "TESTE",
+    "evidence": [
+      "tests/integration/access.test.ts — origine et CSRF"
+    ]
+  },
+  {
+    "reference": "SEC03",
+    "tasks": [
+      "P01-04",
+      "P03-01"
+    ],
+    "consolidationPhase": "P03",
+    "status": "TESTE",
+    "evidence": [
+      "tests/integration/foundation.test.ts",
+      "tests/integration/p03.test.ts — requêtes paramétrées et contraintes PostgreSQL"
+    ]
+  },
+  {
+    "reference": "SEC04",
+    "tasks": [
+      "P02-02"
+    ],
+    "consolidationPhase": "P02",
+    "status": "TESTE",
+    "evidence": [
+      "apps/api/src/http/security.ts",
+      "tests/integration/access.test.ts — 401 seulement pour le compteur login"
+    ]
+  },
+  {
+    "reference": "SEC05",
+    "tasks": [
+      "P02-02"
+    ],
+    "consolidationPhase": "P02",
+    "status": "TESTE",
+    "evidence": [
+      "tests/integration/access.test.ts — champs inattendus, corps trop grand, injection e-mail"
+    ]
+  },
+  {
+    "reference": "SEC06",
+    "tasks": [
+      "P01-03",
+      "P02-02"
+    ],
+    "consolidationPhase": "P02",
+    "status": "TESTE",
+    "evidence": [
+      "tests/integration/auth.test.ts",
+      "tests/e2e/auth-browser.spec.ts",
+      "tests/integration/access.test.ts — révocation session"
+    ]
+  },
+  {
+    "reference": "SEC07",
+    "tasks": [
+      "P01-03",
+      "P02-02",
+      "P11-01"
+    ],
+    "consolidationPhase": "P11",
+    "status": "PARTIEL",
+    "evidence": [
+      "tests/integration/auth.test.ts",
+      "tests/integration/access.test.ts — TOTP et code de secours"
+    ]
+  },
+  {
+    "reference": "SEC08",
+    "tasks": [
+      "P02-02",
+      "P02-E01",
+      "P02-E37",
+      "P02-E38",
+      "P03-E02",
+      "P03-E14",
+      "P03-E25",
+      "P03-E26",
+      "P03-E28",
+      "P03-E39",
+      "P03-E40",
+      "P04-E03",
+      "P04-E04",
+      "P04-E05",
+      "P04-E06",
+      "P04-E07",
+      "P05-E08",
+      "P05-E09",
+      "P05-E21",
+      "P05-E22",
+      "P05-E23",
+      "P05-E30",
+      "P06-01",
+      "P06-E10",
+      "P06-E11",
+      "P06-E12",
+      "P06-E13",
+      "P06-E18",
+      "P06-E19",
+      "P06-E20",
+      "P06-E29",
+      "P07-02",
+      "P07-E15",
+      "P07-E24",
+      "P07-E31",
+      "P07-E32",
+      "P07-E33",
+      "P07-E34",
+      "P07-E35",
+      "P08-E16",
+      "P08-E36",
+      "P09-01",
+      "P09-E17",
+      "P09-E27"
+    ],
+    "consolidationPhase": "P09",
+    "status": "PARTIEL",
+    "evidence": [
+      "tests/integration/access.test.ts — gérant 403 sur /users et approve"
+    ]
+  },
+  {
+    "reference": "SEC09",
+    "tasks": [
+      "P02-E01",
+      "P02-E37",
+      "P02-E38",
+      "P03-01",
+      "P03-E02",
+      "P03-E14",
+      "P03-E25",
+      "P03-E26",
+      "P03-E28",
+      "P03-E39",
+      "P03-E40",
+      "P04-01",
+      "P04-E03",
+      "P04-E04",
+      "P04-E05",
+      "P04-E06",
+      "P04-E07",
+      "P05-E08",
+      "P05-E09",
+      "P05-E21",
+      "P05-E22",
+      "P05-E23",
+      "P05-E30",
+      "P06-01",
+      "P06-E10",
+      "P06-E11",
+      "P06-E12",
+      "P06-E13",
+      "P06-E18",
+      "P06-E19",
+      "P06-E20",
+      "P06-E29",
+      "P07-01",
+      "P07-E15",
+      "P07-E24",
+      "P07-E31",
+      "P07-E32",
+      "P07-E33",
+      "P07-E34",
+      "P07-E35",
+      "P08-E16",
+      "P08-E36",
+      "P09-E17",
+      "P09-E27"
+    ],
+    "consolidationPhase": "P09",
+    "status": "PARTIEL",
+    "evidence": [
+      "tests/e2e/connexion.spec.ts — erreurs génériques, session expirée"
+    ]
+  },
+  {
+    "reference": "SEC10",
+    "tasks": [
+      "P05-E08",
+      "P08-01",
+      "P09-01"
+    ],
+    "consolidationPhase": "P09",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "SEC11",
+    "tasks": [
+      "P05-01"
+    ],
+    "consolidationPhase": "P05",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "SEC12",
+    "tasks": [
+      "P01-05",
+      "P05-01"
+    ],
+    "consolidationPhase": "P05",
+    "status": "PARTIEL",
+    "evidence": [
+      "tests/integration/foundation.test.ts — objet privé, redémarrage, URL expirée"
+    ]
+  },
+  {
+    "reference": "SEC13",
+    "tasks": [
+      "P05-01",
+      "P09-01"
+    ],
+    "consolidationPhase": "P09",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "SEC14",
+    "tasks": [
+      "P10-01"
+    ],
+    "consolidationPhase": "P10",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "SEC15",
+    "tasks": [
+      "P01-04",
+      "P03-01",
+      "P04-01",
+      "P06-01",
+      "P07-01",
+      "P08-01"
+    ],
+    "consolidationPhase": "P08",
+    "status": "PARTIEL",
+    "evidence": [
+      "tests/integration/foundation.test.ts — solde technique concurrent"
+    ]
+  },
+  {
+    "reference": "SEC16",
+    "tasks": [
+      "P07-02",
+      "P08-01"
+    ],
+    "consolidationPhase": "P08",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "SEC17",
+    "tasks": [
+      "P01-05",
+      "P02-02",
+      "P10-01",
+      "P12-01"
+    ],
+    "consolidationPhase": "P12",
+    "status": "PARTIEL",
+    "evidence": [
+      "apps/api/src/env.ts — Zod des variables ; P10/P12 restants"
+    ]
+  },
+  {
+    "reference": "SEC18",
+    "tasks": [
+      "P10-02"
+    ],
+    "consolidationPhase": "P10",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "SEC19",
+    "tasks": [
+      "P09-01",
+      "P10-01",
+      "P10-02",
+      "P12-01"
+    ],
+    "consolidationPhase": "P12",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "SEC20",
+    "tasks": [
+      "P10-02",
+      "P12-01"
+    ],
+    "consolidationPhase": "P12",
+    "status": "NON_TESTE",
+    "evidence": []
+  },
+  {
+    "reference": "SEC21",
+    "tasks": [
+      "P07-02",
+      "P08-01",
+      "P10-02",
+      "P11-01",
+      "P12-01"
+    ],
+    "consolidationPhase": "P12",
+    "status": "NON_TESTE",
+    "evidence": []
+  }
+]

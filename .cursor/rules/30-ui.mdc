@@ -1,0 +1,11 @@
+---
+description: "Interface responsive, thèmes et design Cercle Complet"
+globs: "apps/web/**,packages/ui/**"
+alwaysApply: false
+---
+
+Lire docs/13-design-system.md, docs/06-ecrans.md et la fiche E concernée dans docs/conception/03-fiches-ecrans.md.
+Tailwind CSS + shadcn/ui + Framer Motion, Manrope pour titres/navigation/actions et Inter pour données/saisie. Tokens partagés bleu vif/vert citron ; thèmes clair/sombre/système persistants.
+Bordures rares : espace et surfaces d’abord ; ne pas recopier les contours shadcn par défaut. Focus visible conservé. Pas de tableaux serrés ou d’actions masquées sur téléphone.
+États vide/chargement/erreur/succès, tactile/clavier, reduced-motion et RSP01–RSP10. Ne pas inventer des données pour embellir un dashboard. Afficher la fraîcheur réelle.
+Logo V1 validé dans assets/brand ; déclinaisons non encore produites. Ne pas confondre permissions et visibilité CSS. Aucun montant attendu gérant dans HTML/DTO avant comptage.

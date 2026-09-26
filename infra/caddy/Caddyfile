@@ -1,0 +1,10 @@
+{
+  admin off
+  auto_https off
+}
+
+:8080 {
+  @api path /api/*
+  reverse_proxy @api host.docker.internal:4311
+  reverse_proxy host.docker.internal:4310
+}

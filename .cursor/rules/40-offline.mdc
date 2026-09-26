@@ -1,0 +1,9 @@
+---
+description: "PWA, Dexie, synchronisation, capacités et reprise"
+alwaysApply: false
+---
+
+Pour toute modification du service worker, d’IndexedDB ou du protocole de commandes, lire docs/05-hors-connexion.md, docs/02-permissions.md et docs/conception/01-transitions.md.
+Capacité maximale 24 h, appareil principal, périmètre cash-only prévu ; aucune nouvelle permission déduite d’une absence de connexion. Transactions Dexie et séquence durable ; pas d’appel réseau au milieu d’une transaction locale.
+Le serveur revalide les événements locaux non fiables. Ne jamais effacer une commande non acquittée lors d’expiration, logout, changement de version ou conflit.
+Reprise après fermeture/veille, refus distinct des faits à examiner, anti-doublon durable. Ne pas dépendre uniquement de Background Sync. Fraîcheur inconnue n’est pas zéro opération en attente.

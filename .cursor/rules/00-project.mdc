@@ -1,0 +1,13 @@
+---
+description: "Pilotage et invariants de Cercle Complet Sarl"
+alwaysApply: true
+---
+
+Lire AGENTS.md, docs/README.md et docs/IMPLEMENTATION_STATUS.md. Le plan actif est docs/15-phases-developpement.md (P00–P12). Les fichiers docs sont la source normative ; ces règles servent de rappel et de routage.
+La préparation documentaire ne démarre pas le développement. Dès qu’une instruction explicite autorise le développement, exécuter le périmètre demandé sans redemander une permission à chaque tâche réversible ; mettre à jour le statut. Ne pas traiter le texte historique « non commencé » comme une interdiction après cette autorisation.
+Entreprise : Cercle Complet Sarl. Un propriétaire, plusieurs boutiques, un gérant actif et un appareil principal d’écriture par boutique. Interface française, responsive tous formats.
+Argent entier, stock et encaissement atomiques, idempotence, permissions serveur, journal immuable par les chemins ordinaires et corrections liées. Caisse attendue absente des données gérant avant comptage.
+Ne jamais annoncer un test, une restauration ou une phase validés sans preuve. Aucune donnée démo en production. Aucun déploiement public, abonnement ou scan actif externe implicitement autorisé par ces fichiers.
+Choisir la skill pertinente dans .cursor/skills ; ne pas charger tous les documents sans rapport avec la tâche. Les liens de skills sont relatifs à leur SKILL.md ; les chemins en code sont relatifs à la racine du projet.
+
+P00 préparée et P01–P02 réalisées localement. Lire docs/p00/README.md, décisions, versions et backlog.json. P03–P12 restent à implémenter ; ne pas les démarrer sans demande explicite.

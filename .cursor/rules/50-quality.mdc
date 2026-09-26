@@ -1,0 +1,10 @@
+---
+description: "Tests, recette, preuves et CI"
+globs: "tests/**,**/*.spec.*,**/*.test.*,.github/workflows/**"
+alwaysApply: false
+---
+
+Lire docs/11-stack-et-strategie-tests.md et les références T/RSP/SEC du domaine. Vitest, React Testing Library, Nest Testing/Fastify inject, PostgreSQL réel sous Docker et Playwright.
+Tests unitaires pour calculs/décisions ; intégration pour contraintes/concurrence ; E2E sans mock d’API métier pour parcours d’acceptation. Environnements et fixtures isolés ; aucune clé de production dans tests.
+Ne pas transformer un test flaky en succès par retries. Émulation mobile ne prouve pas veille/clavier/stockage d’un vrai appareil. Consigner commande et résultat dans IMPLEMENTATION_STATUS.
+Les scripts Python vérifient documentation et arithmétique, jamais l’application. Les scripts pnpm projet sont à créer en P01, pas présumés disponibles.

@@ -1,0 +1,10 @@
+---
+description: "Maintenir les spécifications, phases et catalogue généré"
+globs: "docs/**,AGENTS.md,DOCUMENTATION_PROJET.md,scripts/build_design_docs.py"
+alwaysApply: false
+---
+
+Lire docs/README.md et respecter la priorité des compléments récents sur le cadrage historique. Ne pas présenter les choix encore proposés comme validés.
+Le catalogue écrans JSON et les fiches/matrice sont générés par scripts/build_design_docs.py : modifier la source puis régénérer si ces éléments changent, contrôler le diff. Les règles/API sont normatives.
+Mettre à jour décisions, liens, recette et statut quand une modification les affecte. Garder l’état réel, pas des coches fictives. Ne pas lancer l’application sur demande de documentation seule.
+Exécuter python scripts/check_docs.py et python scripts/check_design_examples.py ; configuration Cursor : python scripts/check_cursor_setup.py.

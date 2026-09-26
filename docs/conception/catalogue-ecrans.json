@@ -1,0 +1,1443 @@
+[
+  {
+    "id": "E01",
+    "title": "Connexion",
+    "route": "/login",
+    "role": "Tous",
+    "entry": "Lien ou session expirée",
+    "fields": [
+      "E-mail*",
+      "Mot de passe*",
+      "Activation TOTP owner obligatoire",
+      "Challenge second facteur si activé",
+      "Code de secours à usage unique",
+      "Lien de récupération"
+    ],
+    "primary_action": "Se connecter",
+    "exit": "E02 si entreprise non initialisée, sinon E03 ou E17",
+    "api": [
+      "/api/auth/*"
+    ],
+    "tables": [
+      "app_users"
+    ],
+    "transitions": [
+      "S01"
+    ],
+    "tests": [
+      "T02"
+    ]
+  },
+  {
+    "id": "E02",
+    "title": "Initialisation",
+    "route": "/setup",
+    "role": "Propriétaire et gérant SETUP pour comptages",
+    "entry": "Première connexion ou nouvelle boutique E26",
+    "fields": [
+      "Entreprise*",
+      "Devise*",
+      "Fuseau*",
+      "Boutique*",
+      "Gérant*",
+      "Produits et prix*",
+      "Coupures initiales*",
+      "Stocks par lot*",
+      "Valeurs ou estimations*",
+      "Créances et dettes initiales facultatives"
+    ],
+    "primary_action": "Valider les données initiales (owner)",
+    "exit": "Récapitulatif figé puis E26 ACTIVE ; gérant revient E03",
+    "api": [
+      "POST /shops/:id/opening-balances",
+      "POST /shops/:id/activate"
+    ],
+    "tables": [
+      "opening_drafts",
+      "opening_stock_lines",
+      "opening_obligations",
+      "shops"
+    ],
+    "transitions": [
+      "S01",
+      "S12"
+    ],
+    "tests": [
+      "T01",
+      "T78"
+    ]
+  },
+  {
+    "id": "E03",
+    "title": "Accueil gérant",
+    "route": "/manager",
+    "role": "Gérant",
+    "entry": "Connexion réussie",
+    "fields": [
+      "Session en lecture",
+      "Tâches",
+      "Réceptions",
+      "Demandes",
+      "Dernière synchronisation"
+    ],
+    "primary_action": "Nouvelle vente",
+    "exit": "E04 ou ouverture E07 si nécessaire",
+    "api": [
+      "GET /me",
+      "GET /notifications",
+      "GET /cash-sessions/current"
+    ],
+    "tables": [
+      "cash_sessions",
+      "notifications",
+      "devices"
+    ],
+    "transitions": [
+      "S01",
+      "S02",
+      "S03"
+    ],
+    "tests": [
+      "T02",
+      "T38"
+    ]
+  },
+  {
+    "id": "E04",
+    "title": "Panier de vente",
+    "route": "/manager/sale",
+    "role": "Gérant principal",
+    "entry": "E03 ou navigation Vendre",
+    "fields": [
+      "Recherche produit*",
+      "Variante si multiple*",
+      "Unité*",
+      "Quantité*",
+      "Remise facultative sous plafond"
+    ],
+    "primary_action": "Passer au paiement",
+    "exit": "E05 avec panier conservé ; retour depuis E05 sans perte",
+    "api": [
+      "GET /stock",
+      "POST /sales/quote"
+    ],
+    "tables": [
+      "products",
+      "variants",
+      "sale_units",
+      "prices",
+      "stock_balances"
+    ],
+    "transitions": [
+      "S02"
+    ],
+    "tests": [
+      "T08",
+      "T09",
+      "T10",
+      "T11",
+      "T12",
+      "T15",
+      "T14"
+    ]
+  },
+  {
+    "id": "E05",
+    "title": "Paiement vente",
+    "route": "/manager/sale/payment",
+    "role": "Gérant principal",
+    "entry": "Panier valide E04",
+    "fields": [
+      "Mode*",
+      "Montant par mode*",
+      "Espèces reçues si cash*",
+      "Client si crédit*",
+      "Échéance si crédit*",
+      "Référence externe facultative"
+    ],
+    "primary_action": "Confirmer la vente",
+    "exit": "E06 après POSTED ; reçu local si offline ; erreur conserve panier",
+    "api": [
+      "POST /sales/quote",
+      "POST /sales"
+    ],
+    "tables": [
+      "sales",
+      "sale_lines",
+      "payments",
+      "customer_payment_allocations"
+    ],
+    "transitions": [
+      "S02",
+      "S12",
+      "S14"
+    ],
+    "tests": [
+      "T03",
+      "T04",
+      "T05",
+      "T06",
+      "T07",
+      "T16",
+      "T45"
+    ]
+  },
+  {
+    "id": "E06",
+    "title": "Reçu et détail vente",
+    "route": "/manager/sales/[id]",
+    "role": "Gérant boutique et owner via E35",
+    "entry": "Confirmation vente ou recherche historique",
+    "fields": [
+      "Référence",
+      "Lignes figées",
+      "Paiements",
+      "Dette",
+      "Retours",
+      "Statut local/serveur"
+    ],
+    "primary_action": "Imprimer ou demander un retour",
+    "exit": "Impression même page ; retour E33 ; nouvelle vente E04",
+    "api": [
+      "GET /sales/:id",
+      "POST /sales/:id/reversal-request"
+    ],
+    "tables": [
+      "sales",
+      "returns",
+      "payments"
+    ],
+    "transitions": [
+      "S02",
+      "S06"
+    ],
+    "tests": [
+      "T20",
+      "T21",
+      "T22"
+    ]
+  },
+  {
+    "id": "E07",
+    "title": "Session de caisse",
+    "route": "/manager/cash",
+    "role": "Gérant principal",
+    "entry": "Navigation Plus ou vente sans session",
+    "fields": [
+      "Statut",
+      "Historique clôtures",
+      "Alertes de synchronisation",
+      "Aucun attendu courant"
+    ],
+    "primary_action": "Ouvrir ou compter ma caisse",
+    "exit": "E08 si comptage, E03 si ouverture",
+    "api": [
+      "POST /cash-sessions/open",
+      "POST /cash-sessions/:id/start-count"
+    ],
+    "tables": [
+      "cash_sessions",
+      "cash_closures"
+    ],
+    "transitions": [
+      "S01",
+      "S03"
+    ],
+    "tests": [
+      "T37",
+      "T38",
+      "T61"
+    ]
+  },
+  {
+    "id": "E08",
+    "title": "Comptage aveugle",
+    "route": "/manager/cash/count",
+    "role": "Gérant principal",
+    "entry": "Session COUNTING ou comptage local autorisé",
+    "fields": [
+      "Nombre par coupure*",
+      "Total déclaré calculé",
+      "Après soumission explication si écart*"
+    ],
+    "primary_action": "Enregistrer mon comptage",
+    "exit": "Résultat figé sur même écran ; correction ouvre E36 avec type RECOUNT",
+    "api": [
+      "POST /cash-sessions/:id/submit-count",
+      "POST /cash-sessions/:id/cancel-count"
+    ],
+    "tables": [
+      "cash_closures",
+      "money_events",
+      "discrepancy_cases"
+    ],
+    "transitions": [
+      "S03",
+      "S14"
+    ],
+    "tests": [
+      "T37",
+      "T38",
+      "T39",
+      "T41",
+      "T50",
+      "T64"
+    ]
+  },
+  {
+    "id": "E09",
+    "title": "Dépense",
+    "route": "/manager/expenses/new",
+    "role": "Gérant principal",
+    "entry": "Plus ou demande autorisée E11",
+    "fields": [
+      "Catégorie*",
+      "Description*",
+      "Montant*",
+      "Source*",
+      "Justificatif ou absence motivée*",
+      "Indication déjà payé seulement parcours irrégulier"
+    ],
+    "primary_action": "Demander accord ou enregistrer paiement (libellés distincts)",
+    "exit": "E11 si accord demandé ; détail dépense si paiement confirmé",
+    "api": [
+      "POST /expenses",
+      "POST /expenses/:id/submit",
+      "POST /expenses/:id/pay",
+      "POST /expenses/declare-irregular"
+    ],
+    "tables": [
+      "expenses",
+      "requests",
+      "approvals",
+      "payments"
+    ],
+    "transitions": [
+      "S05"
+    ],
+    "tests": [
+      "T23",
+      "T24",
+      "T25",
+      "T26",
+      "T53"
+    ]
+  },
+  {
+    "id": "E10",
+    "title": "Demandes",
+    "route": "/manager/requests",
+    "role": "Gérant",
+    "entry": "Navigation Demandes",
+    "fields": [
+      "Filtre type/état",
+      "Nouvelle demande type*",
+      "Priorité",
+      "Recherche référence"
+    ],
+    "primary_action": "Demander des produits ou des fonds",
+    "exit": "Formulaire puis E11 ; brouillon offline indiqué non envoyé",
+    "api": [
+      "GET /requests",
+      "POST /requests"
+    ],
+    "tables": [
+      "requests",
+      "request_lines"
+    ],
+    "transitions": [
+      "S04"
+    ],
+    "tests": [
+      "T27",
+      "T28"
+    ]
+  },
+  {
+    "id": "E11",
+    "title": "Détail demande",
+    "route": "/manager/requests/[id]",
+    "role": "Gérant boutique",
+    "entry": "Liste ou notification",
+    "fields": [
+      "Lignes demandées",
+      "Lignes accordées",
+      "Budget",
+      "Source",
+      "Validité",
+      "Question à compléter",
+      "Justificatifs"
+    ],
+    "primary_action": "Soumettre / compléter / acheter selon état",
+    "exit": "Reste détail après soumission ; E12 pour achat autorisé",
+    "api": [
+      "PATCH /requests/:id",
+      "POST /requests/:id/submit",
+      "GET /requests/:id"
+    ],
+    "tables": [
+      "requests",
+      "approvals",
+      "approval_lines"
+    ],
+    "transitions": [
+      "S04",
+      "S07"
+    ],
+    "tests": [
+      "T27",
+      "T28",
+      "T72"
+    ]
+  },
+  {
+    "id": "E12",
+    "title": "Achat par gérant",
+    "route": "/manager/purchases/new",
+    "role": "Gérant principal désigné",
+    "entry": "Demande approuvée E11",
+    "fields": [
+      "Accord en lecture*",
+      "Fournisseur*",
+      "Lignes réelles*",
+      "Frais facture",
+      "Frais transport distincts",
+      "Paiements",
+      "Réception immédiate oui/non*",
+      "Pièces"
+    ],
+    "primary_action": "Acheter et recevoir ou enregistrer achat",
+    "exit": "Détail achat ; E13 si réception différée ; écart renvoie demande de complément",
+    "api": [
+      "POST /purchases",
+      "POST /purchases/with-receipt"
+    ],
+    "tables": [
+      "purchases",
+      "purchase_lines",
+      "purchase_fees",
+      "receipts"
+    ],
+    "transitions": [
+      "S07",
+      "S08"
+    ],
+    "tests": [
+      "T27",
+      "T29",
+      "T34",
+      "T68"
+    ]
+  },
+  {
+    "id": "E13",
+    "title": "Réception",
+    "route": "/manager/receipts/[id]",
+    "role": "Gérant destinataire principal",
+    "entry": "Accueil ou notification livraison",
+    "fields": [
+      "Attendu restant en lecture",
+      "Reçu vendable*",
+      "Reçu abîmé*",
+      "Surplus déclaré",
+      "Lots/dates selon produit*",
+      "Livraison terminée oui/non*"
+    ],
+    "primary_action": "Confirmer cette réception",
+    "exit": "Résumé quantités mises en stock et restant ; dossier si écart",
+    "api": [
+      "POST /receipts",
+      "GET /shipments/:id"
+    ],
+    "tables": [
+      "receipts",
+      "receipt_lines",
+      "cost_layers",
+      "discrepancy_cases"
+    ],
+    "transitions": [
+      "S08"
+    ],
+    "tests": [
+      "T31",
+      "T32",
+      "T33",
+      "T71"
+    ]
+  },
+  {
+    "id": "E14",
+    "title": "Stock boutique",
+    "route": "/manager/stock",
+    "role": "Gérant",
+    "entry": "Navigation Stock",
+    "fields": [
+      "Recherche",
+      "Filtre seuil/expiration",
+      "Disponible",
+      "Non vendable",
+      "Unité",
+      "Lots",
+      "Historique sans coût"
+    ],
+    "primary_action": "Demander produits ou déclarer problème",
+    "exit": "E10 demande préremplie ; E31 perte ; détail mouvements local",
+    "api": [
+      "GET /stock",
+      "GET /stock/movements"
+    ],
+    "tables": [
+      "stock_balances",
+      "stock_entries",
+      "lots"
+    ],
+    "transitions": [
+      "S04",
+      "S11"
+    ],
+    "tests": [
+      "T12",
+      "T13",
+      "T44"
+    ]
+  },
+  {
+    "id": "E15",
+    "title": "Clients et créances",
+    "route": "/manager/customers",
+    "role": "Gérant en ligne",
+    "entry": "Plus si crédit actif ou dette existante",
+    "fields": [
+      "Nom*",
+      "Téléphone*",
+      "Dettes en lecture",
+      "Montant règlement*",
+      "Mode*",
+      "Aperçu affectation"
+    ],
+    "primary_action": "Enregistrer le règlement",
+    "exit": "Reçu et dettes restantes sur détail client",
+    "api": [
+      "GET /customers",
+      "POST /customers",
+      "POST /customer-payments/preview",
+      "POST /customer-payments"
+    ],
+    "tables": [
+      "customers",
+      "customer_payment_allocations",
+      "opening_obligations"
+    ],
+    "transitions": [
+      "S12"
+    ],
+    "tests": [
+      "T17",
+      "T18",
+      "T19",
+      "T55",
+      "T78"
+    ]
+  },
+  {
+    "id": "E16",
+    "title": "Synchronisation",
+    "route": "/manager/sync",
+    "role": "Gérant",
+    "entry": "Bandeau statut ou Plus",
+    "fields": [
+      "Dernier succès",
+      "Événements en attente",
+      "Échecs",
+      "Séquence",
+      "Motifs compréhensibles"
+    ],
+    "primary_action": "Réessayer la synchronisation",
+    "exit": "Même écran, lien dossier de conflit ; aucun bouton effacer",
+    "api": [
+      "POST /sync/handshake",
+      "POST /sync/push",
+      "GET /sync/pull"
+    ],
+    "tables": [
+      "device_events",
+      "sync_changes",
+      "devices"
+    ],
+    "transitions": [
+      "S14"
+    ],
+    "tests": [
+      "T45",
+      "T46",
+      "T47",
+      "T48",
+      "T49",
+      "T50",
+      "T51",
+      "T52",
+      "T62",
+      "T63"
+    ]
+  },
+  {
+    "id": "E17",
+    "title": "Vue propriétaire",
+    "route": "/owner",
+    "role": "Propriétaire",
+    "entry": "Connexion ou navigation",
+    "fields": [
+      "Période*",
+      "Boutique/toutes*",
+      "Ventes",
+      "Encaissements",
+      "Dépenses",
+      "Créances",
+      "Résultat brut estimé",
+      "Stock disponible et valeur",
+      "Écarts",
+      "Décisions en attente",
+      "Alertes",
+      "Fraîcheur"
+    ],
+    "primary_action": "Traiter les actions prioritaires ou ouvrir un indicateur",
+    "exit": "E18 ou listes détaillées E27/E35",
+    "api": [
+      "GET /reports/overview",
+      "GET /notifications"
+    ],
+    "tables": [
+      "sales",
+      "payments",
+      "money_entries",
+      "stock_balances",
+      "discrepancy_cases",
+      "sync_cursors"
+    ],
+    "transitions": [
+      "S13"
+    ],
+    "tests": [
+      "T60",
+      "T80",
+      "T84"
+    ]
+  },
+  {
+    "id": "E18",
+    "title": "Décider une demande",
+    "route": "/owner/requests/[id]",
+    "role": "Propriétaire",
+    "entry": "Liste des demandes ou notification",
+    "fields": [
+      "Besoin",
+      "Stock connu",
+      "Lignes approuvées*",
+      "Budget*",
+      "Acheteur*",
+      "Source*",
+      "Validité*",
+      "Motif si partiel/refus*"
+    ],
+    "primary_action": "Approuver, demander complément ou refuser",
+    "exit": "Même dossier avec décision figée ; gérant notifié",
+    "api": [
+      "POST /requests/:id/decision"
+    ],
+    "tables": [
+      "requests",
+      "approvals",
+      "approval_lines"
+    ],
+    "transitions": [
+      "S04"
+    ],
+    "tests": [
+      "T27",
+      "T28",
+      "T72"
+    ]
+  },
+  {
+    "id": "E19",
+    "title": "Achats propriétaire",
+    "route": "/owner/purchases",
+    "role": "Propriétaire",
+    "entry": "Navigation Achats",
+    "fields": [
+      "Fournisseur*",
+      "Produits/unités/prix*",
+      "Frais séparés",
+      "Destination par ligne*",
+      "Paiements",
+      "Échéance",
+      "Réception immédiate facultative"
+    ],
+    "primary_action": "Enregistrer achat",
+    "exit": "Détail avec réception/répartition/règlement ; E20 envoi ou E34 paiement",
+    "api": [
+      "GET /purchases",
+      "POST /purchases",
+      "POST /purchases/with-receipt"
+    ],
+    "tables": [
+      "purchases",
+      "purchase_destinations",
+      "purchase_fees"
+    ],
+    "transitions": [
+      "S07",
+      "S08"
+    ],
+    "tests": [
+      "T31",
+      "T34",
+      "T68",
+      "T69"
+    ]
+  },
+  {
+    "id": "E20",
+    "title": "Transferts propriétaire",
+    "route": "/owner/transfers",
+    "role": "Propriétaire",
+    "entry": "Navigation Stock/transferts ou achat",
+    "fields": [
+      "Origine*",
+      "Destination*",
+      "Lignes/quantités*",
+      "Motif",
+      "Transit et réceptions en lecture"
+    ],
+    "primary_action": "Autoriser puis expédier si détenteur",
+    "exit": "Détail transfert, bordereau, notification destinataire",
+    "api": [
+      "POST /shipments",
+      "POST /shipments/:id/approve",
+      "POST /shipments/:id/dispatch"
+    ],
+    "tables": [
+      "shipments",
+      "shipment_lines",
+      "shipment_cost_allocations"
+    ],
+    "transitions": [
+      "S08"
+    ],
+    "tests": [
+      "T31",
+      "T32",
+      "T60",
+      "T71"
+    ]
+  },
+  {
+    "id": "E21",
+    "title": "Fonds propriétaire",
+    "route": "/owner/funds",
+    "role": "Propriétaire",
+    "entry": "Navigation Fonds",
+    "fields": [
+      "Sources et soldes déclarés",
+      "Montant*",
+      "Destination*",
+      "Motif*",
+      "Avance liée facultative",
+      "Reçus"
+    ],
+    "primary_action": "Enregistrer remise ou confirmer réception",
+    "exit": "Détail remise avec transit/reliquat distinct",
+    "api": [
+      "GET /fund-transfers",
+      "POST /fund-transfers",
+      "POST /fund-transfers/:id/send",
+      "POST /fund-transfers/:id/receive"
+    ],
+    "tables": [
+      "fund_transfers",
+      "fund_receipts",
+      "money_entries"
+    ],
+    "transitions": [
+      "S09"
+    ],
+    "tests": [
+      "T29",
+      "T30",
+      "T65"
+    ]
+  },
+  {
+    "id": "E22",
+    "title": "Liste des contrôles",
+    "route": "/owner/controls",
+    "role": "Propriétaire",
+    "entry": "Navigation Contrôles",
+    "fields": [
+      "Type",
+      "Boutique",
+      "Statut",
+      "Ancienneté",
+      "Montant/quantité",
+      "Action attendue"
+    ],
+    "primary_action": "Examiner un dossier",
+    "exit": "E23, E24 ou E36 selon type",
+    "api": [
+      "GET /discrepancies",
+      "GET /stock-counts"
+    ],
+    "tables": [
+      "discrepancy_cases",
+      "cash_closures",
+      "stock_counts"
+    ],
+    "transitions": [
+      "S13"
+    ],
+    "tests": [
+      "T37",
+      "T40",
+      "T42"
+    ]
+  },
+  {
+    "id": "E23",
+    "title": "Dossier d’écart",
+    "route": "/owner/controls/[id]",
+    "role": "Propriétaire",
+    "entry": "E22 ou opération signalée",
+    "fields": [
+      "Original",
+      "Résiduel",
+      "Historique",
+      "Justificatifs",
+      "Type décision*",
+      "Motif*",
+      "Correction spécifique"
+    ],
+    "primary_action": "Appliquer décision",
+    "exit": "Dossier mis à jour ; ne résoudre que résiduel traité",
+    "api": [
+      "GET /discrepancies/:id",
+      "POST /discrepancies/:id/resolve"
+    ],
+    "tables": [
+      "discrepancy_cases",
+      "discrepancy_actions",
+      "money_events",
+      "stock_events"
+    ],
+    "transitions": [
+      "S13"
+    ],
+    "tests": [
+      "T40",
+      "T41",
+      "T73",
+      "T74"
+    ]
+  },
+  {
+    "id": "E24",
+    "title": "Inventaire propriétaire",
+    "route": "/owner/inventories/[id]",
+    "role": "Propriétaire",
+    "entry": "Créer depuis Contrôles ou demande soumise",
+    "fields": [
+      "Lieu*",
+      "Scope*",
+      "Comptages",
+      "Différences",
+      "Coût estimé si nécessaire",
+      "Motif par écart*"
+    ],
+    "primary_action": "Démarrer / demander recomptage / valider selon état",
+    "exit": "Rapport ajustements et historique ; notifications gérant",
+    "api": [
+      "POST /stock-counts",
+      "POST /stock-counts/:id/start",
+      "POST /stock-counts/:id/decision"
+    ],
+    "tables": [
+      "stock_counts",
+      "stock_count_lines",
+      "stock_count_locks"
+    ],
+    "transitions": [
+      "S11"
+    ],
+    "tests": [
+      "T42",
+      "T43",
+      "T75",
+      "T76"
+    ]
+  },
+  {
+    "id": "E25",
+    "title": "Catalogue et prix",
+    "route": "/owner/products",
+    "role": "Propriétaire",
+    "entry": "Navigation Produits",
+    "fields": [
+      "Nom*",
+      "Référence*",
+      "Unité*",
+      "Précision*",
+      "Variante standard automatique",
+      "Options avancées",
+      "Prix par boutique*",
+      "Seuils"
+    ],
+    "primary_action": "Enregistrer produit ou nouvelle version de prix",
+    "exit": "Liste filtrée et détail ; jamais stock créé par catalogue",
+    "api": [
+      "POST /products",
+      "POST /products/:id/variants",
+      "POST /variants/:id/units",
+      "POST /prices"
+    ],
+    "tables": [
+      "products",
+      "variants",
+      "sale_units",
+      "prices",
+      "shop_products"
+    ],
+    "transitions": [
+      "S01"
+    ],
+    "tests": [
+      "T10",
+      "T11",
+      "T12",
+      "T13"
+    ]
+  },
+  {
+    "id": "E26",
+    "title": "Boutique et responsabilité",
+    "route": "/owner/shops/[id]",
+    "role": "Propriétaire",
+    "entry": "Liste boutiques",
+    "fields": [
+      "Nom/code*",
+      "Contact",
+      "Gérant*",
+      "Statut",
+      "Paramètres effectifs",
+      "Blocages de fermeture"
+    ],
+    "primary_action": "Activer / suspendre / remplacer selon état",
+    "exit": "E02 pour initialisation ; E36 secours ; historique conservé",
+    "api": [
+      "POST /shops",
+      "POST /shops/:id/activate",
+      "POST /shops/:id/suspend",
+      "POST /shops/:id/close"
+    ],
+    "tables": [
+      "shops",
+      "manager_assignments",
+      "opening_drafts"
+    ],
+    "transitions": [
+      "S01",
+      "S15"
+    ],
+    "tests": [
+      "T01",
+      "T56",
+      "T77"
+    ]
+  },
+  {
+    "id": "E27",
+    "title": "Rapports",
+    "route": "/owner/reports",
+    "role": "Propriétaire",
+    "entry": "Navigation Rapports",
+    "fields": [
+      "Type*",
+      "Période*",
+      "Boutique*",
+      "Date activité explicitée",
+      "Filtre produit/mode selon rapport",
+      "Format CSV/PDF"
+    ],
+    "primary_action": "Afficher ou exporter",
+    "exit": "Table détail ; état job puis téléchargement autorisé",
+    "api": [
+      "GET /reports/overview",
+      "POST /exports",
+      "GET /exports/:id"
+    ],
+    "tables": [
+      "export_jobs",
+      "sales",
+      "money_entries",
+      "stock_entries"
+    ],
+    "transitions": [
+      "S13"
+    ],
+    "tests": [
+      "T54",
+      "T60",
+      "T80",
+      "T81"
+    ]
+  },
+  {
+    "id": "E28",
+    "title": "Paramètres métier",
+    "route": "/owner/settings",
+    "role": "Propriétaire",
+    "entry": "Navigation Paramètres",
+    "fields": [
+      "Portée réseau/boutique*",
+      "Remise max",
+      "Dépense unitaire/session",
+      "Crédits",
+      "Péremption",
+      "Délai retours",
+      "Sources/liens admin"
+    ],
+    "primary_action": "Enregistrer nouvelle version",
+    "exit": "Résumé des changements et date d’effet ; historiques inchangés",
+    "api": [
+      "GET /policies",
+      "POST /policies"
+    ],
+    "tables": [
+      "policies"
+    ],
+    "transitions": [
+      "S04",
+      "S12"
+    ],
+    "tests": [
+      "T26",
+      "T55",
+      "T83"
+    ]
+  },
+  {
+    "id": "E29",
+    "title": "Expédition gérant",
+    "route": "/manager/transfers/[id]",
+    "role": "Gérant source principal",
+    "entry": "Plus > Transferts ou notification accord",
+    "fields": [
+      "Destinataire en lecture",
+      "Quantités autorisées",
+      "Quantités réellement remises*",
+      "Lots proposés",
+      "Motif si partiel"
+    ],
+    "primary_action": "Confirmer l’expédition",
+    "exit": "Bordereau et transit ; pas réception automatique",
+    "api": [
+      "POST /shipments/:id/dispatch",
+      "POST /shipments/:id/submit"
+    ],
+    "tables": [
+      "shipments",
+      "shipment_lines",
+      "stock_entries"
+    ],
+    "transitions": [
+      "S08"
+    ],
+    "tests": [
+      "T32",
+      "T71"
+    ]
+  },
+  {
+    "id": "E30",
+    "title": "Fonds du gérant",
+    "route": "/manager/funds",
+    "role": "Gérant principal",
+    "entry": "Plus > Fonds ou notification remise",
+    "fields": [
+      "Liste remises sans solde global",
+      "Montant reçu à confirmer*",
+      "Montant à remettre*",
+      "Destinataire*",
+      "Motif*"
+    ],
+    "primary_action": "Confirmer reçu ou enregistrer remise réelle",
+    "exit": "Détail reçus et reliquat ; jamais attendu courant",
+    "api": [
+      "POST /fund-transfers",
+      "POST /fund-transfers/:id/send",
+      "POST /fund-transfers/:id/receive"
+    ],
+    "tables": [
+      "fund_transfers",
+      "fund_receipts"
+    ],
+    "transitions": [
+      "S09"
+    ],
+    "tests": [
+      "T29",
+      "T30",
+      "T65"
+    ]
+  },
+  {
+    "id": "E31",
+    "title": "Perte ou casse",
+    "route": "/manager/losses/new",
+    "role": "Gérant principal",
+    "entry": "Stock > Signaler problème",
+    "fields": [
+      "Produit*",
+      "Lot selon produit*",
+      "Quantité*",
+      "Présent abîmé ou manquant*",
+      "Motif*",
+      "Photo facultative"
+    ],
+    "primary_action": "Déclarer le problème",
+    "exit": "Quantité isolée, dossier en attente, lien suivi",
+    "api": [
+      "POST /loss-reports"
+    ],
+    "tables": [
+      "loss_reports",
+      "stock_entries",
+      "discrepancy_cases"
+    ],
+    "transitions": [
+      "S11"
+    ],
+    "tests": [
+      "T44",
+      "T75"
+    ]
+  },
+  {
+    "id": "E32",
+    "title": "Comptage inventaire gérant",
+    "route": "/manager/inventories/[id]",
+    "role": "Gérant de la boutique",
+    "entry": "Notification inventaire ouvert",
+    "fields": [
+      "Produits/lot/compartiment",
+      "Quantités comptées*",
+      "Motif différences à soumission*",
+      "Progression"
+    ],
+    "primary_action": "Soumettre le comptage",
+    "exit": "Lecture figée en attente owner ; aucun déblocage automatique",
+    "api": [
+      "PUT /stock-counts/:id/lines",
+      "POST /stock-counts/:id/submit"
+    ],
+    "tables": [
+      "stock_counts",
+      "stock_count_lines"
+    ],
+    "transitions": [
+      "S11"
+    ],
+    "tests": [
+      "T42",
+      "T43",
+      "T76"
+    ]
+  },
+  {
+    "id": "E33",
+    "title": "Retour et remboursement client",
+    "route": "/manager/returns/[id]",
+    "role": "Gérant principal",
+    "entry": "Vente E06 ou liste retours",
+    "fields": [
+      "Vente en lecture",
+      "Lignes/quantités*",
+      "Motif*",
+      "État produit*",
+      "Après accord quantités reçues*",
+      "Source/montant remboursement*"
+    ],
+    "primary_action": "Demander / recevoir / rembourser selon étape",
+    "exit": "Détail retour avec obligation restante ; reçu remboursement",
+    "api": [
+      "POST /returns",
+      "POST /returns/:id/receive",
+      "POST /returns/:id/refund"
+    ],
+    "tables": [
+      "returns",
+      "return_receipts",
+      "return_value_allocations",
+      "refund_allocations"
+    ],
+    "transitions": [
+      "S06"
+    ],
+    "tests": [
+      "T20",
+      "T21",
+      "T22",
+      "T70",
+      "T82"
+    ]
+  },
+  {
+    "id": "E34",
+    "title": "Fournisseurs et paiements",
+    "route": "/owner/suppliers/[id]",
+    "role": "Propriétaire ; vue restreinte gérant /manager/suppliers/[id]",
+    "entry": "Achats > Fournisseur",
+    "fields": [
+      "Achats et dettes",
+      "Sélection obligations*",
+      "Montant par obligation*",
+      "Source*",
+      "Référence facultative"
+    ],
+    "primary_action": "Payer ou enregistrer remboursement fournisseur",
+    "exit": "Reçu et solde restant ; retour fournisseur sous onglet dédié",
+    "api": [
+      "POST /supplier-payments",
+      "POST /supplier-returns",
+      "POST /supplier-returns/:id/confirm-credit"
+    ],
+    "tables": [
+      "suppliers",
+      "supplier_payment_allocations",
+      "supplier_returns"
+    ],
+    "transitions": [
+      "S10",
+      "S12"
+    ],
+    "tests": [
+      "T35",
+      "T36",
+      "T79"
+    ]
+  },
+  {
+    "id": "E35",
+    "title": "Historique détaillé propriétaire",
+    "route": "/owner/sales/[id]",
+    "role": "Propriétaire",
+    "entry": "Rapport ventes ou recherche référence",
+    "fields": [
+      "Vente",
+      "Paiements",
+      "Coûts",
+      "Demande retour/annulation",
+      "Motif décision*"
+    ],
+    "primary_action": "Autoriser/refuser une correction",
+    "exit": "Gérant notifié pour exécution physique ; pas sortie cash immédiate",
+    "api": [
+      "GET /sales/:id",
+      "POST /returns/:id/decision",
+      "POST /requests/:id/decision"
+    ],
+    "tables": [
+      "sales",
+      "approvals",
+      "returns"
+    ],
+    "transitions": [
+      "S02",
+      "S06"
+    ],
+    "tests": [
+      "T20",
+      "T22",
+      "T74"
+    ]
+  },
+  {
+    "id": "E36",
+    "title": "Correction et reprise",
+    "route": "/owner/takeovers/[id]",
+    "role": "Propriétaire ; gérant accès à sa demande uniquement",
+    "entry": "Écart, recomptage ou appareil perdu",
+    "fields": [
+      "Type*",
+      "Source*",
+      "Motif*",
+      "Éléments connus",
+      "Montants/quantités selon action",
+      "Limites de données"
+    ],
+    "primary_action": "Valider une étape de reprise",
+    "exit": "Chronologie, opérations liées, reprise appareil après rapprochement",
+    "api": [
+      "POST /cash-closures/:id/recounts",
+      "POST /recounts/:id/decision",
+      "POST /recovery-cases"
+    ],
+    "tables": [
+      "recount_requests",
+      "opening_and_recovery_cases",
+      "device_sequence_resolutions"
+    ],
+    "transitions": [
+      "S03",
+      "S13",
+      "S14",
+      "S15"
+    ],
+    "tests": [
+      "T41",
+      "T48",
+      "T63",
+      "T77"
+    ]
+  },
+  {
+    "id": "E37",
+    "title": "Utilisateurs et affectations",
+    "route": "/owner/users",
+    "role": "Propriétaire",
+    "entry": "Paramètres > Utilisateurs",
+    "fields": [
+      "Nom*",
+      "E-mail*",
+      "Boutique*",
+      "État invitation",
+      "Dates affectations",
+      "Motif désactivation/remplacement*",
+      "Réauthentification sensible",
+      "Gestion du second facteur owner"
+    ],
+    "primary_action": "Inviter ou remplacer le gérant",
+    "exit": "Confirmation étapes, pas deux affectations actives",
+    "api": [
+      "POST /users",
+      "POST /shops/:id/assign-manager",
+      "POST /users/:id/deactivate"
+    ],
+    "tables": [
+      "app_users",
+      "manager_assignments"
+    ],
+    "transitions": [
+      "S01",
+      "S15"
+    ],
+    "tests": [
+      "T02",
+      "T61",
+      "T77"
+    ]
+  },
+  {
+    "id": "E38",
+    "title": "Appareil principal",
+    "route": "/owner/devices",
+    "role": "Propriétaire ; gérant enregistrement /manager/device",
+    "entry": "Première utilisation ou Paramètres",
+    "fields": [
+      "Nom appareil*",
+      "Boutique",
+      "Dernier contact",
+      "File connue",
+      "Statut capacité",
+      "Motif révocation*"
+    ],
+    "primary_action": "Approuver cet appareil ou révoquer",
+    "exit": "Confirmation principale, gérant peut ouvrir caisse ; secours E36",
+    "api": [
+      "POST /devices/register",
+      "POST /devices/:id/approve",
+      "POST /devices/:id/revoke"
+    ],
+    "tables": [
+      "devices",
+      "device_capabilities"
+    ],
+    "transitions": [
+      "S01",
+      "S14"
+    ],
+    "tests": [
+      "T48",
+      "T51",
+      "T61",
+      "T62"
+    ]
+  },
+  {
+    "id": "E39",
+    "title": "Sources de paiement",
+    "route": "/owner/sources",
+    "role": "Propriétaire",
+    "entry": "Paramètres > Sources de fonds",
+    "fields": [
+      "Nom*",
+      "Type*",
+      "Responsable/lieu*",
+      "Solde initial*",
+      "Actif",
+      "Motif correction*"
+    ],
+    "primary_action": "Créer source ou enregistrer apport réel",
+    "exit": "Compte et historique ; solde jamais édité directement après usage",
+    "api": [
+      "POST /payment-sources",
+      "POST /owner-fund-events"
+    ],
+    "tables": [
+      "payment_sources",
+      "money_accounts",
+      "money_events"
+    ],
+    "transitions": [
+      "S01",
+      "S09"
+    ],
+    "tests": [
+      "T25",
+      "T29",
+      "T66"
+    ]
+  },
+  {
+    "id": "E40",
+    "title": "Lieux et dépôt",
+    "route": "/owner/locations",
+    "role": "Propriétaire",
+    "entry": "Stock > Lieux",
+    "fields": [
+      "Stock owner permanent",
+      "Dépôt optionnel",
+      "Nom*",
+      "Activation",
+      "Quantités par état"
+    ],
+    "primary_action": "Activer dépôt ou consulter/déplacer stock",
+    "exit": "E20 transfert ; désactivation conserve soldes existants consultables",
+    "api": [
+      "GET /locations",
+      "POST /locations/depot",
+      "PATCH /locations/:id"
+    ],
+    "tables": [
+      "locations",
+      "stock_balances"
+    ],
+    "transitions": [
+      "S08",
+      "S15"
+    ],
+    "tests": [
+      "T31",
+      "T56",
+      "T67"
+    ]
+  }
+]

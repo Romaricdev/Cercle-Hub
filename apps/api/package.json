@@ -1,0 +1,33 @@
+{
+  "name": "@cercle/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "start": "node dist/main.js"
+  },
+  "dependencies": {
+    "@cercle/contracts": "workspace:*",
+    "@cercle/database": "workspace:*",
+    "@cercle/domain": "workspace:*",
+    "@cercle/storage": "workspace:*",
+    "@fastify/helmet": "13.1.1",
+    "@nestjs/common": "catalog:",
+    "@nestjs/core": "catalog:",
+    "@nestjs/platform-fastify": "catalog:",
+    "better-auth": "catalog:",
+    "fastify": "catalog:",
+    "ioredis": "catalog:",
+    "otpauth": "catalog:",
+    "reflect-metadata": "catalog:",
+    "rxjs": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@nestjs/testing": "catalog:",
+    "@types/node": "catalog:",
+    "typescript": "catalog:"
+  }
+}

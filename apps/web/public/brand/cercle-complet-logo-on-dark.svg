@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 180" role="img" aria-label="Cercle Complet Sarl">
+  <title>Cercle Complet Sarl</title>
+  <g fill="none" stroke="#60A5FA" stroke-width="14" stroke-linecap="round">
+    <circle cx="90" cy="90" r="62"/>
+    <path d="M118 58 A48 48 0 1 0 118 122"/>
+    <path d="M104 68 A32 32 0 1 0 104 112"/>
+  </g>
+  <g fill="#F1F5F9" font-family="Manrope, Inter, Arial, sans-serif">
+    <text x="180" y="88" font-size="42" font-weight="700">Cercle Complet</text>
+    <text x="180" y="128" font-size="22" font-weight="600">Sarl</text>
+  </g>
+</svg>

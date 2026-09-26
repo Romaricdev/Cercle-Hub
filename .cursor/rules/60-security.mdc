@@ -1,0 +1,9 @@
+---
+description: "Sécurité applicative, fichiers, dépendances et exploitation"
+alwaysApply: false
+---
+
+Appliquer docs/14-securite-conception-et-recette.md aux tâches d’auth, API, fichiers, réseau, jobs ou déploiement. SEC01–SEC21 sont des critères à prouver.
+Échappement contextuel + CSP, SQL paramétré, CSRF/origines explicites, contrôle objet/boutique et rate limit compte/IP. MFA propriétaire avant données réelles.
+S3 privé, fichiers en quarantaine tant que non CLEAN ; URLs signées non loggées. Pas de secrets dans git/bundle/logs, pas de privilèges DB/Docker root au runtime si évitables.
+Services internes non exposés, sauvegardes hors VPS et restauration mesurée. Scans actifs seulement sur cible autorisée. Rapport de sécurité honnête : distinguer prévu/configuré/testé et blocages réels.

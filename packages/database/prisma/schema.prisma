@@ -1,0 +1,701 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// Identité Better Auth. Les mots de passe restent dans account.password, jamais dans app_users.
+model User {
+  id               String      @id
+  name             String
+  email            String
+  emailVerified    Boolean     @default(false)
+  image            String?
+  twoFactorEnabled Boolean     @default(false)
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  sessions         Session[]
+  accounts         Account[]
+  twoFactors       TwoFactor[]
+  appUser          AppUser?
+
+  @@unique([email])
+  @@map("user")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+model TwoFactor {
+  id                      String    @id
+  secret                  String
+  backupCodes             String
+  userId                  String
+  verified                Boolean   @default(true)
+  failedVerificationCount Int       @default(0)
+  lockedUntil             DateTime?
+  user                    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([secret])
+  @@map("twoFactor")
+}
+
+model Organization {
+  id                String             @id @default(uuid()) @db.Uuid
+  name              String?
+  initializedAt     DateTime?          @map("initialized_at") @db.Timestamptz(6)
+  createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  appUsers          AppUser[]
+  shops             Shop[]
+  devices           Device[]
+  invitations       Invitation[]
+  idempotencyKeys   IdempotencyKey[]
+  inboxMessages     InboxMessage[]
+  referenceBalances ReferenceBalance[]
+  products          Product[]
+  locations         Location[]
+  paymentSources    PaymentSource[]
+  moneyAccounts     MoneyAccount[]
+  policies          Policy[]
+  openingDrafts     OpeningDraft[]
+  journalEntries    JournalEntry[]
+  stockEvents       StockEvent[]
+  moneyEvents       MoneyEvent[]
+
+  @@map("organizations")
+}
+
+model AppUser {
+  id              String              @id @default(uuid()) @db.Uuid
+  authUserId      String              @unique @map("auth_user_id")
+  organizationId  String              @map("organization_id") @db.Uuid
+  role            String
+  displayName     String              @default("") @map("display_name")
+  status          String              @default("ACTIVE")
+  mfaRequired     Boolean             @default(false) @map("mfa_required")
+  deactivatedAt   DateTime?           @map("deactivated_at") @db.Timestamptz(6)
+  createdAt       DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  authUser        User                @relation(fields: [authUserId], references: [id], onDelete: Restrict)
+  organization    Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  idempotencyKeys IdempotencyKey[]
+  assignments     ManagerAssignment[]
+  invitations     Invitation[]
+  devices         Device[]
+  createdShops    Shop[]              @relation("ShopCreator")
+  policies        Policy[]
+  openingDrafts   OpeningDraft[]
+  moneyEvents     MoneyEvent[]
+  stockEvents     StockEvent[]
+  journalEntries  JournalEntry[]
+
+  @@index([organizationId, status])
+  @@map("app_users")
+}
+
+model Shop {
+  id             String              @id @default(uuid()) @db.Uuid
+  organizationId String              @map("organization_id") @db.Uuid
+  code           String
+  name           String
+  status         String              @default("SETUP")
+  createdAt      DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  activatedAt    DateTime?           @map("activated_at") @db.Timestamptz(6)
+  suspendedAt    DateTime?           @map("suspended_at") @db.Timestamptz(6)
+  closedAt       DateTime?           @map("closed_at") @db.Timestamptz(6)
+  currency       String              @default("XAF")
+  timezone       String              @default("Africa/Douala")
+  createdById    String?             @map("created_by_id") @db.Uuid
+  organization   Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  createdBy      AppUser?            @relation("ShopCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  assignments    ManagerAssignment[]
+  devices        Device[]
+  shopProducts   ShopProduct[]
+  locations      Location[]
+  paymentSources PaymentSource[]
+  prices         Price[]
+  policies       Policy[]
+  openingDrafts  OpeningDraft[]
+  stockEvents    StockEvent[]
+  stockBalances  StockBalance[]
+  moneyAccounts  MoneyAccount[]
+
+  @@unique([organizationId, code])
+  @@map("shops")
+}
+
+model ManagerAssignment {
+  id        String    @id @default(uuid()) @db.Uuid
+  shopId    String    @map("shop_id") @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  startedAt DateTime  @default(now()) @map("started_at") @db.Timestamptz(6)
+  endedAt   DateTime? @map("ended_at") @db.Timestamptz(6)
+  reason    String?
+  shop      Shop      @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  user      AppUser   @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([shopId, endedAt])
+  @@index([userId, endedAt])
+  @@map("manager_assignments")
+}
+
+model Invitation {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  userId         String       @map("user_id") @db.Uuid
+  tokenHash      String       @map("token_hash")
+  expiresAt      DateTime     @map("expires_at") @db.Timestamptz(6)
+  usedAt         DateTime?    @map("used_at") @db.Timestamptz(6)
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  user           AppUser      @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([tokenHash])
+  @@index([userId])
+  @@map("invitations")
+}
+
+model Device {
+  id             String             @id @default(uuid()) @db.Uuid
+  organizationId String             @map("organization_id") @db.Uuid
+  shopId         String?            @map("shop_id") @db.Uuid
+  userId         String             @map("user_id") @db.Uuid
+  publicKey      String             @map("public_key")
+  name           String
+  userAgent      String?            @map("user_agent")
+  status         String             @default("PENDING")
+  lastSeenAt     DateTime?          @map("last_seen_at") @db.Timestamptz(6)
+  registeredAt   DateTime           @default(now()) @map("registered_at") @db.Timestamptz(6)
+  organization   Organization       @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  shop           Shop?              @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  user           AppUser            @relation(fields: [userId], references: [id], onDelete: Restrict)
+  capabilities   DeviceCapability[]
+
+  @@unique([publicKey])
+  @@index([organizationId, status])
+  @@index([shopId, status])
+  @@map("devices")
+}
+
+model DeviceCapability {
+  id             String    @id @default(uuid()) @db.Uuid
+  deviceId       String    @map("device_id") @db.Uuid
+  sessionId      String?   @map("session_id")
+  policyRevision Int       @default(1) @map("policy_revision")
+  startsAt       DateTime  @default(now()) @map("starts_at") @db.Timestamptz(6)
+  expiresAt      DateTime  @map("expires_at") @db.Timestamptz(6)
+  tokenHash      String    @map("token_hash")
+  revokedAt      DateTime? @map("revoked_at") @db.Timestamptz(6)
+  lastSequence   BigInt    @default(0) @map("last_sequence")
+  device         Device    @relation(fields: [deviceId], references: [id], onDelete: Restrict)
+
+  @@index([deviceId, revokedAt])
+  @@map("device_capabilities")
+}
+
+model IdempotencyKey {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  actorId        String       @map("actor_id") @db.Uuid
+  key            String       @db.Uuid
+  requestHash    String       @map("request_hash")
+  state          String
+  responseStatus Int?         @map("response_status")
+  responseJson   Json?        @map("response_json")
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  actor          AppUser      @relation(fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@unique([organizationId, actorId, key])
+  @@map("idempotency_keys")
+}
+
+/// Solde technique du socle. Ce n’est pas un compte de caisse métier.
+model ReferenceBalance {
+  id             String       @id @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  label          String
+  balanceMinor   BigInt       @map("balance_minor")
+  version        Int
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@unique([organizationId, label])
+  @@map("reference_balances")
+}
+
+/// Journal technique append-only du socle.
+model ReferenceJournal {
+  id                String   @id @db.Uuid
+  organizationId    String   @map("organization_id") @db.Uuid
+  balanceId         String   @map("balance_id") @db.Uuid
+  amountSignedMinor BigInt   @map("amount_signed_minor")
+  operationId       String   @map("operation_id") @db.Uuid
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([balanceId, createdAt])
+  @@map("reference_journal")
+}
+
+model AuditEvent {
+  id         String   @id @db.Uuid
+  actorId    String?  @map("actor_id") @db.Uuid
+  action     String
+  entityType String   @map("entity_type")
+  entityId   String   @map("entity_id")
+  requestId  String   @map("request_id")
+  afterJson  Json?    @map("after_json")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([entityType, entityId])
+  @@map("audit_events")
+}
+
+model OutboxEvent {
+  id            String    @id @db.Uuid
+  topic         String
+  aggregateId   String    @map("aggregate_id")
+  payload       Json
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  publishedAt   DateTime? @map("published_at") @db.Timestamptz(6)
+  processedAt   DateTime? @map("processed_at") @db.Timestamptz(6)
+  attempts      Int       @default(0)
+  nextAttemptAt DateTime? @map("next_attempt_at") @db.Timestamptz(6)
+
+  @@index([publishedAt, nextAttemptAt])
+  @@map("outbox_events")
+}
+
+model InboxMessage {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  operationId    String       @map("operation_id") @db.Uuid
+  payloadHash    String       @map("payload_hash")
+  state          String
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@unique([organizationId, operationId])
+  @@map("inbox_messages")
+}
+
+model PlatformEffect {
+  eventId   String   @id @map("event_id") @db.Uuid
+  appliedAt DateTime @default(now()) @map("applied_at") @db.Timestamptz(6)
+
+  @@map("platform_effects")
+}
+
+model Product {
+  id             String           @id @default(uuid()) @db.Uuid
+  organizationId String           @map("organization_id") @db.Uuid
+  name           String
+  sku            String?
+  family         String?
+  status         String           @default("ACTIVE")
+  tracksLots     Boolean          @default(false) @map("tracks_lots")
+  tracksExpiry   Boolean          @default(false) @map("tracks_expiry")
+  imageKey       String?          @map("image_key")
+  imageMime      String?          @map("image_mime")
+  imageSize      Int?             @map("image_size")
+  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  variants       ProductVariant[]
+  shops          ShopProduct[]
+
+  @@unique([organizationId, sku])
+  @@index([organizationId, status, name])
+  @@map("products")
+}
+
+model ProductVariant {
+  id            String             @id @default(uuid()) @db.Uuid
+  productId     String             @map("product_id") @db.Uuid
+  name          String
+  sku           String?
+  barcode       String?
+  status        String             @default("ACTIVE")
+  product       Product            @relation(fields: [productId], references: [id], onDelete: Restrict)
+  units         SaleUnit[]
+  lots          Lot[]
+  openingLines  OpeningStockLine[]
+  stockEntries  StockEntry[]
+  stockBalances StockBalance[]
+  costLayers    CostLayer[]
+
+  @@unique([productId, name])
+  @@unique([barcode])
+  @@index([productId, status])
+  @@map("product_variants")
+}
+
+model SaleUnit {
+  id          String         @id @default(uuid()) @db.Uuid
+  variantId   String         @map("variant_id") @db.Uuid
+  name        String
+  symbol      String
+  factor      Decimal        @db.Decimal(20, 6)
+  precision   Int            @default(0)
+  isReference Boolean        @default(false) @map("is_reference")
+  status      String         @default("ACTIVE")
+  variant     ProductVariant @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  prices      Price[]
+
+  @@unique([variantId, name])
+  @@index([variantId, status])
+  @@map("sale_units")
+}
+
+model Price {
+  id          String    @id @default(uuid()) @db.Uuid
+  saleUnitId  String    @map("sale_unit_id") @db.Uuid
+  shopId      String?   @map("shop_id") @db.Uuid
+  amountMinor BigInt    @map("amount_minor")
+  validFrom   DateTime  @map("valid_from") @db.Timestamptz(6)
+  validUntil  DateTime? @map("valid_until") @db.Timestamptz(6)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  saleUnit    SaleUnit  @relation(fields: [saleUnitId], references: [id], onDelete: Restrict)
+  shop        Shop?     @relation(fields: [shopId], references: [id], onDelete: Restrict)
+
+  @@index([saleUnitId, shopId, validFrom])
+  @@map("prices")
+}
+
+model ShopProduct {
+  id        String  @id @default(uuid()) @db.Uuid
+  shopId    String  @map("shop_id") @db.Uuid
+  productId String  @map("product_id") @db.Uuid
+  active    Boolean @default(true)
+  shop      Shop    @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  product   Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@unique([shopId, productId])
+  @@map("shop_products")
+}
+
+model Location {
+  id             String             @id @default(uuid()) @db.Uuid
+  organizationId String             @map("organization_id") @db.Uuid
+  shopId         String?            @map("shop_id") @db.Uuid
+  name           String
+  type           String
+  status         String             @default("ACTIVE")
+  createdAt      DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  organization   Organization       @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  shop           Shop?              @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  lots           Lot[]
+  openingLines   OpeningStockLine[]
+  stockEntries   StockEntry[]
+  stockBalances  StockBalance[]
+  costLayers     CostLayer[]
+
+  @@unique([shopId, type])
+  @@index([organizationId, status])
+  @@map("locations")
+}
+
+model Lot {
+  id         String         @id @default(uuid()) @db.Uuid
+  variantId  String         @map("variant_id") @db.Uuid
+  locationId String         @map("location_id") @db.Uuid
+  code       String
+  expiresAt  DateTime?      @map("expires_at") @db.Date
+  variant    ProductVariant @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  location   Location       @relation(fields: [locationId], references: [id], onDelete: Restrict)
+  entries    StockEntry[]
+  layers     CostLayer[]
+
+  @@unique([variantId, locationId, code])
+  @@index([expiresAt])
+  @@map("lots")
+}
+
+model StockEvent {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  shopId         String?      @map("shop_id") @db.Uuid
+  actorId        String       @map("actor_id") @db.Uuid
+  type           String
+  originType     String       @map("origin_type")
+  originId       String       @map("origin_id")
+  correctionOfId String?      @map("correction_of_id") @db.Uuid
+  reason         String?
+  postedAt       DateTime     @default(now()) @map("posted_at") @db.Timestamptz(6)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  shop           Shop?        @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  actor          AppUser      @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  entries        StockEntry[]
+  correctionOf   StockEvent?  @relation("StockCorrections", fields: [correctionOfId], references: [id], onDelete: Restrict)
+  corrections    StockEvent[] @relation("StockCorrections")
+
+  @@index([organizationId, postedAt])
+  @@map("stock_events")
+}
+
+model StockEntry {
+  id         String         @id @default(uuid()) @db.Uuid
+  eventId    String         @map("event_id") @db.Uuid
+  variantId  String         @map("variant_id") @db.Uuid
+  locationId String         @map("location_id") @db.Uuid
+  lotId      String?        @map("lot_id") @db.Uuid
+  quantity   Decimal        @db.Decimal(20, 6)
+  event      StockEvent     @relation(fields: [eventId], references: [id], onDelete: Restrict)
+  variant    ProductVariant @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  location   Location       @relation(fields: [locationId], references: [id], onDelete: Restrict)
+  lot        Lot?           @relation(fields: [lotId], references: [id], onDelete: Restrict)
+
+  @@index([variantId, locationId])
+  @@map("stock_entries")
+}
+
+model StockBalance {
+  id         String         @id @default(uuid()) @db.Uuid
+  shopId     String?        @map("shop_id") @db.Uuid
+  variantId  String         @map("variant_id") @db.Uuid
+  locationId String         @map("location_id") @db.Uuid
+  quantity   Decimal        @db.Decimal(20, 6)
+  version    Int            @default(1)
+  updatedAt  DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  shop       Shop?          @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  variant    ProductVariant @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  location   Location       @relation(fields: [locationId], references: [id], onDelete: Restrict)
+
+  @@unique([variantId, locationId])
+  @@index([shopId, updatedAt])
+  @@map("stock_balances")
+}
+
+model CostLayer {
+  id                String         @id @default(uuid()) @db.Uuid
+  variantId         String         @map("variant_id") @db.Uuid
+  locationId        String         @map("location_id") @db.Uuid
+  lotId             String?        @map("lot_id") @db.Uuid
+  originType        String         @map("origin_type")
+  originId          String         @map("origin_id")
+  initialQuantity   Decimal        @map("initial_quantity") @db.Decimal(20, 6)
+  remainingQuantity Decimal        @map("remaining_quantity") @db.Decimal(20, 6)
+  unitCostMinor     BigInt         @map("unit_cost_minor")
+  receivedAt        DateTime       @map("received_at") @db.Timestamptz(6)
+  variant           ProductVariant @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  location          Location       @relation(fields: [locationId], references: [id], onDelete: Restrict)
+  lot               Lot?           @relation(fields: [lotId], references: [id], onDelete: Restrict)
+
+  @@index([variantId, locationId, receivedAt])
+  @@map("cost_layers")
+}
+
+model PaymentSource {
+  id             String         @id @default(uuid()) @db.Uuid
+  organizationId String         @map("organization_id") @db.Uuid
+  shopId         String?        @map("shop_id") @db.Uuid
+  name           String
+  type           String
+  status         String         @default("ACTIVE")
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  shop           Shop?          @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  accounts       MoneyAccount[]
+
+  @@unique([organizationId, shopId, name])
+  @@index([organizationId, status])
+  @@map("payment_sources")
+}
+
+model MoneyAccount {
+  id              String        @id @default(uuid()) @db.Uuid
+  organizationId  String        @map("organization_id") @db.Uuid
+  shopId          String?       @map("shop_id") @db.Uuid
+  paymentSourceId String        @map("payment_source_id") @db.Uuid
+  name            String
+  currency        String
+  balanceMinor    BigInt        @default(0) @map("balance_minor")
+  version         Int           @default(1)
+  organization    Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  shop            Shop?         @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  paymentSource   PaymentSource @relation(fields: [paymentSourceId], references: [id], onDelete: Restrict)
+  entries         MoneyEntry[]
+
+  @@unique([paymentSourceId, currency])
+  @@index([organizationId, shopId])
+  @@map("money_accounts")
+}
+
+model MoneyEvent {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  actorId        String       @map("actor_id") @db.Uuid
+  type           String
+  reason         String
+  correctionOfId String?      @map("correction_of_id") @db.Uuid
+  postedAt       DateTime     @default(now()) @map("posted_at") @db.Timestamptz(6)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  actor          AppUser      @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  entries        MoneyEntry[]
+  correctionOf   MoneyEvent?  @relation("MoneyCorrections", fields: [correctionOfId], references: [id], onDelete: Restrict)
+  corrections    MoneyEvent[] @relation("MoneyCorrections")
+
+  @@index([organizationId, postedAt])
+  @@map("money_events")
+}
+
+model MoneyEntry {
+  id          String       @id @default(uuid()) @db.Uuid
+  eventId     String       @map("event_id") @db.Uuid
+  accountId   String       @map("account_id") @db.Uuid
+  amountMinor BigInt       @map("amount_minor")
+  event       MoneyEvent   @relation(fields: [eventId], references: [id], onDelete: Restrict)
+  account     MoneyAccount @relation(fields: [accountId], references: [id], onDelete: Restrict)
+
+  @@index([accountId, eventId])
+  @@map("money_entries")
+}
+
+model JournalEntry {
+  id             String         @id @default(uuid()) @db.Uuid
+  organizationId String         @map("organization_id") @db.Uuid
+  actorId        String         @map("actor_id") @db.Uuid
+  type           String
+  status         String         @default("DRAFT")
+  referenceType  String         @map("reference_type")
+  referenceId    String         @map("reference_id")
+  correctionOfId String?        @map("correction_of_id") @db.Uuid
+  postedAt       DateTime?      @map("posted_at") @db.Timestamptz(6)
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  actor          AppUser        @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  lines          JournalLine[]
+  correctionOf   JournalEntry?  @relation("JournalCorrections", fields: [correctionOfId], references: [id], onDelete: Restrict)
+  corrections    JournalEntry[] @relation("JournalCorrections")
+
+  @@index([organizationId, postedAt])
+  @@map("journal_entries")
+}
+
+model JournalLine {
+  id          String       @id @default(uuid()) @db.Uuid
+  entryId     String       @map("entry_id") @db.Uuid
+  accountCode String       @map("account_code")
+  amountMinor BigInt       @map("amount_minor")
+  entry       JournalEntry @relation(fields: [entryId], references: [id], onDelete: Restrict)
+
+  @@index([entryId])
+  @@map("journal_lines")
+}
+
+model Policy {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  shopId         String?      @map("shop_id") @db.Uuid
+  version        Int
+  effectiveAt    DateTime     @map("effective_at") @db.Timestamptz(6)
+  values         Json
+  reason         String
+  actorId        String       @map("actor_id") @db.Uuid
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  shop           Shop?        @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  actor          AppUser      @relation(fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@unique([organizationId, shopId, version])
+  @@index([organizationId, effectiveAt])
+  @@map("policies")
+}
+
+model OpeningDraft {
+  id             String              @id @default(uuid()) @db.Uuid
+  organizationId String              @map("organization_id") @db.Uuid
+  shopId         String              @map("shop_id") @db.Uuid
+  actorId        String              @map("actor_id") @db.Uuid
+  version        Int                 @default(1)
+  status         String              @default("DRAFT")
+  step           Int                 @default(1)
+  funds          Json?
+  summary        Json?
+  validatedAt    DateTime?           @map("validated_at") @db.Timestamptz(6)
+  createdAt      DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  organization   Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  shop           Shop                @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  actor          AppUser             @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  stockLines     OpeningStockLine[]
+  obligations    OpeningObligation[]
+
+  @@unique([shopId, version])
+  @@index([organizationId, status])
+  @@map("opening_drafts")
+}
+
+model OpeningStockLine {
+  id            String         @id @default(uuid()) @db.Uuid
+  draftId       String         @map("draft_id") @db.Uuid
+  variantId     String         @map("variant_id") @db.Uuid
+  locationId    String         @map("location_id") @db.Uuid
+  lotCode       String?        @map("lot_code")
+  expiresAt     DateTime?      @map("expires_at") @db.Date
+  quantity      Decimal        @db.Decimal(20, 6)
+  unitCostMinor BigInt         @map("unit_cost_minor")
+  draft         OpeningDraft   @relation(fields: [draftId], references: [id], onDelete: Restrict)
+  variant       ProductVariant @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  location      Location       @relation(fields: [locationId], references: [id], onDelete: Restrict)
+
+  @@unique([draftId, variantId, locationId, lotCode])
+  @@map("opening_stock_lines")
+}
+
+model OpeningObligation {
+  id          String       @id @default(uuid()) @db.Uuid
+  draftId     String       @map("draft_id") @db.Uuid
+  label       String
+  amountMinor BigInt       @map("amount_minor")
+  draft       OpeningDraft @relation(fields: [draftId], references: [id], onDelete: Restrict)
+
+  @@index([draftId])
+  @@map("opening_obligations")
+}

@@ -1,0 +1,175 @@
+{
+  "prisma-stable": {
+    "name": "prisma",
+    "version": "7.10.0",
+    "engines": {
+      "node": "^20.19 || ^22.12 || >=24.0"
+    },
+    "dependencies": {
+      "mysql2": "3.15.3",
+      "postgres": "3.4.7",
+      "@prisma/dev": "0.24.17",
+      "@prisma/config": "7.10.0",
+      "@prisma/engines": "7.10.0",
+      "@prisma/studio-core": "0.33.0"
+    },
+    "peerDependencies": {
+      "typescript": ">=5.4.0",
+      "better-sqlite3": ">=9.0.0"
+    },
+    "peerDependenciesMeta": {
+      "typescript": {
+        "optional": true
+      },
+      "better-sqlite3": {
+        "optional": true
+      }
+    },
+    "source": "https://registry.npmjs.org/prisma/7.10.0"
+  },
+  "nestjs-bullmq": {
+    "name": "@nestjs/bullmq",
+    "version": "12.0.0",
+    "engines": null,
+    "dependencies": {
+      "tslib": "2.8.1",
+      "@nestjs/bull-shared": "^12.0.0"
+    },
+    "peerDependencies": {
+      "bullmq": "^3.0.0 || ^4.0.0 || ^5.0.0 || ^6.0.0",
+      "@nestjs/core": "^10.0.0 || ^11.0.0 || ^12.0.0",
+      "@nestjs/common": "^10.0.0 || ^11.0.0 || ^12.0.0"
+    },
+    "peerDependenciesMeta": null,
+    "source": "https://registry.npmjs.org/@nestjs/bullmq/latest"
+  },
+  "nestjs-common": {
+    "name": "@nestjs/common",
+    "version": "12.1.0",
+    "engines": null,
+    "dependencies": {
+      "uid": "2.0.2",
+      "tslib": "2.8.1",
+      "iterare": "1.2.1",
+      "load-esm": "1.0.3",
+      "file-type": "22.1.1",
+      "@standard-schema/spec": "1.1.0"
+    },
+    "peerDependencies": {
+      "rxjs": "^7.1.0",
+      "class-validator": ">=0.13.2",
+      "reflect-metadata": "^0.1.12 || ^0.2.0",
+      "class-transformer": ">=0.4.1"
+    },
+    "peerDependenciesMeta": {
+      "class-validator": {
+        "optional": true
+      },
+      "class-transformer": {
+        "optional": true
+      }
+    },
+    "source": "https://registry.npmjs.org/@nestjs/common/latest"
+  },
+  "nestjs-testing": {
+    "name": "@nestjs/testing",
+    "version": "12.1.0",
+    "engines": null,
+    "dependencies": {
+      "tslib": "2.8.1"
+    },
+    "peerDependencies": {
+      "@nestjs/core": "^12.0.0",
+      "@nestjs/common": "^12.0.0",
+      "@nestjs/microservices": "^12.0.0",
+      "@nestjs/platform-express": "^12.0.0"
+    },
+    "peerDependenciesMeta": {
+      "@nestjs/microservices": {
+        "optional": true
+      },
+      "@nestjs/platform-express": {
+        "optional": true
+      }
+    },
+    "source": "https://registry.npmjs.org/@nestjs/testing/latest"
+  },
+  "fastify-adapter": {
+    "name": "@nestjs/platform-fastify",
+    "version": "12.1.0",
+    "engines": null,
+    "dependencies": {
+      "tslib": "2.8.1",
+      "fastify": "5.12.5",
+      "find-my-way": "9.9.0",
+      "@fastify/cors": "11.3.0",
+      "path-to-regexp": "8.4.2",
+      "@fastify/middie": "9.3.4",
+      "fast-querystring": "1.1.2",
+      "light-my-request": "6.6.0",
+      "@fastify/formbody": "9.0.0"
+    },
+    "peerDependencies": {
+      "@nestjs/core": "^12.0.0",
+      "@fastify/view": "^10.0.0 || ^11.0.0 || ^12.0.0",
+      "@nestjs/common": "^12.0.0",
+      "@fastify/static": "^10.1.2",
+      "@fastify/multipart": "^10.1.0"
+    },
+    "peerDependenciesMeta": {
+      "@fastify/view": {
+        "optional": true
+      },
+      "@fastify/static": {
+        "optional": true
+      },
+      "@fastify/multipart": {
+        "optional": true
+      }
+    },
+    "source": "https://registry.npmjs.org/@nestjs/platform-fastify/12.1.0"
+  },
+  "typescript-compat": {
+    "name": "typescript",
+    "version": "6.0.2",
+    "engines": {
+      "node": ">=14.17"
+    },
+    "dependencies": null,
+    "peerDependencies": null,
+    "peerDependenciesMeta": null,
+    "source": "https://registry.npmjs.org/typescript/6.0.2"
+  },
+  "node-releases": {
+    "version": "v24.21.0",
+    "date": "2026-09-07",
+    "files": [
+      "aix-ppc64",
+      "headers",
+      "linux-arm64",
+      "linux-ppc64le",
+      "linux-s390x",
+      "linux-x64",
+      "linux-x64-musl",
+      "osx-arm64-tar",
+      "osx-x64-pkg",
+      "osx-x64-tar",
+      "src",
+      "win-arm64-7z",
+      "win-arm64-zip",
+      "win-x64-7z",
+      "win-x64-exe",
+      "win-x64-msi",
+      "win-x64-zip"
+    ],
+    "npm": "11.19.0",
+    "v8": "13.6.233.17",
+    "uv": "1.52.1",
+    "zlib": "1.3.2.1-motley",
+    "openssl": "3.5.8",
+    "modules": "137",
+    "lts": "Krypton",
+    "security": false,
+    "source": "https://nodejs.org/dist/index.json"
+  }
+}

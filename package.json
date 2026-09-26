@@ -1,0 +1,51 @@
+{
+  "name": "cercle-complet",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.6.0",
+  "engines": {
+    "node": ">=24.21.0 <25"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "corepack pnpm -r --if-present typecheck",
+    "build": "corepack pnpm run build:packages && corepack pnpm run build:apps",
+    "build:packages": "corepack pnpm --filter @cercle/contracts build && corepack pnpm --filter @cercle/database exec prisma generate && corepack pnpm --filter @cercle/database build && corepack pnpm --filter @cercle/storage build && corepack pnpm --filter @cercle/domain build",
+    "build:apps": "corepack pnpm --filter @cercle/api build && corepack pnpm --filter @cercle/worker build && corepack pnpm --filter @cercle/web build",
+    "test": "corepack pnpm test:unit",
+    "test:unit": "vitest run",
+    "test:unit:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:integration": "corepack pnpm build:packages && vitest run --config vitest.integration.config.ts",
+    "test:e2e": "corepack pnpm build && playwright test --project=chromium",
+    "test:e2e:cross-browser": "corepack pnpm build && playwright test --project=chromium --project=firefox --project=webkit",
+    "test:e2e:responsive": "corepack pnpm build && playwright test --project=chromium tests/e2e/sante-responsive.spec.ts",
+    "infra:up": "docker compose up -d",
+    "infra:down": "docker compose down",
+    "db:migrate": "corepack pnpm --filter @cercle/database migrate",
+    "db:replay-test": "corepack pnpm --filter @cercle/database replay-test",
+    "db:seed-local": "corepack pnpm --filter @cercle/database seed-local",
+    "db:seed-local-p03": "corepack pnpm build:packages && corepack pnpm --filter @cercle/database exec tsx ../../scripts/seed-local-p03.ts",
+    "db:seed-local-full": "corepack pnpm db:seed-local && corepack pnpm db:seed-local-p03"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "catalog:",
+    "@cercle/database": "workspace:*",
+    "@cercle/domain": "workspace:*",
+    "bullmq": "catalog:",
+    "ioredis": "catalog:",
+    "pg": "catalog:",
+    "reflect-metadata": "catalog:"
+  },
+  "devDependencies": {
+    "@eslint/js": "catalog:",
+    "@playwright/test": "catalog:",
+    "@types/node": "catalog:",
+    "@types/pg": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "eslint": "catalog:",
+    "typescript": "catalog:",
+    "typescript-eslint": "catalog:",
+    "vitest": "catalog:"
+  }
+}

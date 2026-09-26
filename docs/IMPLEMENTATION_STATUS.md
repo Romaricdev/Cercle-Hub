@@ -1,0 +1,230 @@
+# État d’implémentation
+
+Mise à jour : 25 septembre 2026. P00 documentaire et P01–P03 réalisées localement. P03-GATE est terminé ; P04–P12 ne sont pas commencées.
+
+Plan actif : [phases P00 à P12](15-phases-developpement.md). Les livrables P00 sont disponibles dans [docs/p00](p00/README.md). La rédaction du backlog ne vaut pas implémentation des tâches.
+
+## Complément P03 — médias produit et refonte de gestion
+
+Le catalogue accepte une image principale JPEG, PNG ou WebP (750 Ko maximum), stockée dans le bucket S3 privé et servie par une route authentifiée. La migration `20260925144000_p03_product_images` a été appliquée localement. Le catalogue utilise un assistant séquentiel avec prévisualisation réelle et une vue visuelle des produits. Une fiche produit de consultation regroupe identité, image, famille, options de suivi, variantes, formats, prix courants et stock réel détaillé par variante et lieu, avec accès séparé à la modification. La fiche boutique expose état, responsable, progression d’initialisation, lieux et actions sensibles structurées.
+
+Vérifications exécutées après ce complément : lint réussi, typecheck monorepo réussi, tests unitaires 19/19 et migration locale réussie. La suite d’intégration n’a pas démarré ses tests : son processus enfant a résolu Node 24.14.0 alors que le dépôt exige >=24.21.0 <25. Cette limite reste ouverte et n’est pas présentée comme une réussite.
+
+| Phase | État | Preuves / prochaine action |
+|---|---|---|
+| P00 — Préparation et backlog | VALIDÉE DOCUMENTAIREMENT | Registre de décisions/versions, 72 tâches et 170 références ; contrôles documentaires passés, compatibilité runtime à éprouver en P01 |
+| P01 — Socle technique et qualité | RÉALISÉE LOCALEMENT | Commandes de socle exécutées sur Node 24.21.0 ; limites listées dans le compte rendu P01 |
+| P02 — Accès sécurisés et design system | RÉALISÉE LOCALEMENT ; P02-GATE TERMINÉ | Preuves dans le compte rendu P02 et la stabilisation SEC12 ci-dessous |
+| P03 — Boutiques, catalogue et initialisation | RÉALISÉE LOCALEMENT ; P03-GATE TERMINÉ | Migrations, API, écrans et recette locale décrits dans le compte rendu P03 |
+| P04 — Ventes en ligne | NON COMMENCÉE | Aucun livrable applicatif ; démarrage non autorisé |
+| P05 — Caisse, dépenses et clôture | NON COMMENCÉE | Aucun livrable applicatif ; démarrage non autorisé |
+| P06 — Achats et réapprovisionnement | NON COMMENCÉE | Aucun livrable applicatif ; démarrage non autorisé |
+| P07 — Crédit, retours et inventaires | NON COMMENCÉE | Aucun livrable applicatif ; démarrage non autorisé |
+| P08 — Hors connexion | NON COMMENCÉE | Aucun livrable applicatif ; démarrage non autorisé |
+| P09 — Supervision et rapports | NON COMMENCÉE | Aucun livrable applicatif ; démarrage non autorisé |
+| P10 — Recette générale et préparation VPS | NON COMMENCÉE | Aucun livrable applicatif ; démarrage non autorisé |
+| P11 — Pilote et production | NON COMMENCÉE | Aucun livrable applicatif ; démarrage non autorisé |
+| P12 — Exploitation continue | NON COMMENCÉE | Aucun livrable applicatif ; démarrage non autorisé |
+
+Les contrats métier hors accès restent des spécifications. P02 ajoute l’authentification utilisable, les dashboards d’administration et les appareils, sans ventes ni caisse.
+
+## Ajouts documentaires 2.2
+
+Ce paragraphe décrit l’état au moment de l’ajout documentaire, avant le socle P01. Stack et déploiement révisés ; exigences responsive, tablettes/PWA et versions documentées dans `10-ajouts-techniques-et-responsive.md`. Anciennes consignes sans ORM/Redis remplacées. SeaweedFS et Better Auth étaient encore des propositions à cette date.
+
+Stack de tests documentée dans `11-stack-et-strategie-tests.md` : Vitest/Testing Library, intégration Docker et Playwright. Configurations et suites applicatives non créées ; résultats de test applicatif toujours inexistants.
+
+Identité Cercle Complet Sarl et stack Tailwind CSS/shadcn/ui/Framer Motion documentées dans le document 12 ; logo PNG V1 créé comme proposition graphique. Aucun développement applicatif ni test logiciel réalisé.
+
+## Validation visuelle ultérieure
+
+Le porteur a validé le logo V1 puis Manrope/Inter, la palette bleu vif/vert citron et les thèmes clair/sombre, avec bordures limitées. Référence : `13-design-system.md`. Cette validation remplace le statut de proposition mentionné plus haut. Déclinaisons du logo non produites ; aucun composant ni test UI implémenté.
+
+## Référentiel sécurité
+
+Document 14 ajouté : politiques techniques détaillées et SEC01 à SEC21, toutes au statut prévu. Anciennes mentions PostgreSQL géré, mot de passe 12 caractères et MFA différé remplacées. MFA propriétaire requis avant données réelles. Aucun contrôle applicatif, scan ou restauration exécuté à ce stade.
+
+## Modèle de compte rendu à renseigner pendant la réalisation
+
+- Phase et tâche stable :
+- Date / statut :
+- Objectif et dépendances :
+- Références E / S / T / RSP / SEC :
+- Fichiers, migrations et livrables réellement produits :
+- Commandes exécutées et résultats :
+- Tests requis non exécutés et raison :
+- Défauts / risques / blocages :
+- Critères de sortie satisfaits et restants :
+- Prochaine tâche :
+- Validation technique / validation pilote (distinctes) :
+
+## Matrices de suivi à remplir dès P00
+
+Inventorier E01–E40, T01–T84, RSP01–RSP10 et SEC01–SEC21 avec phase responsable, statut, fichier de test/preuve et assertions restantes. Le catalogue et les matrices de conception existants servent de point de départ ; ne pas déclarer leur couverture applicative acquise. Les contrôles Python de documentation ont passé lors de la rédaction du plan, sans exécution de code métier.
+
+## Compte rendu P00 — 24 septembre 2026
+
+Périmètre demandé : préparer les décisions et le backlog exécutable. Décisions sous délégation : Better Auth avec pont Fastify, Prisma stable 7.10.0, PostgreSQL 18.6, SeaweedFS S3, origine unique et contrat de commande durable. Versions candidates relevées directement dans le registre npm, sans installation ; Node LTS et releases services vérifiés sur sources officielles.
+
+Livrables : [dossier P00](p00/README.md), backlog JSON/Markdown de 72 tâches, matrice de 170 références (40 E, 15 S, 84 T, 10 RSP, 21 SEC), informations client à collecter, gates d’intégration P01 et corrections de cohérence documentaire.
+
+Vérifications exécutées sur la copie de revue avant écriture dans le projet :
+
+- `python scripts/check_docs.py` : liens, fiches et références valides (38 documents contrôlés).
+- `python scripts/check_design_examples.py` : exemples arithmétiques documentaires cohérents.
+- `python scripts/check_cursor_setup.py` : 8 règles et 8 skills valides structurellement.
+- `python scripts/check_p00.py` : 72 tâches, dépendances sans cycle et couverture complète des 170 références.
+
+Non exécutés : résolution du lockfile, build, migrations PostgreSQL, authentification/MFA réels, tests applicatifs, Docker, scans de vulnérabilités et essais matériels. Les gates P01-02 à P01-05 sont des vérifications futures bornées ; aucun risque de compatibilité n’est présenté comme déjà levé par un test.
+
+Critères P00 satisfaits au niveau documentaire. Les données d’exploitation listées dans P00 ne bloquent pas le socle local ; elles devront être renseignées avant leurs échéances.
+
+## Compte rendu P01 — 24 septembre 2026
+
+Périmètre demandé : P01 uniquement, tâches P01-01 à P01-GATE. P02 non commencée. Node des preuves : 24.21.0. pnpm 12.6.0. Les ports applicatifs sont 4310, 4311 et 4312 parce que Windows exclut 2913–3012 sur cette machine.
+
+Commandes exécutées et résultats :
+
+- `corepack pnpm install` : code 0. Lockfile et scripts de build Prisma, esbuild et msgpackr-extract autorisés dans `pnpm-workspace.yaml`.
+- `corepack pnpm lint` : code 0.
+- `corepack pnpm typecheck` : code 0.
+- `corepack pnpm test` : code 0. Vitest 5.0.1, 4 fichiers, 12 tests. Avertissement Vite : `vitest.config.ts` encore vu comme CommonJS par le chargeur natif.
+- `corepack pnpm test:integration` : code 0. 2 fichiers, 10 tests. La préparation supprime et recrée `cercle_complet_test`, puis `prisma migrate deploy`. PostgreSQL réel, pas SQLite. Rollback, idempotence, concurrence, tri, révocation du journal, inbox, retry BullMQ et S3 privé après redémarrage de SeaweedFS.
+- `corepack pnpm test:e2e` : premier essai code 1, `EACCES` sur `127.0.0.1:3001` (plage Hyper-V). Après bascule des ports, code 0. Chromium, 4 tests : page de santé, largeurs 320 et 1440, cookie httpOnly de session. Avertissement `DEP0190` lors de l’appel `pnpm` avec `shell: true`.
+- `corepack pnpm build` : code 0. Next.js 16.3.6, routes statiques `/`, `/_not-found`, `/sante`.
+- `corepack pnpm audit --audit-level=moderate` : code 1. Trois avis transitifs de Prisma : `deepmerge-ts` avant 8.0.0, `mysql2` avant 3.22.0 et `mysql2` jusqu’à 3.23.0. L’application utilise PostgreSQL. Aucun correctif forcé : Prisma 8 reste une RC, et le client MySQL n’est pas le chemin d’exécution.
+- Démarrage réel après build : API `{"status":"ok","service":"api"}` sur `/api/v1/health/live` ; ready `database`, `redis` et `storage` à `ok` ; worker `{"status":"ok","service":"worker"}` ; page web 200 ; Caddy `127.0.0.1:8080` sert `/sante` et `/api/v1/health/live`. Processus arrêtés ensuite.
+- Docker : `postgres:18.6`, `redis:8.10.2`, `chrislusf/seaweedfs:4.47` et `caddy:2.10.2`, digests épinglés, santé `healthy`, publications limitées à `127.0.0.1`. Le volume PostgreSQL 18 est monté sur `/var/lib/postgresql`.
+
+Tests et contrôles non exécutés :
+
+- `pnpm test:e2e:cross-browser` : Firefox et WebKit non installés.
+- `pnpm test:e2e:responsive` en tant que script séparé : les deux largeurs ont toutefois réussi dans `pnpm test:e2e`.
+- Workflow `.github/workflows/ci.yml` : écrit, jamais lancé sur GitHub.
+- `gitleaks` et `trivy` : absents de la machine.
+- ClamAV : non déployé ; le circuit de fichiers relève de P05.
+- Dexie, shadcn/ui, Motion et les écrans P02 : hors périmètre.
+- `@nestjs/bullmq` : présent au catalogue P00, non installé. Le worker parle à BullMQ directement.
+
+La migration `20260924180000_p01_foundation` a été appliquée à `cercle_complet` et rejouée sur une base de test vide par la préparation d’intégration. Aucune validation pilote.
+
+## Compte rendu P02 — 25 septembre 2026
+
+Périmètre demandé : P02-01, P02-02, P02-E01, P02-E37, P02-E38, P02-GATE. P03 non commencée. Node des preuves : 24.21.0.
+
+Skills utilisées : cc-pilotage-phase (ouverture et clôture), cc-securite (auth/MFA/CSRF/permissions), cc-interface-responsive (tokens, shells, E01/E37/E38), cc-donnees-migrations (schéma et migration P02), cc-recette-tests (Vitest/Playwright/PostgreSQL). Garde-fous : cc-workflow-metier limité à l’administration, cc-hors-connexion pour ne pas livrer Dexie, cc-exploitation-vps pour Caddy/origines locales.
+
+Commandes exécutées et résultats :
+
+- `corepack pnpm lint` : code 0.
+- `corepack pnpm typecheck` : code 0.
+- `corepack pnpm test` : code 0. Vitest 5.0.1, 8 fichiers, 17 tests.
+- `corepack pnpm test:integration` : d’abord 16/17 (SEC12) ; voir la stabilisation ci-dessous pour le 17/17.
+- `corepack pnpm test:e2e` : code 0 sur Chromium, 13 tests puis 1 capture visuelle supplémentaire. Connexion gérant/propriétaire, MFA, thèmes, clavier, reduced-motion, 320–1920, menu téléphone, refus de route propriétaire, session expirée, erreur réseau. Firefox et WebKit non exécutés.
+- `corepack pnpm build` : code 0. Routes `/connexion`, `/proprietaire`, `/proprietaire/utilisateurs`, `/proprietaire/appareils`, `/proprietaire/compte`, `/gerant`, `/gerant/appareil`.
+- `python scripts/check_docs.py`, `check_design_examples.py`, `check_cursor_setup.py`, `check_p00.py` : code 0.
+
+Dimensions réellement exercées en E2E : 320, 375, 768, 1024, 1100, 1440, 1920, plus un paysage 1024×768. Captures lues : connexion clair/sombre, gérant 1440/375, menu téléphone, utilisateurs sans boutique.
+
+Migration `20260925010000_p02_access` rejouée sur `cercle_complet_test` vide par la préparation d’intégration. `pnpm db:migrate` sur `cercle_complet` : « No pending migrations to apply » (déjà présente).
+
+Santé locale après `docker compose ps` (services healthy) : API live `{"status":"ok","service":"api"}` ; ready `database`, `redis` et `storage` à `ok` ; worker `{"status":"ok","service":"worker"}` ; web `/sante` 200 ; Caddy `127.0.0.1:8080` sert `/sante` et `/api/v1/health/live` ; `/connexion` 200 avec CSP sans `unsafe-eval`.
+
+Tests et contrôles non exécutés :
+
+- `pnpm test:e2e:cross-browser` : Firefox et WebKit non installés.
+- `gitleaks` et `trivy` : absents de la machine.
+- Scan actif externe : interdit.
+- Hors connexion Dexie/PWA métier : P08.
+- Affectation E2E avec boutique réelle : aucune boutique n’est créée hors tests d’intégration.
+
+P02-GATE était réalisé avec réserve tant que SEC12 n’était pas 17/17. Voir le compte rendu de stabilisation. Aucune validation pilote. P03 non commencée.
+
+## Stabilisation P02-GATE / SEC12 — 25 septembre 2026
+
+Périmètre demandé : stabiliser la sortie P02 sans démarrer P03. Reproduire l’échec SEC12, inspecter SeaweedFS sans supprimer les volumes, corriger la cause, exiger 17/17, puis passer P02-GATE à TERMINÉ seulement après la suite complète.
+
+### Cause
+
+SeaweedFS combined server expose le filer S3 avant que le volume server n’enregistre sa topologie auprès du master. Après `docker restart`, `HeadBucket` réussit dès que le port 8333 répond ; `GetObject` échoue avec `InternalError` / `volume N not found` jusqu’au heartbeat. Les objets et le volume Docker `cercle-complet_seaweeddata` persistent : 14 volumes relus sur `/data`, dont 7 collections `cercle-private`. Le bucket reste privé (identité `cercle-app` dans `infra/seaweedfs/s3.json`).
+
+Preuve live (logs du conteneur, volume non effacé) :
+
+- 00:10:38.029 — S3 écoute sur 8333.
+- 00:10:38.471 — `GetObject` de `cercle-private/foundation/….bin` : `volume 8 not found`.
+- 00:10:39.815 — heartbeat : `added volume server` / topologie enregistrée.
+
+Le healthcheck Compose ne testait que HTTP sur 8333. `waitForStorage` et `/ready` ne testaient que `HeadBucket`. Isolation : SEC12 est le seul test qui redémarre SeaweedFS ; `fileParallelism: false` ; les autres fichiers d’intégration n’utilisent pas S3.
+
+Course reproduite ensuite par `docker restart` : à 00:20:12 le conteneur redémarre ; leader 00:20:29 ; volume 00:20:29.933 ; S3 00:20:31.142. L’ordre S3/volumes n’est pas stable : parfois S3 précède le heartbeat (échec 16/17), parfois l’inverse (succès isolé).
+
+### Correction
+
+Pas de retry d’assertion, pas de skip, pas d’attente aveugle du contenu.
+
+- `docker-compose.yml` : healthcheck = `vol/status` contient `"Id":` **et** HTTP S3. Recréation du conteneur (`docker compose up -d --no-deps --force-recreate seaweedfs`) sans supprimer `seaweeddata`. Après recréation : healthy, 14 volumes, 7 collections `cercle-private`.
+- `@cercle/storage` : `storageServesPrivateObjects` (écriture/lecture `.cercle-health/ready`) et `waitUntilPrivateObjectReadable` (GetObject de la clé persistée jusqu’à timeout, puis échec si l’objet a disparu).
+- API `/ready` : storage `ok` seulement si put+get réussit, pas seulement `HeadBucket`.
+- SEC12 : après restart, attendre `healthy` Docker puis lisibilité réelle de la clé ; assertion inchangée `toBe("prive")`, anonyme refusé, URL signée expirée ≥ 400. Timeout du cas 120 s (Raft ~16–20 s).
+
+Pendant la relance E2E, le scénario TOTP a échoué une fois (13/14) : le test visuel enrôlait le même propriétaire en parallèle, puis le cas d’activation voyait l’écran « code » au lieu de « second facteur ». Correction d’isolation : compte `owner.p02.totp@example.test` réservé à l’enrôlement ; assertion TOTP inchangée.
+
+### Commandes exécutées et résultats
+
+- Inspection : `docker inspect` / `docker logs` / `wget http://127.0.0.1:9333/vol/status` — volumes persistés, healthcheck initial = HTTP 8333 seul.
+- `docker compose up -d --no-deps --force-recreate seaweedfs` : conteneur recréé, volume conservé, nouveau healthcheck actif, statut healthy.
+- `corepack pnpm lint` : code 0 (rejoué après isolation E2E : code 0).
+- `corepack pnpm typecheck` : code 0. 7 projets.
+- `corepack pnpm test` : code 0. Vitest 5.0.1, 8 fichiers, 17 tests.
+- `corepack pnpm test:integration` : code 0. 3 fichiers, **17/17**. Durée 49,01 s.
+- `corepack pnpm test:e2e` : premier essai 13/14 (course TOTP) ; après isolation des comptes, code 0. Chromium, **14/14**, 23,8 s.
+- `corepack pnpm build` : code 0. Next.js 16.3.6, mêmes routes P02.
+
+P02-GATE : TERMINÉ (preuves locales ci-dessus). P03 non commencée.
+
+Les routes d’écran sont désormais en anglais (`/login`, `/owner`, `/owner/users`, `/owner/devices`, `/owner/account`, `/manager`, `/manager/device`, `/health`, `/setup` et le catalogue E01–E40). L’interface reste en français. Les comptes rendus P01/P02 ci-dessus citent les URL d’alors.
+
+### Limites restantes
+
+- Firefox et WebKit non installés (`test:e2e:cross-browser` non exécuté).
+- `gitleaks` et `trivy` absents.
+- Scan actif externe interdit.
+- Dexie / PWA métier : P08.
+- SeaweedFS 4.47 : le master Raft met ~16–20 s après restart avant d’accepter les heartbeats ; la readiness attend cette topologie, elle ne la supprime pas.
+- `pnpm audit` (avis Prisma transitifs) non rejoué sur cette passe.
+- Aucune validation pilote.
+
+## Compte rendu P03 — 25 septembre 2026
+
+Périmètre livré : P03-01, P03-E02, P03-E14, P03-E25, P03-E26, P03-E28, P03-E39, P03-E40, dashboard propriétaire P03 et P03-GATE. P04 n’a pas été commencée.
+
+### Livrables
+
+- Moteur P03 dans `packages/domain/src/p03.ts` : commandes idempotentes, audit et outbox transactionnels, journaux équilibrés append-only, quantités `numeric(20,6)`, montants `bigint`, couches de coût FIFO/FEFO et corrections de fonds liées.
+- Migrations `20260925120000_p03_business` et `20260925130000_p03_opening_obligations` : catalogue, prix versionnés, boutiques et responsabilités, lieux, stock, fonds, politiques, brouillons et obligations d’ouverture, contraintes, index partiels et triggers d’immutabilité.
+- API dans `apps/api/src/p03/p03.controller.ts` : boutiques et transitions, produits/variantes/unités/prix, sources/comptes/événements de fonds, lieux/dépôt, politiques, brouillon/validation d’ouverture, stock/mouvements et `GET /reports/overview`.
+- Interfaces françaises aux URL anglaises : `/owner/shops`, `/owner/shops/[id]`, `/owner/products`, `/owner/sources`, `/owner/locations`, `/owner/settings`, `/owner/stock`, `/manager/stock` et `/setup`. `/owner` reste l’entrée dashboard unique et reçoit du serveur l’état `SETUP` ou `EMPTY`.
+- Initialisation propriétaire : brouillon reprenable et plusieurs lots successifs possibles tant que la boutique reste `SETUP`. Chaque lot de stock, coûts, fonds et obligations est posté atomiquement avec journal, stock, comptes, audit et outbox ; un lot validé reste immuable et tout complément obtient une nouvelle version. L’activation de la boutique clôture l’initialisation. Elle ne crée ni vente, ni encaissement de vente, ni chiffre d’affaires.
+- Permissions serveur : mutations P03 réservées au propriétaire ; lectures gérant limitées à son affectation active, sans coût ni solde de fonds et sans lieu d’une autre boutique.
+
+Le backlog P00 associait encore E14 aux demandes/pertes et E40 aux transferts, alors que le cadrage P03 du 25 septembre interdit de commencer ces workflows P06/P07. Les critères de P03 ont été alignés sur la consultation du stock et l’activation du dépôt ; E10, E20 et E31 restent à faire dans leurs phases.
+
+### Recette réellement exécutée
+
+- `corepack pnpm db:migrate` : code 0 ; migration additive des obligations appliquée à la base locale.
+- `corepack pnpm db:replay-test` : code 0 ; base `cercle_complet_test` recréée vide et quatre migrations rejouées.
+- `corepack pnpm lint` : code 0.
+- `corepack pnpm typecheck` : code 0 ; sept projets.
+- `corepack pnpm test` : code 0 ; Vitest 5.0.1, **9 fichiers, 19/19 tests**.
+- La recette P03 historique couvrait 25/25 tests. Le scénario d’ouverture couvre désormais les lots complémentaires avant activation, leur cumul et l’immutabilité des écritures. La réexécution locale du 25 septembre 2026 reste bloquée avant les tests par Node.js 24.14.0, inférieur au moteur requis `>=24.21.0 <25`.
+- `corepack pnpm test:e2e` : code 0 ; Chromium, **15/15 tests**, un worker. Le parcours P03 crée catalogue, boutique, source, dépôt facultatif, brouillon, stock/fonds/obligation, valide et active, contrôle `SETUP → EMPTY`, stock réel, absence de chiffre d’affaires fictif, permissions, thèmes et largeurs 320/768/1024/1440.
+- `corepack pnpm build` : code 0 ; Next.js 16.3.6, **19 routes**.
+
+### Limites et risques restants
+
+- Firefox et WebKit ont été demandés à Playwright mais leurs exécutables ne sont pas installés sur cette machine ; aucun succès cross-browser n’est revendiqué.
+- Zoom navigateur à 200 %, clavier virtuel, tactile réel et appareils physiques non testés. Les contrôles automatisés couvrent le clavier existant et les viewports simulés, pas une recette matérielle.
+- Pas de validation pilote, de déploiement public, de scan actif externe, ni de nouvelle passe `pnpm audit`.
+- Les transferts, ventes, caisse, reçus, dépenses, workflows complets de pertes/réapprovisionnement et mode hors connexion restent dans leurs phases futures.
+
+P03-GATE : **TERMINÉ** sur preuves locales ci-dessus. Aucun défaut critique P03 connu à cette clôture. P04 non commencée.

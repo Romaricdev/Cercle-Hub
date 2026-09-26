@@ -1,0 +1,10 @@
+---
+description: "Modèle Prisma, migrations et concurrence PostgreSQL"
+globs: "packages/database/**,prisma/**,**/migrations/**"
+alwaysApply: false
+---
+
+Lire docs/03-modele-donnees.md et docs/conception/02-donnees-et-relations.md ; traduire les contraintes, pas seulement les colonnes.
+Migrations versionnées, rôle migration distinct du runtime. Tester sur PostgreSQL réel et base vide. Aucun reset de données réelles. SQL brut paramétré ; noms de colonnes/tri issus d’allowlists.
+Préserver coût par lot/couche, journaux et historique. Évolution additive et compatibilité offline N/N-1 selon document 14. Un retour d’image ne garantit pas l’annulation d’une migration.
+Utiliser le même client transactionnel pour tous les effets ; tester rollback et concurrence avec connexions indépendantes. Ne pas substituer SQLite aux tests de verrous.
