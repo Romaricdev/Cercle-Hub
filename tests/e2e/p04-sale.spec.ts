@@ -15,7 +15,7 @@ test("P04 ouvre une session, vend, encaisse et affiche le reçu", async ({ page 
   await page.getByRole("button", { name: "Ajouter" }).click();
   await page.getByRole("button", { name: /Passer au paiement/ }).click();
   await expect(page.getByRole("heading", { name: "Encaisser la vente" })).toBeVisible();
-  await page.getByLabel("Montant affecté à la vente").fill("1000");
+  await expect(page.getByText("Montant du panier", { exact: true })).toBeVisible();
   await page.getByLabel("Montant remis par le client").fill("2000");
   await expect(page.getByText("Monnaie calculée").locator("..").getByText(/1.000 FCFA/)).toBeVisible();
   await page.getByRole("checkbox", { name: /Je confirme avoir rendu/ }).check();

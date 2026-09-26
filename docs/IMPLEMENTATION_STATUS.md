@@ -290,3 +290,12 @@ La consultation d’une initialisation clôturée affichait les champs temporair
 - `corepack pnpm lint` : code 0.
 - `corepack pnpm typecheck` : code 0, tous les projets.
 - `corepack pnpm exec playwright test tests/e2e/p03-business.spec.ts --project=chromium` : code 0, **1/1**, avec contrôle du libellé de la source et du montant initial après activation.
+
+### Correctif d’ergonomie du paiement unique — 26 septembre 2026
+
+Pour un paiement unique, le total du panier est désormais affecté automatiquement au compte choisi et affiché en lecture seule. La saisie d’un montant n’apparaît qu’après l’action explicite de partage entre plusieurs moyens de paiement, sous le libellé « Montant payé avec ce moyen ».
+
+- `corepack pnpm lint` : code 0.
+- `corepack pnpm typecheck` : code 0, tous les projets.
+- `corepack pnpm build` : code 0, 22 routes.
+- `corepack pnpm exec playwright test tests/e2e/p04-sale.spec.ts --project=chromium` : code 0, **1/1**.
