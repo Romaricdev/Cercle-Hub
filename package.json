@@ -8,7 +8,7 @@
   },
   "scripts": {
     "lint": "eslint .",
-    "typecheck": "corepack pnpm --filter @cercle/database generate && corepack pnpm -r --if-present typecheck",
+    "typecheck": "corepack pnpm build:packages && corepack pnpm -r --if-present typecheck",
     "build": "corepack pnpm run build:packages && corepack pnpm run build:apps",
     "build:packages": "corepack pnpm --filter @cercle/contracts build && corepack pnpm --filter @cercle/database exec prisma generate && corepack pnpm --filter @cercle/database build && corepack pnpm --filter @cercle/storage build && corepack pnpm --filter @cercle/domain build",
     "build:apps": "corepack pnpm --filter @cercle/api build && corepack pnpm --filter @cercle/worker build && corepack pnpm --filter @cercle/web build",
