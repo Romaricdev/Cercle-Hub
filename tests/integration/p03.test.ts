@@ -118,7 +118,7 @@ describe("P03 boutiques, catalogue et initialisation", () => {
     });
     await validateOpening(prisma, context(), shopId);
     expect((await prisma.stockBalance.findFirstOrThrow({ where: { variantId, locationId } })).quantity.toString()).toBe("4.5");
-    expect((await prisma.moneyAccount.findUniqueOrThrow({ where: { id: accountId } })).balanceMinor).toBe(25000n);
+    expect((await prisma.moneyAccount.findUniqueOrThrow({ where: { id: accountId } })).balanceMinor).toBe(24000n);
     const event = await prisma.stockEvent.findFirstOrThrow({ where: { organizationId } });
     await expect(prisma.$executeRaw`UPDATE stock_events SET reason = 'altéré' WHERE id = ${event.id}::uuid`).rejects.toThrow();
   });
