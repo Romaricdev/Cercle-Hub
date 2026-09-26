@@ -165,11 +165,20 @@ Le premier chemin en ligne utilise les routes ci-dessous. L’enveloppe signée 
 | GET `/manager/sales/context` | Boutique et appareil actifs du gérant, session ouverte éventuelle, catalogue vendable, prix et sources de paiement autorisées |
 | POST `/cash-sessions/open` | Aucun body ; `Idempotency-Key` UUID obligatoire ; ouvre une session `TRADING` pour la boutique et l’appareil actifs |
 | POST `/sales/quote` | `{lines:[{saleUnitId,quantity,discountMinor?}]}` ; recalcule prix/remise/total et émet une autorisation en ligne courte liée au devis |
-| POST `/sales` | `{authorizationId,lines,payments:[{accountId,amountMinor,cashReceivedMinor?,externalReference?}]}` ; `Idempotency-Key` UUID obligatoire ; revalide puis poste atomiquement |
+| POST `/sales` | `{authorizationId,lines,payments:[{accountId,amountMinor,cashReceivedMinor?,changeGivenMinor?,externalReference?}]}` ; `Idempotency-Key` UUID obligatoire ; revalide puis poste atomiquement |
 | GET `/sales` | Historique de la boutique affectée au gérant |
 | GET `/sales/:id` | Reçu autorisé de la boutique affectée ; coûts internes exclus de l’interface gérant |
 
-Une ligne P04 référence le format vendu (`saleUnitId`) et une quantité décimale bornée à six chiffres. Le serveur résout la variante, le prix courant et le facteur de stock. `discountMinor` est un montant par ligne contrôlé par la politique effective. Pour les espèces, `amountMinor` est le montant affecté à la vente et `cashReceivedMinor` le montant remis par le client ; seul `amountMinor` crédite la caisse et le chiffre d’affaires.
+Une ligne P04 référence le format vendu (`saleUnitId`) et une quantité décimale bornée à six chiffres. Le serveur résout la variante, le prix courant et le facteur de stock. `discountMinor` est un montant par ligne contrôlé par la politique effective. Pour les espèces, `amountMinor` est le montant affecté à la vente, `cashReceivedMinor` le montant remis par le client et `changeGivenMinor` la monnaie effectivement rendue. Le serveur recalcule `changeDueMinor = cashReceivedMinor - amountMinor`, exige l’égalité avec `changeGivenMinor`, et seul `amountMinor` crédite la caisse et le chiffre d’affaires. Le reçu restitue les trois montants.
+
+### Complément de gestion des sources de fonds
+
+| Méthode et route | Entrée / résultat |
+|---|---|
+| GET `/payment-sources/:id` | Fiche propriétaire : solde courant, ventes et variation du jour, évolution quotidienne et dernières écritures |
+| PATCH `/payment-sources/:id` | `{name?,shopId?,status?}` ; propriétaire avec authentification récente et `Idempotency-Key` ; aucune modification directe du solde |
+
+Une source liée à une session de caisse ouverte ne peut pas être désactivée. Une source possédant déjà des écritures ne peut pas être déplacée vers une autre boutique : elle doit être désactivée puis recréée dans la nouvelle boutique afin de préserver la portée historique. Les apports restent des écritures dédiées et auditées.
 
 ```json
 {

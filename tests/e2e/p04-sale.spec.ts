@@ -15,11 +15,15 @@ test("P04 ouvre une session, vend, encaisse et affiche le reçu", async ({ page 
   await page.getByRole("button", { name: "Ajouter" }).click();
   await page.getByRole("button", { name: /Passer au paiement/ }).click();
   await expect(page.getByRole("heading", { name: "Encaisser la vente" })).toBeVisible();
-  await page.getByLabel("Somme reçue en espèces").fill("2000");
-  await expect(page.getByText("Monnaie à rendre").locator("..").getByText("1 000 FCFA", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: /Confirmer la vente/ }).click();
+  await page.getByLabel("Montant affecté à la vente").fill("1000");
+  await page.getByLabel("Montant remis par le client").fill("2000");
+  await expect(page.getByText("Monnaie calculée").locator("..").getByText(/1.000 FCFA/)).toBeVisible();
+  await page.getByRole("checkbox", { name: /Je confirme avoir rendu/ }).check();
+  await page.getByRole("button", { name: /Encaisser 1.000 FCFA/ }).click();
   await expect(page.getByRole("heading", { name: "Vente confirmée" })).toBeVisible();
   await expect(page.getByText(/V-\d{8}-/)).toBeVisible();
+  await expect(page.getByText("Montant remis par le client")).toBeVisible();
+  await expect(page.getByText("Monnaie rendue au client")).toBeVisible();
   for (const viewport of [{ width: 320, height: 700 }, { width: 768, height: 1024 }, { width: 1024, height: 768 }, { width: 1440, height: 900 }]) {
     await page.setViewportSize(viewport);
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);

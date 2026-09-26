@@ -643,6 +643,8 @@ model SalePayment {
   mode              String
   amountMinor       BigInt       @map("amount_minor")
   cashReceivedMinor BigInt?      @map("cash_received_minor")
+  changeDueMinor    BigInt?      @map("change_due_minor")
+  changeGivenMinor  BigInt?      @map("change_given_minor")
   externalReference String?      @map("external_reference")
   sale              Sale         @relation(fields: [saleId], references: [id], onDelete: Restrict)
   account           MoneyAccount @relation(fields: [accountId], references: [id], onDelete: Restrict)

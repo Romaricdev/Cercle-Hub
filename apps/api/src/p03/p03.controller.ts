@@ -13,6 +13,7 @@ import {
   createUnit,
   createVariant,
   DomainError,
+  getPaymentSource,
   getShop,
   listPaymentSources,
   listProducts,
@@ -24,6 +25,7 @@ import {
   saveOpeningDraft,
   transitionShop,
   updateLocation,
+  updatePaymentSource,
   updateProduct,
   updateShop,
   validateOpening,
@@ -83,6 +85,11 @@ const sourceSchema = z.object({
   shopId: z.uuid().optional(),
   currency: z.string().regex(/^[A-Z]{3}$/).optional(),
 }).strict();
+const sourcePatchSchema = z.object({
+  name: z.string().min(2).max(160).optional(),
+  shopId: z.uuid().nullable().optional(),
+  status: z.enum(["ACTIVE", "INACTIVE"]).optional(),
+}).strict().refine((value) => Object.keys(value).length > 0, "Au moins une modification est requise.");
 const fundSchema = z.object({
   accountId: z.uuid(),
   amountMinor: z.string().regex(/^\d+$/),
@@ -300,6 +307,20 @@ export class P03Controller {
   @UseGuards(OwnerGuard, FreshSessionGuard)
   async source(@Req() request: RequestWithActor, @Headers("idempotency-key") key: string | undefined, @Body() body: unknown) {
     try { return { protocolVersion: PROTOCOL_VERSION, ...(await createPaymentSource(this.prisma, this.context(request, key), sourceSchema.parse(body))) }; }
+    catch (error) { throw DomainHttpError.from(error); }
+  }
+
+  @Get("payment-sources/:id")
+  @UseGuards(OwnerGuard)
+  async sourceDetail(@Req() request: RequestWithActor, @Param("id") id: string) {
+    try { return { protocolVersion: PROTOCOL_VERSION, source: await getPaymentSource(this.prisma, requireActor(request).organizationId, z.uuid().parse(id)) }; }
+    catch (error) { throw DomainHttpError.from(error); }
+  }
+
+  @Patch("payment-sources/:id")
+  @UseGuards(OwnerGuard, FreshSessionGuard)
+  async patchSource(@Req() request: RequestWithActor, @Param("id") id: string, @Headers("idempotency-key") key: string | undefined, @Body() body: unknown) {
+    try { return { protocolVersion: PROTOCOL_VERSION, ...(await updatePaymentSource(this.prisma, this.context(request, key), z.uuid().parse(id), sourcePatchSchema.parse(body))) }; }
     catch (error) { throw DomainHttpError.from(error); }
   }
 

@@ -1,5 +1,5 @@
 import { createPrismaClient, loadRootEnv } from "@cercle/database";
-import { createPaymentSource, createPrice, createProduct, createShop, createUnit, createVariant, openCashSession, postSale, quoteSale, saveOpeningDraft, transitionShop, validateOpening } from "@cercle/domain";
+import { createPaymentSource, createPrice, createProduct, createShop, createUnit, createVariant, getPaymentSource, openCashSession, postSale, quoteSale, saveOpeningDraft, transitionShop, updatePaymentSource, validateOpening } from "@cercle/domain";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 loadRootEnv();
@@ -42,12 +42,12 @@ describe("P04 ventes en ligne", () => {
 
   it("T03 poste atomiquement une vente cash, le stock, le coût et les fonds", async () => {
     const lines = [{ saleUnitId: unitId, quantity: "2", discountMinor: "0" }]; const quote = await quoteSale(prisma, organizationId, managerId, lines);
-    const key = crypto.randomUUID(); const sale = await postSale(prisma, manager(key), { authorizationId: quote.authorizationId, lines, payments: [{ accountId, amountMinor: "2000", cashReceivedMinor: "5000" }] });
-    expect(sale.netMinor).toBe("2000"); expect(sale.costMinor).toBe("1200"); expect(sale.payments[0]?.changeMinor).toBe("3000");
+    const key = crypto.randomUUID(); const sale = await postSale(prisma, manager(key), { authorizationId: quote.authorizationId, lines, payments: [{ accountId, amountMinor: "2000", cashReceivedMinor: "5000", changeGivenMinor: "3000" }] });
+    expect(sale.netMinor).toBe("2000"); expect(sale.costMinor).toBe("1200"); expect(sale.payments[0]?.changeDueMinor).toBe("3000"); expect(sale.payments[0]?.changeGivenMinor).toBe("3000");
     expect((await prisma.stockBalance.findFirstOrThrow({ where: { shopId, variantId } })).quantity.toString()).toBe("5");
     expect((await prisma.moneyAccount.findUniqueOrThrow({ where: { id: accountId } })).balanceMinor).toBe(52000n);
     expect((await prisma.journalEntry.findFirstOrThrow({ where: { referenceId: sale.id }, include: { lines: true } })).lines.reduce((sum, line) => sum + line.amountMinor, 0n)).toBe(0n);
-    const replay = await postSale(prisma, manager(key), { authorizationId: quote.authorizationId, lines, payments: [{ accountId, amountMinor: "2000", cashReceivedMinor: "5000" }] }); expect(replay.replayed).toBe(true);
+    const replay = await postSale(prisma, manager(key), { authorizationId: quote.authorizationId, lines, payments: [{ accountId, amountMinor: "2000", cashReceivedMinor: "5000", changeGivenMinor: "3000" }] }); expect(replay.replayed).toBe(true);
   });
 
   it("T04 crédite la source Mobile Money sans toucher la caisse espèces", async () => {
@@ -59,26 +59,35 @@ describe("P04 ventes en ligne", () => {
 
   it("T05 enregistre deux paiements pour une seule vente", async () => {
     const lines = [{ saleUnitId: unitId, quantity: "1" }]; const quote = await quoteSale(prisma, organizationId, managerId, lines);
-    const sale = await postSale(prisma, manager(), { authorizationId: quote.authorizationId, lines, payments: [{ accountId, amountMinor: "500", cashReceivedMinor: "500" }, { accountId: mobileAccountId, amountMinor: "500", externalReference: "MM-002" }] });
+    const sale = await postSale(prisma, manager(), { authorizationId: quote.authorizationId, lines, payments: [{ accountId, amountMinor: "500", cashReceivedMinor: "500", changeGivenMinor: "0" }, { accountId: mobileAccountId, amountMinor: "500", externalReference: "MM-002" }] });
     expect(sale.payments).toHaveLength(2); expect((await prisma.salePayment.count({ where: { saleId: sale.id } }))).toBe(2);
   });
 
   it("T09 vend une quantité décimale avec arrondis monétaires exacts", async () => {
     const lines = [{ saleUnitId: weightedUnitId, quantity: "0.125" }]; const quote = await quoteSale(prisma, organizationId, managerId, lines);
     expect(quote.netMinor).toBe("250");
-    const sale = await postSale(prisma, manager(), { authorizationId: quote.authorizationId, lines, payments: [{ accountId, amountMinor: "250", cashReceivedMinor: "250" }] });
+    const sale = await postSale(prisma, manager(), { authorizationId: quote.authorizationId, lines, payments: [{ accountId, amountMinor: "250", cashReceivedMinor: "250", changeGivenMinor: "0" }] });
     expect(sale.costMinor).toBe("150");
+  });
+
+  it("refuse une monnaie rendue différente du calcul sans aucun effet", async () => {
+    const lines = [{ saleUnitId: unitId, quantity: "1" }]; const quote = await quoteSale(prisma, organizationId, managerId, lines);
+    const beforeStock = (await prisma.stockBalance.findFirstOrThrow({ where: { shopId, variantId } })).quantity.toString();
+    const beforeFunds = (await prisma.moneyAccount.findUniqueOrThrow({ where: { id: accountId } })).balanceMinor;
+    await expect(postSale(prisma, manager(), { authorizationId: quote.authorizationId, lines, payments: [{ accountId, amountMinor: "1000", cashReceivedMinor: "2000", changeGivenMinor: "500" }] })).rejects.toThrow(/monnaie déclarée/i);
+    expect((await prisma.stockBalance.findFirstOrThrow({ where: { shopId, variantId } })).quantity.toString()).toBe(beforeStock);
+    expect((await prisma.moneyAccount.findUniqueOrThrow({ where: { id: accountId } })).balanceMinor).toBe(beforeFunds);
   });
 
   it("T07 refuse la réutilisation d’une clé avec un autre panier", async () => {
     const lines = [{ saleUnitId: unitId, quantity: "1" }]; const quote = await quoteSale(prisma, organizationId, managerId, lines); const key = crypto.randomUUID();
-    await postSale(prisma, manager(key), { authorizationId: quote.authorizationId, lines, payments: [{ accountId, amountMinor: "1000" }] });
-    await expect(postSale(prisma, manager(key), { authorizationId: quote.authorizationId, lines: [{ saleUnitId: unitId, quantity: "2" }], payments: [{ accountId, amountMinor: "2000" }] })).rejects.toThrow(/différentes|idempotence/i);
+    await postSale(prisma, manager(key), { authorizationId: quote.authorizationId, lines, payments: [{ accountId: mobileAccountId, amountMinor: "1000" }] });
+    await expect(postSale(prisma, manager(key), { authorizationId: quote.authorizationId, lines: [{ saleUnitId: unitId, quantity: "2" }], payments: [{ accountId: mobileAccountId, amountMinor: "2000" }] })).rejects.toThrow(/différentes|idempotence/i);
   });
 
   it("T08 ne laisse jamais deux ventes consommer la dernière unité", async () => {
     const lines = [{ saleUnitId: unitId, quantity: "1" }]; const [a,b] = await Promise.all([quoteSale(prisma, organizationId, managerId, lines), quoteSale(prisma, organizationId, managerId, lines)]);
-    const results = await Promise.allSettled([postSale(prisma, manager(), { authorizationId: a.authorizationId, lines, payments: [{ accountId, amountMinor: "1000" }] }), postSale(prisma, manager(), { authorizationId: b.authorizationId, lines, payments: [{ accountId, amountMinor: "1000" }] })]);
+    const results = await Promise.allSettled([postSale(prisma, manager(), { authorizationId: a.authorizationId, lines, payments: [{ accountId: mobileAccountId, amountMinor: "1000" }] }), postSale(prisma, manager(), { authorizationId: b.authorizationId, lines, payments: [{ accountId: mobileAccountId, amountMinor: "1000" }] })]);
     expect(results.filter((item) => item.status === "fulfilled")).toHaveLength(1); expect(results.filter((item) => item.status === "rejected")).toHaveLength(1);
     expect((await prisma.stockBalance.findFirstOrThrow({ where: { shopId, variantId } })).quantity.toString()).toBe("0");
   });
@@ -87,5 +96,13 @@ describe("P04 ventes en ligne", () => {
     await expect(quoteSale(prisma, organizationId, managerId, [{ saleUnitId: unitId, quantity: "1", discountMinor: "1" }])).rejects.toThrow(/remise/i);
     const sale = await prisma.sale.findFirstOrThrow({ where: { organizationId } });
     await expect(prisma.$executeRaw`UPDATE sales SET reference='ALTERE' WHERE id=${sale.id}::uuid`).rejects.toThrow();
+  });
+
+  it("présente l’évolution réelle d’une source et refuse sa désactivation pendant la session", async () => {
+    const sourceId = (await prisma.moneyAccount.findUniqueOrThrow({ where: { id: accountId } })).paymentSourceId;
+    const detail = await getPaymentSource(prisma, organizationId, sourceId);
+    expect(detail.daily.some((day) => BigInt(day.salesInMinor) > 0n)).toBe(true);
+    await expect(updatePaymentSource(prisma, owner(), sourceId, { status: "INACTIVE" })).rejects.toThrow(/session de caisse ouverte/i);
+    expect((await prisma.paymentSource.findUniqueOrThrow({ where: { id: sourceId } })).status).toBe("ACTIVE");
   });
 });

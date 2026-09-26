@@ -398,13 +398,76 @@ export async function createPaymentSource(
 export async function listPaymentSources(prisma: PrismaClient, organizationId: string, shopId?: string) {
   const sources = await prisma.paymentSource.findMany({
     where: { organizationId, ...(shopId ? { OR: [{ shopId }, { shopId: null }] } : {}) },
-    include: { accounts: { select: { id: true, name: true, currency: true, balanceMinor: true } } },
+    include: {
+      shop: { select: { id: true, name: true, timezone: true } },
+      accounts: { include: { entries: { include: { event: true }, orderBy: { event: { postedAt: "desc" } } } } },
+    },
     orderBy: { name: "asc" },
   });
   return sources.map((source) => ({
-    ...source,
-    accounts: source.accounts.map((account) => ({ ...account, balanceMinor: account.balanceMinor.toString() })),
+    id: source.id, organizationId: source.organizationId, shopId: source.shopId, name: source.name, type: source.type, status: source.status, shop: source.shop,
+    accounts: source.accounts.map((account) => {
+      const timezone = source.shop?.timezone ?? "Africa/Douala";
+      const today = businessDate(new Date(), timezone);
+      const todayEntries = account.entries.filter((entry) => businessDate(entry.event.postedAt, timezone) === today);
+      return { id: account.id, name: account.name, currency: account.currency, balanceMinor: account.balanceMinor.toString(), todaySalesMinor: todayEntries.filter((entry) => entry.event.type === "SALE_PAYMENT").reduce((sum, entry) => sum + entry.amountMinor, 0n).toString(), todayNetMinor: todayEntries.reduce((sum, entry) => sum + entry.amountMinor, 0n).toString(), lastEventAt: account.entries[0]?.event.postedAt.toISOString() ?? null };
+    }),
   }));
+}
+
+function businessDate(value: Date, timezone: string): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit" }).format(value);
+}
+
+export async function getPaymentSource(prisma: PrismaClient, organizationId: string, id: string) {
+  const source = await prisma.paymentSource.findFirst({ where: { id, organizationId }, include: { shop: { select: { id: true, name: true, timezone: true } }, accounts: { include: { entries: { include: { event: { include: { actor: { select: { displayName: true } } } } }, orderBy: { event: { postedAt: "asc" } } } } } } });
+  if (!source) throw new DomainError("PAYMENT_SOURCE_NOT_FOUND", "Source de fonds introuvable.", 404);
+  const timezone = source.shop?.timezone ?? "Africa/Douala";
+  const daily = new Map<string, { date: string; openingBalanceMinor: bigint; salesInMinor: bigint; ownerContributionsMinor: bigint; otherInMinor: bigint; otherOutMinor: bigint; closingBalanceMinor: bigint }>();
+  const allEntries = source.accounts.flatMap((account) => account.entries).sort((a, b) => a.event.postedAt.getTime() - b.event.postedAt.getTime());
+  let running = 0n;
+  for (const entry of allEntries) {
+    const date = businessDate(entry.event.postedAt, timezone);
+    let row = daily.get(date);
+    if (!row) { row = { date, openingBalanceMinor: running, salesInMinor: 0n, ownerContributionsMinor: 0n, otherInMinor: 0n, otherOutMinor: 0n, closingBalanceMinor: running }; daily.set(date, row); }
+    if (entry.event.type === "SALE_PAYMENT") row.salesInMinor += entry.amountMinor;
+    else if (entry.event.type === "OWNER_CONTRIBUTION" || entry.event.type === "OPENING_BALANCE") row.ownerContributionsMinor += entry.amountMinor;
+    else if (entry.amountMinor >= 0n) row.otherInMinor += entry.amountMinor;
+    else row.otherOutMinor += -entry.amountMinor;
+    running += entry.amountMinor; row.closingBalanceMinor = running;
+  }
+  return {
+    id: source.id, name: source.name, type: source.type, status: source.status, shopId: source.shopId, shop: source.shop, createdAt: allEntries[0]?.event.postedAt.toISOString() ?? null,
+    accounts: source.accounts.map((account) => {
+      const today = businessDate(new Date(), timezone);
+      const entries = account.entries.filter((entry) => businessDate(entry.event.postedAt, timezone) === today);
+      return { id: account.id, name: account.name, currency: account.currency, balanceMinor: account.balanceMinor.toString(), todaySalesMinor: entries.filter((entry) => entry.event.type === "SALE_PAYMENT").reduce((sum, entry) => sum + entry.amountMinor, 0n).toString(), todayNetMinor: entries.reduce((sum, entry) => sum + entry.amountMinor, 0n).toString(), lastEventAt: account.entries.at(-1)?.event.postedAt.toISOString() ?? null };
+    }),
+    daily: [...daily.values()].slice(-31).map((row) => Object.fromEntries(Object.entries(row).map(([key, value]) => [key, typeof value === "bigint" ? value.toString() : value]))),
+    events: allEntries.slice(-100).reverse().map((entry) => ({ id: entry.id, type: entry.event.type, reason: entry.event.reason, amountMinor: entry.amountMinor.toString(), postedAt: entry.event.postedAt.toISOString(), actor: entry.event.actor.displayName })),
+  };
+}
+
+export async function updatePaymentSource(
+  prisma: PrismaClient,
+  context: CommandContext,
+  id: string,
+  input: { name?: string | undefined; shopId?: string | null | undefined; status?: "ACTIVE" | "INACTIVE" | undefined },
+) {
+  return effect(prisma, context, { id, ...input }, async (tx) => {
+    const source = await tx.paymentSource.findFirst({ where: { id, organizationId: context.organizationId }, include: { accounts: true } });
+    if (!source) throw new DomainError("PAYMENT_SOURCE_NOT_FOUND", "Source de fonds introuvable.", 404);
+    if (input.shopId && !(await tx.shop.count({ where: { id: input.shopId, organizationId: context.organizationId } }))) throw new DomainError("SHOP_NOT_FOUND", "Boutique introuvable.", 404);
+    const scopeChanges = input.shopId !== undefined && input.shopId !== source.shopId;
+    const disables = input.status === "INACTIVE" && source.status !== "INACTIVE";
+    if ((scopeChanges || disables) && source.shopId && await tx.cashSession.count({ where: { shopId: source.shopId, status: { in: ["OPEN", "COUNTING"] } } })) throw new DomainError("SOURCE_IN_USE", "Cette source est liée à une session de caisse ouverte.", 409);
+    if (scopeChanges && await tx.moneyEntry.count({ where: { account: { paymentSourceId: id } } })) throw new DomainError("SOURCE_HAS_HISTORY", "Une source ayant déjà des écritures ne peut pas être rattachée à une autre boutique. Désactivez-la puis créez une nouvelle source pour préserver l’historique.", 409);
+    const name = input.name === undefined ? source.name : requiredText(input.name, "Le nom");
+    const updated = await tx.paymentSource.update({ where: { id }, data: { name, ...(input.shopId !== undefined ? { shopId: input.shopId } : {}), ...(input.status ? { status: input.status } : {}) } });
+    await tx.moneyAccount.updateMany({ where: { paymentSourceId: id }, data: { name, ...(input.shopId !== undefined ? { shopId: input.shopId } : {}) } });
+    await auditAndOutbox(tx, context, "PAYMENT_SOURCE_UPDATED", "payment_sources", id, { name, shopId: updated.shopId, status: updated.status });
+    return { id, name, shopId: updated.shopId, status: updated.status };
+  });
 }
 
 export async function postOwnerFund(

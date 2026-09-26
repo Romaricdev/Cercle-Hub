@@ -13,7 +13,7 @@ const lineSchema = z.object({ saleUnitId: z.uuid(), quantity: z.string().regex(/
 const quoteSchema = z.object({ lines: z.array(lineSchema).min(1).max(100) }).strict();
 const saleSchema = z.object({
   authorizationId: z.uuid(), lines: z.array(lineSchema).min(1).max(100),
-  payments: z.array(z.object({ accountId: z.uuid(), amountMinor: z.string().regex(/^\d+$/), cashReceivedMinor: z.string().regex(/^\d+$/).optional(), externalReference: z.string().trim().max(120).optional() }).strict()).min(1).max(10),
+  payments: z.array(z.object({ accountId: z.uuid(), amountMinor: z.string().regex(/^\d+$/), cashReceivedMinor: z.string().regex(/^\d+$/).optional(), changeGivenMinor: z.string().regex(/^\d+$/).optional(), externalReference: z.string().trim().max(120).optional() }).strict()).min(1).max(10),
 }).strict();
 
 @Controller("api/v1")

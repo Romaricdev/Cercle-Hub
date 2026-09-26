@@ -8,7 +8,7 @@ type Tx = Prisma.TransactionClient;
 type JsonResult = Prisma.InputJsonObject;
 export type SaleContext = { organizationId: string; actorId: string; key: string; requestId: string };
 export type SaleLineInput = { saleUnitId: string; quantity: string; discountMinor?: string | undefined };
-export type PaymentInput = { accountId: string; amountMinor: string; cashReceivedMinor?: string | undefined; externalReference?: string | undefined };
+export type PaymentInput = { accountId: string; amountMinor: string; cashReceivedMinor?: string | undefined; changeGivenMinor?: string | undefined; externalReference?: string | undefined };
 
 const SCALE = 1_000_000n;
 
@@ -193,11 +193,16 @@ export async function postSale(prisma: PrismaClient, context: SaleContext, input
       const accountRows = await tx.$queryRaw<Array<{ id: string; type: string }>>`SELECT ma.id,ps.type FROM money_accounts ma JOIN payment_sources ps ON ps.id=ma.payment_source_id WHERE ma.id=${payment.accountId}::uuid AND ma.organization_id=${context.organizationId}::uuid AND ma.shop_id=${shop.id}::uuid AND ps.status='ACTIVE' FOR UPDATE OF ma`;
       const account = accountRows[0]; if (!account) throw new DomainError("PAYMENT_ACCOUNT_INVALID", "Une source de paiement est invalide.", 422);
       const amount = money(payment.amountMinor); const cashReceived = payment.cashReceivedMinor ? money(payment.cashReceivedMinor, "Le montant reçu") : null;
-      if (account.type === "CASH" && cashReceived !== null && cashReceived < amount) throw new DomainError("CASH_RECEIVED_TOO_LOW", "Le montant reçu est insuffisant.", 422);
-      const paymentRow = await tx.salePayment.create({ data: { saleId, accountId: account.id, mode: account.type, amountMinor: amount, cashReceivedMinor: cashReceived, externalReference: payment.externalReference?.trim() || null } });
+      const changeGiven = payment.changeGivenMinor ? money(payment.changeGivenMinor, "La monnaie rendue") : payment.changeGivenMinor === "0" ? 0n : null;
+      if (account.type === "CASH" && cashReceived === null) throw new DomainError("CASH_RECEIVED_REQUIRED", "Indiquez la somme remise par le client.", 422);
+      if (account.type === "CASH" && cashReceived! < amount) throw new DomainError("CASH_RECEIVED_TOO_LOW", "Le montant reçu est insuffisant.", 422);
+      const changeDue = account.type === "CASH" ? cashReceived! - amount : null;
+      if (account.type === "CASH" && changeGiven !== changeDue) throw new DomainError("CHANGE_MISMATCH", "La monnaie déclarée ne correspond pas au montant calculé.", 422);
+      if (account.type !== "CASH" && (cashReceived !== null || changeGiven !== null)) throw new DomainError("INVALID_PAYMENT_DETAILS", "Les informations de monnaie sont réservées aux paiements en espèces.", 422);
+      const paymentRow = await tx.salePayment.create({ data: { saleId, accountId: account.id, mode: account.type, amountMinor: amount, cashReceivedMinor: cashReceived, changeDueMinor: changeDue, changeGivenMinor: changeGiven, externalReference: payment.externalReference?.trim() || null } });
       const event = await tx.moneyEvent.create({ data: { organizationId: context.organizationId, actorId: context.actorId, type: "SALE_PAYMENT", reason: `Vente ${reference}`, entries: { create: { accountId: account.id, amountMinor: amount } } } });
       await tx.moneyAccount.update({ where: { id: account.id }, data: { balanceMinor: { increment: amount }, version: { increment: 1 } } });
-      paymentRows.push({ id: paymentRow.id, mode: account.type, amountMinor: amount.toString(), changeMinor: cashReceived === null ? "0" : (cashReceived - amount).toString() }); void event;
+      paymentRows.push({ id: paymentRow.id, mode: account.type, amountMinor: amount.toString(), cashReceivedMinor: cashReceived?.toString() ?? null, changeDueMinor: changeDue?.toString() ?? null, changeGivenMinor: changeGiven?.toString() ?? null }); void event;
     }
     await tx.sale.update({ where: { id: saleId }, data: { costMinor: totalCost, status: "POSTED" } });
     const journal = await tx.journalEntry.create({ data: { organizationId: context.organizationId, actorId: context.actorId, type: "SALE", status: "DRAFT", referenceType: "sales", referenceId: saleId, lines: { create: [{ accountCode: "ASSET:FUNDS", amountMinor: net }, { accountCode: "INCOME:SALES", amountMinor: -net }, { accountCode: "EXPENSE:COGS", amountMinor: totalCost }, { accountCode: "ASSET:STOCK", amountMinor: -totalCost }] } } });
@@ -216,5 +221,5 @@ export async function listSales(prisma: PrismaClient, organizationId: string, sh
 export async function getSale(prisma: PrismaClient, organizationId: string, shopId: string, id: string) {
   const sale = await prisma.sale.findFirst({ where: { id, organizationId, shopId }, include: { shop: true, actor: true, lines: true, payments: { include: { account: true } } } });
   if (!sale) throw new DomainError("SALE_NOT_FOUND", "Vente introuvable.", 404);
-  return { id: sale.id, reference: sale.reference, status: sale.status, shop: sale.shop.name, manager: sale.actor.displayName, grossMinor: sale.grossMinor.toString(), discountMinor: sale.discountMinor.toString(), netMinor: sale.netMinor.toString(), businessDate: sale.businessDate.toISOString().slice(0,10), postedAt: sale.postedAt.toISOString(), lines: sale.lines.map((line) => ({ id: line.id, product: line.productName, variant: line.variantName, unit: line.unitName, symbol: line.unitSymbol, quantity: line.quantity.toString(), unitPriceMinor: line.unitPriceMinor.toString(), discountMinor: line.discountMinor.toString(), netMinor: line.netMinor.toString() })), payments: sale.payments.map((payment) => ({ id: payment.id, source: payment.account.name, mode: payment.mode, amountMinor: payment.amountMinor.toString(), cashReceivedMinor: payment.cashReceivedMinor?.toString() ?? null, changeMinor: payment.cashReceivedMinor ? (payment.cashReceivedMinor - payment.amountMinor).toString() : "0", externalReference: payment.externalReference })) };
+  return { id: sale.id, reference: sale.reference, status: sale.status, shop: sale.shop.name, manager: sale.actor.displayName, grossMinor: sale.grossMinor.toString(), discountMinor: sale.discountMinor.toString(), netMinor: sale.netMinor.toString(), businessDate: sale.businessDate.toISOString().slice(0,10), postedAt: sale.postedAt.toISOString(), lines: sale.lines.map((line) => ({ id: line.id, product: line.productName, variant: line.variantName, unit: line.unitName, symbol: line.unitSymbol, quantity: line.quantity.toString(), unitPriceMinor: line.unitPriceMinor.toString(), discountMinor: line.discountMinor.toString(), netMinor: line.netMinor.toString() })), payments: sale.payments.map((payment) => ({ id: payment.id, source: payment.account.name, mode: payment.mode, amountMinor: payment.amountMinor.toString(), cashReceivedMinor: payment.cashReceivedMinor?.toString() ?? null, changeDueMinor: payment.changeDueMinor?.toString() ?? null, changeGivenMinor: payment.changeGivenMinor?.toString() ?? null, externalReference: payment.externalReference })) };
 }

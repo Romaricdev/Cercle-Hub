@@ -261,3 +261,24 @@ Périmètre livré : vente en ligne gérant, session de caisse, recherche et pan
 - La clôture/comptage, les dépenses et les écarts de caisse commencent en P05.
 
 P04-GATE : **TERMINÉ** sur preuves locales. Aucun défaut critique P04 connu à cette clôture. P05 non commencée.
+
+### Complément P04 — encaissement espèces et gestion des sources
+
+- L’encaissement espèces distingue désormais le montant affecté à la vente, le montant remis par le client, la monnaie calculée et la monnaie réellement rendue. La confirmation explicite est conservée sur le reçu ; toute divergence est refusée dans la transaction serveur sans mouvement de stock ni de fonds.
+- L’écran de paiement présente le contexte boutique/appareil/session, préremplit le cas simple, contrôle les paiements partagés et interdit l’emploi deux fois du même compte dans une vente.
+- La fiche de vente détaille les lignes, les remises, chaque moyen de paiement et, pour les espèces, le montant reçu et la monnaie rendue.
+- La page propriétaire des sources affiche solde réel, ventes et variation du jour, filtres, évolution quotidienne, événements récents, apport audité et gestion du libellé/statut/rattachement. Aucun solde n’est éditable directement. Une source utilisée par une session ouverte ne peut pas être désactivée ; une source ayant des écritures ne peut pas changer de boutique.
+- Migration `20260926190000_p04_cash_change_sources` : champs de monnaie, contrainte de cohérence et reprise des ventes espèces historiques comme paiements exacts sans monnaie, avec réactivation immédiate du trigger append-only.
+
+Recette du complément exécutée le 26 septembre 2026 :
+
+- `corepack pnpm lint` : code 0.
+- `corepack pnpm typecheck` : code 0, tous les projets.
+- `corepack pnpm test` : code 0, **9 fichiers, 19/19 tests**.
+- `corepack pnpm db:replay-test` : code 0, base de test recréée vide et sept migrations rejouées.
+- `corepack pnpm db:migrate` : code 0 sur la base locale existante après reprise contrôlée des ventes espèces historiques.
+- `corepack pnpm test:integration` : code 0, **5 fichiers, 34/34 tests** sur PostgreSQL réel, dont rejet atomique d’une monnaie incohérente et protection d’une source liée à une session ouverte.
+- `corepack pnpm build` : code 0, Next.js 16.3.6, **22 routes**.
+- `corepack pnpm test:e2e` : code 0, Chromium, **16/16 tests**, dont saisie et restitution de la monnaie sur le reçu.
+
+Les limites P04 déjà consignées restent inchangées. La clôture de caisse demeure en P05 ; crédit, retours et remboursements comptables demeurent en P07 ; le hors connexion demeure en P08.
