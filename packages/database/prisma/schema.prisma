@@ -110,6 +110,8 @@ model Organization {
   journalEntries    JournalEntry[]
   stockEvents       StockEvent[]
   moneyEvents       MoneyEvent[]
+  cashSessions      CashSession[]
+  sales             Sale[]
 
   @@map("organizations")
 }
@@ -136,6 +138,8 @@ model AppUser {
   moneyEvents     MoneyEvent[]
   stockEvents     StockEvent[]
   journalEntries  JournalEntry[]
+  cashSessions    CashSession[]
+  sales           Sale[]
 
   @@index([organizationId, status])
   @@map("app_users")
@@ -168,6 +172,8 @@ model Shop {
   stockEvents    StockEvent[]
   stockBalances  StockBalance[]
   moneyAccounts  MoneyAccount[]
+  cashSessions   CashSession[]
+  sales          Sale[]
 
   @@unique([organizationId, code])
   @@map("shops")
@@ -205,20 +211,23 @@ model Invitation {
 }
 
 model Device {
-  id             String             @id @default(uuid()) @db.Uuid
-  organizationId String             @map("organization_id") @db.Uuid
-  shopId         String?            @map("shop_id") @db.Uuid
-  userId         String             @map("user_id") @db.Uuid
-  publicKey      String             @map("public_key")
-  name           String
-  userAgent      String?            @map("user_agent")
-  status         String             @default("PENDING")
-  lastSeenAt     DateTime?          @map("last_seen_at") @db.Timestamptz(6)
-  registeredAt   DateTime           @default(now()) @map("registered_at") @db.Timestamptz(6)
-  organization   Organization       @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  shop           Shop?              @relation(fields: [shopId], references: [id], onDelete: Restrict)
-  user           AppUser            @relation(fields: [userId], references: [id], onDelete: Restrict)
-  capabilities   DeviceCapability[]
+  id                   String                @id @default(uuid()) @db.Uuid
+  organizationId       String                @map("organization_id") @db.Uuid
+  shopId               String?               @map("shop_id") @db.Uuid
+  userId               String                @map("user_id") @db.Uuid
+  publicKey            String                @map("public_key")
+  name                 String
+  userAgent            String?               @map("user_agent")
+  status               String                @default("PENDING")
+  lastSeenAt           DateTime?             @map("last_seen_at") @db.Timestamptz(6)
+  registeredAt         DateTime              @default(now()) @map("registered_at") @db.Timestamptz(6)
+  organization         Organization          @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  shop                 Shop?                 @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  user                 AppUser               @relation(fields: [userId], references: [id], onDelete: Restrict)
+  capabilities         DeviceCapability[]
+  onlineAuthorizations OnlineAuthorization[]
+  cashSessions         CashSession[]
+  sales                Sale[]
 
   @@unique([publicKey])
   @@index([organizationId, status])
@@ -371,6 +380,7 @@ model ProductVariant {
   stockEntries  StockEntry[]
   stockBalances StockBalance[]
   costLayers    CostLayer[]
+  saleLines     SaleLine[]
 
   @@unique([productId, name])
   @@unique([barcode])
@@ -389,6 +399,7 @@ model SaleUnit {
   status      String         @default("ACTIVE")
   variant     ProductVariant @relation(fields: [variantId], references: [id], onDelete: Restrict)
   prices      Price[]
+  saleLines   SaleLine[]
 
   @@unique([variantId, name])
   @@index([variantId, status])
@@ -437,6 +448,7 @@ model Location {
   stockEntries   StockEntry[]
   stockBalances  StockBalance[]
   costLayers     CostLayer[]
+  cashSessions   CashSession[]
 
   @@unique([shopId, type])
   @@index([organizationId, status])
@@ -515,22 +527,142 @@ model StockBalance {
 }
 
 model CostLayer {
-  id                String         @id @default(uuid()) @db.Uuid
-  variantId         String         @map("variant_id") @db.Uuid
-  locationId        String         @map("location_id") @db.Uuid
-  lotId             String?        @map("lot_id") @db.Uuid
-  originType        String         @map("origin_type")
-  originId          String         @map("origin_id")
-  initialQuantity   Decimal        @map("initial_quantity") @db.Decimal(20, 6)
-  remainingQuantity Decimal        @map("remaining_quantity") @db.Decimal(20, 6)
-  unitCostMinor     BigInt         @map("unit_cost_minor")
-  receivedAt        DateTime       @map("received_at") @db.Timestamptz(6)
-  variant           ProductVariant @relation(fields: [variantId], references: [id], onDelete: Restrict)
-  location          Location       @relation(fields: [locationId], references: [id], onDelete: Restrict)
-  lot               Lot?           @relation(fields: [lotId], references: [id], onDelete: Restrict)
+  id                String                @id @default(uuid()) @db.Uuid
+  variantId         String                @map("variant_id") @db.Uuid
+  locationId        String                @map("location_id") @db.Uuid
+  lotId             String?               @map("lot_id") @db.Uuid
+  originType        String                @map("origin_type")
+  originId          String                @map("origin_id")
+  initialQuantity   Decimal               @map("initial_quantity") @db.Decimal(20, 6)
+  remainingQuantity Decimal               @map("remaining_quantity") @db.Decimal(20, 6)
+  unitCostMinor     BigInt                @map("unit_cost_minor")
+  receivedAt        DateTime              @map("received_at") @db.Timestamptz(6)
+  variant           ProductVariant        @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  location          Location              @relation(fields: [locationId], references: [id], onDelete: Restrict)
+  lot               Lot?                  @relation(fields: [lotId], references: [id], onDelete: Restrict)
+  saleAllocations   StockCostAllocation[]
 
   @@index([variantId, locationId, receivedAt])
   @@map("cost_layers")
+}
+
+model CashSession {
+  id             String                @id @default(uuid()) @db.Uuid
+  organizationId String                @map("organization_id") @db.Uuid
+  shopId         String                @map("shop_id") @db.Uuid
+  managerId      String                @map("manager_id") @db.Uuid
+  deviceId       String                @map("device_id") @db.Uuid
+  locationId     String                @map("location_id") @db.Uuid
+  status         String                @default("OPEN")
+  businessDate   DateTime              @map("business_date") @db.Date
+  openedAt       DateTime              @default(now()) @map("opened_at") @db.Timestamptz(6)
+  organization   Organization          @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  shop           Shop                  @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  manager        AppUser               @relation(fields: [managerId], references: [id], onDelete: Restrict)
+  device         Device                @relation(fields: [deviceId], references: [id], onDelete: Restrict)
+  location       Location              @relation(fields: [locationId], references: [id], onDelete: Restrict)
+  sales          Sale[]
+  authorizations OnlineAuthorization[]
+
+  @@index([shopId, status])
+  @@map("cash_sessions")
+}
+
+model OnlineAuthorization {
+  id                  String      @id @default(uuid()) @db.Uuid
+  deviceId            String      @map("device_id") @db.Uuid
+  sessionId           String      @map("session_id") @db.Uuid
+  payloadHash         String      @map("payload_hash")
+  expiresAt           DateTime    @map("expires_at") @db.Timestamptz(6)
+  consumedOperationId String?     @unique @map("consumed_operation_id") @db.Uuid
+  createdAt           DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  device              Device      @relation(fields: [deviceId], references: [id], onDelete: Restrict)
+  session             CashSession @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+
+  @@index([deviceId, expiresAt])
+  @@map("online_authorizations")
+}
+
+model Sale {
+  id             String        @id @default(uuid()) @db.Uuid
+  organizationId String        @map("organization_id") @db.Uuid
+  shopId         String        @map("shop_id") @db.Uuid
+  sessionId      String        @map("session_id") @db.Uuid
+  actorId        String        @map("actor_id") @db.Uuid
+  deviceId       String        @map("device_id") @db.Uuid
+  reference      String
+  status         String        @default("POSTED")
+  grossMinor     BigInt        @map("gross_minor")
+  discountMinor  BigInt        @default(0) @map("discount_minor")
+  netMinor       BigInt        @map("net_minor")
+  costMinor      BigInt        @map("cost_minor")
+  businessDate   DateTime      @map("business_date") @db.Date
+  postedAt       DateTime      @default(now()) @map("posted_at") @db.Timestamptz(6)
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  shop           Shop          @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  session        CashSession   @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+  actor          AppUser       @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  device         Device        @relation(fields: [deviceId], references: [id], onDelete: Restrict)
+  lines          SaleLine[]
+  payments       SalePayment[]
+
+  @@unique([organizationId, reference])
+  @@index([shopId, postedAt])
+  @@map("sales")
+}
+
+model SaleLine {
+  id              String                @id @default(uuid()) @db.Uuid
+  saleId          String                @map("sale_id") @db.Uuid
+  variantId       String                @map("variant_id") @db.Uuid
+  saleUnitId      String                @map("sale_unit_id") @db.Uuid
+  productName     String                @map("product_name")
+  variantName     String                @map("variant_name")
+  unitName        String                @map("unit_name")
+  unitSymbol      String                @map("unit_symbol")
+  quantity        Decimal               @db.Decimal(20, 6)
+  quantityBase    Decimal               @map("quantity_base") @db.Decimal(20, 6)
+  unitPriceMinor  BigInt                @map("unit_price_minor")
+  grossMinor      BigInt                @map("gross_minor")
+  discountMinor   BigInt                @default(0) @map("discount_minor")
+  netMinor        BigInt                @map("net_minor")
+  costMinor       BigInt                @map("cost_minor")
+  sale            Sale                  @relation(fields: [saleId], references: [id], onDelete: Restrict)
+  variant         ProductVariant        @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  saleUnit        SaleUnit              @relation(fields: [saleUnitId], references: [id], onDelete: Restrict)
+  costAllocations StockCostAllocation[]
+
+  @@index([saleId])
+  @@map("sale_lines")
+}
+
+model SalePayment {
+  id                String       @id @default(uuid()) @db.Uuid
+  saleId            String       @map("sale_id") @db.Uuid
+  accountId         String       @map("account_id") @db.Uuid
+  mode              String
+  amountMinor       BigInt       @map("amount_minor")
+  cashReceivedMinor BigInt?      @map("cash_received_minor")
+  externalReference String?      @map("external_reference")
+  sale              Sale         @relation(fields: [saleId], references: [id], onDelete: Restrict)
+  account           MoneyAccount @relation(fields: [accountId], references: [id], onDelete: Restrict)
+
+  @@index([saleId])
+  @@map("sale_payments")
+}
+
+model StockCostAllocation {
+  id         String    @id @default(uuid()) @db.Uuid
+  saleLineId String    @map("sale_line_id") @db.Uuid
+  layerId    String    @map("layer_id") @db.Uuid
+  quantity   Decimal   @db.Decimal(20, 6)
+  valueMinor BigInt    @map("value_minor")
+  saleLine   SaleLine  @relation(fields: [saleLineId], references: [id], onDelete: Restrict)
+  layer      CostLayer @relation(fields: [layerId], references: [id], onDelete: Restrict)
+
+  @@index([saleLineId])
+  @@index([layerId])
+  @@map("stock_cost_allocations")
 }
 
 model PaymentSource {
@@ -562,6 +694,7 @@ model MoneyAccount {
   shop            Shop?         @relation(fields: [shopId], references: [id], onDelete: Restrict)
   paymentSource   PaymentSource @relation(fields: [paymentSourceId], references: [id], onDelete: Restrict)
   entries         MoneyEntry[]
+  salePayments    SalePayment[]
 
   @@unique([paymentSourceId, currency])
   @@index([organizationId, shopId])

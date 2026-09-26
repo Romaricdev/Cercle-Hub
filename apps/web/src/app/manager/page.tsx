@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, ShieldCheck, Store, TabletSmartphone } from "lucide-react";
+import { ArrowRight, History, ShieldCheck, ShoppingCart, Store, TabletSmartphone } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -18,6 +18,12 @@ export default function ManagerHomePage() {
     <section className="space-y-6">
       <PageHeader title="Accueil">{me?.shop ? `Boutique ${me.shop.name}` : "Aucune boutique affectée"}</PageHeader>
       <div className="grid gap-4 md:grid-cols-2">
+        <Link href={paths.managerSale} className="group rounded-lg bg-[var(--primary)] p-5 text-[var(--primary-foreground)] shadow-[var(--shadow-float)] transition-transform duration-200 hover:-translate-y-0.5">
+          <ShoppingCart aria-hidden="true" className="size-6" />
+          <h2 className="mt-4 font-display text-lg font-semibold">Nouvelle vente</h2>
+          <p className="mt-1.5 text-sm leading-6 opacity-85">Ouvrez votre session, composez le panier et encaissez le client.</p>
+          <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold">Vendre maintenant <ArrowRight aria-hidden="true" className="size-4 transition-transform group-hover:translate-x-1" /></span>
+        </Link>
         <section className="rounded-lg bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]">
           <div className="grid size-10 place-items-center rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400"><Store aria-hidden="true" className="size-5" /></div>
           <h2 className="mt-4 font-display text-lg font-semibold">{me?.shop?.name ?? "Aucune boutique affectée"}</h2>
@@ -33,7 +39,7 @@ export default function ManagerHomePage() {
           <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--primary)]">Voir l’appareil <ArrowRight aria-hidden="true" className="size-4 transition-transform group-hover:translate-x-1" /></span>
         </Link>
       </div>
-      <div className="rounded-lg bg-[var(--surface-subtle)] px-4 py-3 text-sm text-[var(--muted)]">La caisse et les ventes seront activées dans les phases métier suivantes, sans données fictives.</div>
+      <Link href={paths.managerSales} className="flex items-center justify-between rounded-lg bg-[var(--surface-subtle)] px-4 py-3 text-sm font-medium"><span className="inline-flex items-center gap-2"><History className="size-4 text-[var(--primary)]" />Consulter les ventes enregistrées</span><ArrowRight className="size-4" /></Link>
     </section>
   );
 }

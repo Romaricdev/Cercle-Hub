@@ -156,6 +156,21 @@ Les routes `/sales` et `/sync/push` ne constituent pas deux chemins de posting :
 
 ## Exemple minimal de vente
 
+### Contrat P04 effectivement livré
+
+Le premier chemin en ligne utilise les routes ci-dessous. L’enveloppe signée `device/seq/capability` décrite plus haut sera introduite avec la synchronisation hors connexion P08 ; elle n’est pas simulée par P04.
+
+| Méthode et route | Entrée / résultat P04 |
+|---|---|
+| GET `/manager/sales/context` | Boutique et appareil actifs du gérant, session ouverte éventuelle, catalogue vendable, prix et sources de paiement autorisées |
+| POST `/cash-sessions/open` | Aucun body ; `Idempotency-Key` UUID obligatoire ; ouvre une session `TRADING` pour la boutique et l’appareil actifs |
+| POST `/sales/quote` | `{lines:[{saleUnitId,quantity,discountMinor?}]}` ; recalcule prix/remise/total et émet une autorisation en ligne courte liée au devis |
+| POST `/sales` | `{authorizationId,lines,payments:[{accountId,amountMinor,cashReceivedMinor?,externalReference?}]}` ; `Idempotency-Key` UUID obligatoire ; revalide puis poste atomiquement |
+| GET `/sales` | Historique de la boutique affectée au gérant |
+| GET `/sales/:id` | Reçu autorisé de la boutique affectée ; coûts internes exclus de l’interface gérant |
+
+Une ligne P04 référence le format vendu (`saleUnitId`) et une quantité décimale bornée à six chiffres. Le serveur résout la variante, le prix courant et le facteur de stock. `discountMinor` est un montant par ligne contrôlé par la politique effective. Pour les espèces, `amountMinor` est le montant affecté à la vente et `cashReceivedMinor` le montant remis par le client ; seul `amountMinor` crédite la caisse et le chiffre d’affaires.
+
 ```json
 {
   "operationId":"00000000-0000-4000-8000-000000000001",

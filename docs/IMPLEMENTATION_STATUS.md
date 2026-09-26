@@ -1,6 +1,6 @@
 # État d’implémentation
 
-Mise à jour : 25 septembre 2026. P00 documentaire et P01–P03 réalisées localement. P03-GATE est terminé ; P04–P12 ne sont pas commencées.
+Mise à jour : 26 septembre 2026. P00 documentaire et P01–P04 réalisées localement. P04-GATE est terminé ; P05–P12 ne sont pas commencées.
 
 Plan actif : [phases P00 à P12](15-phases-developpement.md). Les livrables P00 sont disponibles dans [docs/p00](p00/README.md). La rédaction du backlog ne vaut pas implémentation des tâches.
 
@@ -16,7 +16,7 @@ Vérifications exécutées après ce complément : lint réussi, typecheck monor
 | P01 — Socle technique et qualité | RÉALISÉE LOCALEMENT | Commandes de socle exécutées sur Node 24.21.0 ; limites listées dans le compte rendu P01 |
 | P02 — Accès sécurisés et design system | RÉALISÉE LOCALEMENT ; P02-GATE TERMINÉ | Preuves dans le compte rendu P02 et la stabilisation SEC12 ci-dessous |
 | P03 — Boutiques, catalogue et initialisation | RÉALISÉE LOCALEMENT ; P03-GATE TERMINÉ | Migrations, API, écrans et recette locale décrits dans le compte rendu P03 |
-| P04 — Ventes en ligne | NON COMMENCÉE | Aucun livrable applicatif ; démarrage non autorisé |
+| P04 — Ventes en ligne | RÉALISÉE LOCALEMENT ; P04-GATE TERMINÉ | Vente gérant, session, devis, paiements, stock/coûts/fonds/journal, reçus et historique couverts par la recette P04 |
 | P05 — Caisse, dépenses et clôture | NON COMMENCÉE | Aucun livrable applicatif ; démarrage non autorisé |
 | P06 — Achats et réapprovisionnement | NON COMMENCÉE | Aucun livrable applicatif ; démarrage non autorisé |
 | P07 — Crédit, retours et inventaires | NON COMMENCÉE | Aucun livrable applicatif ; démarrage non autorisé |
@@ -228,3 +228,36 @@ Le backlog P00 associait encore E14 aux demandes/pertes et E40 aux transferts, a
 - Les transferts, ventes, caisse, reçus, dépenses, workflows complets de pertes/réapprovisionnement et mode hors connexion restent dans leurs phases futures.
 
 P03-GATE : **TERMINÉ** sur preuves locales ci-dessus. Aucun défaut critique P03 connu à cette clôture. P04 non commencée.
+
+## Compte rendu P04 — 26 septembre 2026
+
+Périmètre livré : vente en ligne gérant, session de caisse, recherche et panier, devis serveur, remises autorisées, paiement immédiat simple ou multiple, rendu espèces, posting atomique, reçu et historique. La clôture de caisse reste en P05, le crédit/retour en P07 et le mode hors connexion en P08.
+
+### Livrables
+
+- Migration `20260926130000_p04_sales` : sessions, autorisations en ligne, ventes, lignes, paiements et allocations de coût, index d’unicité de session ouverte et protections append-only des documents postés.
+- Moteur `packages/domain/src/p04.ts` : contrôle de l’affectation et de l’appareil actif, calcul exact en `bigint`/décimaux bornés, prix serveur, FIFO/FEFO, idempotence, verrous de concurrence, stock, fonds, journal équilibré, audit et outbox dans une transaction unique.
+- API : `GET /manager/sales/context`, `POST /cash-sessions/open`, `POST /sales/quote`, `POST /sales`, `GET /sales`, `GET /sales/:id`. Les commandes à effets exigent `Idempotency-Key`; la confirmation consomme une autorisation en ligne courte liée au devis.
+- Interfaces gérant : `/manager/sale`, `/manager/sale/payment`, `/manager/sales` et `/manager/sales/[id]`, navigation caisse, panier conservé pendant le passage au paiement, paiement partagé, monnaie à rendre, reçu imprimable et adaptation 320/768/1024/1440.
+- Dashboard propriétaire : indicateurs de ventes issus des écritures réelles, sans chiffre de démonstration.
+
+### Recette réellement exécutée
+
+- `corepack pnpm lint` : code 0.
+- `corepack pnpm typecheck` : code 0, tous les projets.
+- `corepack pnpm test` : code 0, **9 fichiers, 19/19 tests**.
+- `corepack pnpm db:replay-test` : code 0, base de test recréée vide et six migrations rejouées.
+- `corepack pnpm test:integration` : code 0, **5 fichiers, 32/32 tests** sur PostgreSQL réel. P04 couvre espèces avec rendu, Mobile Money, paiement mixte, quantités décimales, mismatch d’idempotence, concurrence sur la dernière unité, remise refusée et immutabilité.
+- `corepack pnpm build` : code 0, Next.js 16.3.6, **22 routes**.
+- `corepack pnpm exec playwright test --project=chromium` : code 0, **16/16 tests** après actualisation des parcours P02/P03 à l’interface courante et isolation réexécutable des fixtures.
+- `python scripts/check_docs.py` et `python scripts/check_design_examples.py` : résultats consignés après la mise à jour documentaire finale.
+
+### Limites et risques restants
+
+- Firefox et WebKit ne sont pas installés ; aucun succès cross-browser n’est revendiqué.
+- Aucun essai tactile ou matériel réel, aucune validation pilote et aucun déploiement public.
+- Le panier préparatoire reste local à la session du navigateur ; aucune capacité hors connexion n’est revendiquée avant P08.
+- P04 utilise l’appareil actif unique de l’affectation gérant. La délivrance et la synchronisation des capacités hors ligne restent hors périmètre.
+- La clôture/comptage, les dépenses et les écarts de caisse commencent en P05.
+
+P04-GATE : **TERMINÉ** sur preuves locales. Aucun défaut critique P04 connu à cette clôture. P05 non commencée.

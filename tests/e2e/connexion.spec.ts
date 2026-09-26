@@ -47,7 +47,8 @@ test("le propriétaire active le TOTP puis ouvre son espace", async ({ page }) =
   await expect(page.getByRole("heading", { name: /Bonjour/ })).toBeVisible();
   await expect(page.getByText("Propriétaire", { exact: true })).toBeVisible();
   await page.getByRole("link", { name: "Utilisateurs" }).click();
-  await expect(page.getByRole("heading", { name: "Utilisateurs" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Équipe et accès" })).toBeVisible();
+  await page.getByRole("button", { name: "Inviter un gérant" }).click();
   await expect(page.getByRole("heading", { name: "Inviter un gérant" })).toBeVisible();
 });
 

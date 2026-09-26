@@ -31,4 +31,6 @@ export {
   updateShop,
   validateOpening,
 } from "./p03.js";
+export { getSale, listSales, managerSaleContext, openCashSession, postSale, quoteSale } from "./p04.js";
+export type { PaymentInput, SaleContext, SaleLineInput } from "./p04.js";
 export type { CommandContext, OpeningInput } from "./p03.js";

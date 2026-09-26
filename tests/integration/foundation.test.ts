@@ -102,7 +102,7 @@ describe("socle PostgreSQL, Redis et S3", () => {
     expect(balance.balanceMinor).toBe(100n);
     expect(await prisma.referenceJournal.count({ where: { operationId: key } })).toBe(0);
     expect(await prisma.auditEvent.count({ where: { requestId: "rollback" } })).toBe(0);
-    expect(await prisma.outboxEvent.count()).toBe(0);
+    expect(await prisma.outboxEvent.count({ where: { topic: "platform.reference", aggregateId: balanceId } })).toBe(0);
     expect(await prisma.idempotencyKey.count({ where: { key } })).toBe(0);
   });
 
@@ -114,7 +114,7 @@ describe("socle PostgreSQL, Redis et S3", () => {
     expect(first.replayed).toBe(false);
     expect(second).toEqual({ balanceMinor: "70", replayed: true });
     expect(await prisma.referenceJournal.count({ where: { operationId: key } })).toBe(1);
-    expect(await prisma.outboxEvent.count()).toBe(1);
+    expect(await prisma.outboxEvent.count({ where: { topic: "platform.reference", aggregateId: balanceId } })).toBe(1);
     await expect(postReferenceCommand(prisma, { ...input, amountMinor: 10n, requestId: "conflict" })).rejects.toThrow(/différent/);
   });
 

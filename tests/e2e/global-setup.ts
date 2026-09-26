@@ -12,6 +12,7 @@ const managerEmail = "manager.p01@example.test";
 const ownerEmail = "owner.p02.e2e@example.test";
 const ownerTotpEmail = "owner.p02.totp@example.test";
 const ownerP03Email = "owner.p03.e2e@example.test";
+const managerP04Email = "manager.p04.e2e@example.test";
 
 export default async function globalSetup(): Promise<void> {
   loadRootEnv();
@@ -64,7 +65,33 @@ export default async function globalSetup(): Promise<void> {
   const managerProfile = managerAccount ? await prisma.appUser.findFirst({ where: { authUserId: managerAccount.id } }) : null;
   if (managerProfile) {
     await prisma.appUser.update({ where: { id: managerProfile.id }, data: { organizationId: organization.id } });
+    await prisma.managerAssignment.updateMany({
+      where: { userId: managerProfile.id, endedAt: null },
+      data: { endedAt: new Date() },
+    });
   }
+  const p04Auth = await prisma.user.findUnique({ where: { email: managerP04Email } }) ?? (await auth.api.signUpEmail({ body: { email: managerP04Email, password, name: "Gérant P04" } })).user;
+  const p04Manager = await prisma.appUser.upsert({
+    where: { authUserId: p04Auth.id },
+    create: { authUserId: p04Auth.id, organizationId: organization.id, role: "MANAGER", displayName: "Gérant P04" },
+    update: { organizationId: organization.id, status: "ACTIVE" },
+  });
+  await prisma.managerAssignment.updateMany({
+    where: { userId: p04Manager.id, endedAt: null },
+    data: { endedAt: new Date() },
+  });
+  const shop = await prisma.shop.create({ data: { organizationId: organization.id, code: `P04${Date.now().toString().slice(-6)}`, name: "Boutique Vente E2E", status: "ACTIVE", activatedAt: new Date() } });
+  await prisma.managerAssignment.create({ data: { shopId: shop.id, userId: p04Manager.id, reason: "Recette P04" } });
+  await prisma.device.create({ data: { organizationId: organization.id, shopId: shop.id, userId: p04Manager.id, publicKey: `e2e-p04-${crypto.randomUUID()}-public-key-material`, name: "Tablette caisse E2E", status: "ACTIVE" } });
+  const location = await prisma.location.create({ data: { organizationId: organization.id, shopId: shop.id, name: "Stock Boutique Vente E2E", type: "SHOP" } });
+  const product = await prisma.product.create({ data: { organizationId: organization.id, name: "Biscuit E2E", sku: `BIS-${Date.now()}`, shops: { create: { shopId: shop.id } } } });
+  const variant = await prisma.productVariant.create({ data: { productId: product.id, name: "Paquet" } });
+  const unit = await prisma.saleUnit.create({ data: { variantId: variant.id, name: "Paquet", symbol: "paq", factor: "1", precision: 0, isReference: true } });
+  await prisma.price.create({ data: { saleUnitId: unit.id, shopId: shop.id, amountMinor: 1000n, validFrom: new Date() } });
+  const source = await prisma.paymentSource.create({ data: { organizationId: organization.id, shopId: shop.id, name: "Caisse Vente E2E", type: "CASH" } });
+  await prisma.moneyAccount.create({ data: { organizationId: organization.id, shopId: shop.id, paymentSourceId: source.id, name: source.name, currency: "XAF", balanceMinor: 50000n } });
+  await prisma.stockBalance.create({ data: { shopId: shop.id, variantId: variant.id, locationId: location.id, quantity: "10" } });
+  await prisma.costLayer.create({ data: { variantId: variant.id, locationId: location.id, originType: "e2e_fixture", originId: shop.id, initialQuantity: "10", remainingQuantity: "10", unitCostMinor: 600n, receivedAt: new Date() } });
   await ensureOwner(prisma, auth, {
     email: ownerTotpEmail,
     name: "Propriétaire TOTP",
@@ -104,3 +131,4 @@ export const e2eManager = { email: managerEmail, password };
 export const e2eOwner = { email: ownerEmail, password };
 export const e2eOwnerTotp = { email: ownerTotpEmail, password };
 export const e2eOwnerP03 = { email: ownerP03Email, password };
+export const e2eManagerP04 = { email: managerP04Email, password };

@@ -22,7 +22,7 @@ interface OwnerSummary {
 }
 
 interface Overview {
-  state: "SETUP" | "EMPTY";
+  state: "SETUP" | "EMPTY" | "ACTIVE";
   calculatedAt: string;
   freshness: string;
   indicators: {
@@ -30,6 +30,7 @@ interface Overview {
     catalog: { products: number; variants: number; productsWithoutPrice: number };
     stock: { quantity: string; valueMinor: string };
     funds: { balanceMinor: string; activeSources: number };
+    sales: { count: number; revenueMinor: string };
   };
   alerts: Array<{ code: string; count: number }>;
 }
@@ -65,7 +66,7 @@ export default function OwnerHomePage() {
             <ShieldCheck aria-hidden="true" className="size-3.5" /> Espace propriétaire
           </div>
           <h1 className="font-display text-3xl font-semibold tracking-[-0.035em] sm:text-4xl">Bonjour, {firstName}</h1>
-          <p className="mt-2 max-w-2xl text-[var(--muted)]">{overview?.state === "EMPTY" ? "Votre configuration est active. Les ventes seront disponibles à la phase suivante." : "Terminez la configuration réelle de vos boutiques avant leur activation."}</p>
+          <p className="mt-2 max-w-2xl text-[var(--muted)]">{overview?.state === "ACTIVE" ? "Suivez les ventes réellement enregistrées dans vos boutiques." : overview?.state === "EMPTY" ? "Votre configuration est active. Le gérant peut maintenant ouvrir sa session et vendre." : "Terminez la configuration réelle de vos boutiques avant leur activation."}</p>
         </div>
         <div className="inline-flex w-fit items-center gap-2 rounded-lg bg-[color-mix(in_srgb,var(--success)_10%,var(--surface))] px-3 py-2 text-sm text-[var(--success)]">
           <span className="size-2 rounded-full bg-[var(--success)] shadow-[0_0_0_4px_color-mix(in_srgb,var(--success)_12%,transparent)]" /> Accès sécurisé
@@ -97,8 +98,8 @@ export default function OwnerHomePage() {
         {[
           [Store, "Boutiques", overview?.indicators.shops.total],
           [Boxes, "Produits / variantes", overview ? `${overview.indicators.catalog.products} / ${overview.indicators.catalog.variants}` : undefined],
-          [Warehouse, "Stock initial", overview?.indicators.stock.quantity],
-          [WalletCards, "Fonds enregistrés", overview ? `${overview.indicators.funds.balanceMinor} XAF` : undefined],
+          [Warehouse, "Stock disponible", overview?.indicators.stock.quantity],
+          [WalletCards, "Ventes encaissées", overview ? `${overview.indicators.sales.revenueMinor} XAF` : undefined],
         ].map(([Icon, label, value], index) => {
           const MetricIcon = Icon as typeof Store;
           return <div key={String(label)} className={"px-5 py-4 " + (index > 0 ? "border-t border-[var(--separator)]/60 sm:border-l" : "")}>
@@ -122,7 +123,7 @@ export default function OwnerHomePage() {
           <div className="max-w-3xl">
             <div className="flex flex-wrap items-center gap-3">
               <h2 className="font-display text-lg font-semibold">Configuration de l’activité</h2>
-              <span className="rounded-full bg-[var(--surface-subtle)] px-2.5 py-1 text-xs font-medium text-[var(--muted)]">{overview?.state === "EMPTY" ? "Initialisée" : "En préparation"}</span>
+              <span className="rounded-full bg-[var(--surface-subtle)] px-2.5 py-1 text-xs font-medium text-[var(--muted)]">{overview?.state === "ACTIVE" ? "En activité" : overview?.state === "EMPTY" ? "Initialisée" : "En préparation"}</span>
             </div>
             <p className="mt-1.5 text-sm leading-6 text-[var(--muted)]">Les indicateurs ci-dessus proviennent des boutiques, du catalogue, des écritures de stock et des fonds réellement enregistrés.</p>
           </div>

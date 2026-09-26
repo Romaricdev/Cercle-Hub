@@ -770,7 +770,7 @@ export async function listStockMovements(prisma: PrismaClient, organizationId: s
 export async function ownerOverview(prisma: PrismaClient, organizationId: string, shopId?: string) {
   const scope = shopId ? { organizationId, id: shopId } : { organizationId };
   if (shopId && !(await prisma.shop.count({ where: scope }))) throw new DomainError("SHOP_NOT_FOUND", "Boutique introuvable.", 404);
-  const [shops, products, variants, stock, funds, sources, productsWithoutPrice] = await Promise.all([
+  const [shops, products, variants, stock, funds, sources, productsWithoutPrice, sales] = await Promise.all([
     prisma.shop.groupBy({ by: ["status"], where: scope, _count: true }),
     prisma.product.count({ where: { organizationId, ...(shopId ? { shops: { some: { shopId, active: true } } } : {}) } }),
     prisma.productVariant.count({ where: { product: { organizationId, ...(shopId ? { shops: { some: { shopId, active: true } } } : {}) } } }),
@@ -778,6 +778,7 @@ export async function ownerOverview(prisma: PrismaClient, organizationId: string
     prisma.moneyAccount.aggregate({ where: { organizationId, ...(shopId ? { shopId } : {}) }, _sum: { balanceMinor: true } }),
     prisma.paymentSource.count({ where: { organizationId, status: "ACTIVE", ...(shopId ? { OR: [{ shopId }, { shopId: null }] } : {}) } }),
     prisma.product.count({ where: { organizationId, variants: { some: { units: { none: { prices: { some: { validUntil: null, ...(shopId ? { OR: [{ shopId }, { shopId: null }] } : {}) } } } } } } } }),
+    prisma.sale.aggregate({ where: { organizationId, status: "POSTED", ...(shopId ? { shopId } : {}) }, _count: true, _sum: { netMinor: true } }),
   ]);
   const active = shops.find((row) => row.status === "ACTIVE")?._count ?? 0;
   const totalShops = shops.reduce((sum, row) => sum + row._count, 0);
@@ -787,13 +788,13 @@ export async function ownerOverview(prisma: PrismaClient, organizationId: string
     return sum + (scaled * layer.unitCostMinor) / 1_000_000n;
   }, 0n);
   return {
-    state: active > 0 ? "EMPTY" : "SETUP",
+    state: active > 0 ? (sales._count > 0 ? "ACTIVE" : "EMPTY") : "SETUP",
     scope: shopId ? { type: "SHOP", shopId } : { type: "GLOBAL" },
     currency: "XAF",
     timezone: "Africa/Douala",
     calculatedAt: new Date().toISOString(),
     freshness: "LIVE",
-    coverage: "P03",
+    coverage: "P04",
     indicators: {
       shops: { total: totalShops, byStatus: Object.fromEntries(shops.map((row) => [row.status, row._count])) },
       catalog: { products, variants, productsWithoutPrice },
@@ -802,6 +803,7 @@ export async function ownerOverview(prisma: PrismaClient, organizationId: string
         valueMinor: stockValue.toString(),
       },
       funds: { balanceMinor: (funds._sum.balanceMinor ?? 0n).toString(), activeSources: sources },
+      sales: { count: sales._count, revenueMinor: (sales._sum.netMinor ?? 0n).toString() },
     },
     alerts: [
       ...(productsWithoutPrice ? [{ code: "PRODUCTS_WITHOUT_PRICE", count: productsWithoutPrice }] : []),

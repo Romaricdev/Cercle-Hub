@@ -28,6 +28,9 @@ export const paths = {
   managerHome: "/manager",
   managerDevice: "/manager/device",
   managerStock: "/manager/stock",
+  managerSale: "/manager/sale",
+  managerSalePayment: "/manager/sale/payment",
+  managerSales: "/manager/sales",
 } as const;
 
 export function homePath(me: MeResponse): string {

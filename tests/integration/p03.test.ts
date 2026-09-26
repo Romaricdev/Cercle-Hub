@@ -130,7 +130,7 @@ describe("P03 boutiques, catalogue et initialisation", () => {
     expect(overview.indicators.shops.byStatus.ACTIVE).toBe(1);
     expect(overview.indicators.stock.valueMinor).toBe("4500");
     expect(overview.indicators.funds.balanceMinor).toBe("24000");
-    expect(JSON.stringify(overview)).not.toMatch(/revenue|chiffreAffaires|sales/i);
+    expect(overview.indicators.sales).toEqual({ count: 0, revenueMinor: "0" });
   });
 
   it("la base empêche deux gérants actifs sur la même boutique", async () => {

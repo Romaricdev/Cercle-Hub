@@ -12,6 +12,8 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Settings2,
+  ShoppingCart,
+  ReceiptText,
   SlidersHorizontal,
   TabletSmartphone,
   UsersRound,
@@ -52,7 +54,9 @@ const ownerLinks = [
 
 const managerLinks = [
   { href: paths.managerHome, label: "Vue générale", icon: LayoutDashboard },
+  { href: paths.managerSale, label: "Vendre", icon: ShoppingCart },
   { href: paths.managerStock, label: "Stock", icon: Warehouse },
+  { href: paths.managerSales, label: "Historique", icon: ReceiptText },
   { href: paths.managerDevice, label: "Mon appareil", icon: TabletSmartphone },
 ];
 
@@ -114,6 +118,9 @@ export function AppShell({ role, children }: { role: "OWNER" | "MANAGER"; childr
       [paths.managerHome]: "Vue générale",
       [paths.managerDevice]: "Mon appareil",
       [paths.managerStock]: "Stock",
+      [paths.managerSale]: "Nouvelle vente",
+      [paths.managerSalePayment]: "Paiement",
+      [paths.managerSales]: "Historique des ventes",
     } as Record<string, string>)[pathname] ?? "Vue générale";
 
   async function signOut() {

@@ -50,7 +50,7 @@ test("captures visuelles P02 clair, sombre et formats", async ({ page }) => {
   await expect(page.getByRole("heading", { name: /Bonjour/ })).toBeVisible();
   await page.screenshot({ path: resolve(out, "proprietaire-1440.png"), fullPage: true });
   await page.getByRole("link", { name: "Utilisateurs" }).click();
-  await expect(page.getByRole("heading", { name: "Utilisateurs" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Équipe et accès" })).toBeVisible();
   await page.screenshot({ path: resolve(out, "utilisateurs-1440-vide.png"), fullPage: true });
   await page.setViewportSize({ width: 1920, height: 1080 });
   await page.screenshot({ path: resolve(out, "utilisateurs-1920.png"), fullPage: true });
