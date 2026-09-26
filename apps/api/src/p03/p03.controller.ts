@@ -411,7 +411,16 @@ export class P03Controller {
     const actor = requireActor(request);
     const shopId = z.uuid().parse(id);
     await this.scope(actor, shopId);
-    const draft = await this.prisma.openingDraft.findFirst({ where: { organizationId: actor.organizationId, shopId }, include: { stockLines: true, obligations: true }, orderBy: { version: "desc" } });
+    const drafts = await this.prisma.openingDraft.findMany({ where: { organizationId: actor.organizationId, shopId }, include: { stockLines: true, obligations: true }, orderBy: { version: "desc" } });
+    const draft = drafts[0] ?? null;
+    const validatedDrafts = drafts.filter((item) => item.status === "VALIDATED");
+    const validatedFunds = new Map<string, bigint>();
+    for (const item of validatedDrafts) {
+      const funds = Array.isArray(item.funds) ? item.funds as Array<{ accountId?: unknown; amountMinor?: unknown }> : [];
+      for (const fund of funds) {
+        if (typeof fund.accountId === "string" && typeof fund.amountMinor === "string" && /^\d+$/.test(fund.amountMinor)) validatedFunds.set(fund.accountId, (validatedFunds.get(fund.accountId) ?? 0n) + BigInt(fund.amountMinor));
+      }
+    }
     return {
       protocolVersion: PROTOCOL_VERSION,
       draft: draft ? {
@@ -419,6 +428,10 @@ export class P03Controller {
         stockLines: draft.stockLines.map((line) => ({ ...line, quantity: line.quantity.toString(), unitCostMinor: line.unitCostMinor.toString() })),
         obligations: draft.obligations.map((line) => ({ ...line, amountMinor: line.amountMinor.toString() })),
       } : null,
+      validated: {
+        stockLines: validatedDrafts.flatMap((item) => item.stockLines.map((line) => ({ ...line, quantity: line.quantity.toString(), unitCostMinor: line.unitCostMinor.toString() }))),
+        funds: [...validatedFunds].map(([accountId, amountMinor]) => ({ accountId, amountMinor: amountMinor.toString() })),
+      },
     };
   }
 

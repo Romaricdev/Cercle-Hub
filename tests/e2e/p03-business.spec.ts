@@ -89,6 +89,12 @@ test("P03 configure puis active une boutique sans donnée commerciale fictive", 
   await expect(page.getByText("Initialisée")).toBeVisible();
   await expect(page.getByText(/chiffre d’affaires|ventes à zéro|marge commerciale/i)).toHaveCount(0);
 
+  await page.goto("/setup");
+  await page.getByRole("link", { name: /Boutique E2E P03/ }).click();
+  await expect(page.getByRole("heading", { name: "Fonds initiaux enregistrés" })).toBeVisible();
+  await expect(page.getByText("Caisse E2E", { exact: true })).toBeVisible();
+  await expect(page.getByText("50 000 FCFA", { exact: true }).first()).toBeVisible();
+
   await page.goto("/owner/stock");
   await expect(page.getByText("Riz local", { exact: true })).toBeVisible();
   await expect(page.getByText("8", { exact: true })).toBeVisible();

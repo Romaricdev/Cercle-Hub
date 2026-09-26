@@ -282,3 +282,11 @@ Recette du complément exécutée le 26 septembre 2026 :
 - `corepack pnpm test:e2e` : code 0, Chromium, **16/16 tests**, dont saisie et restitution de la monnaie sur le reçu.
 
 Les limites P04 déjà consignées restent inchangées. La clôture de caisse demeure en P05 ; crédit, retours et remboursements comptables demeurent en P07 ; le hors connexion demeure en P08.
+
+### Correctif d’affichage des fonds initiaux — 26 septembre 2026
+
+La consultation d’une initialisation clôturée affichait les champs temporaires vidés du formulaire et uniquement le dernier lot. L’API restitue désormais le cumul des fonds et toutes les lignes de stock des lots validés de la boutique ; l’interface liste chaque source avec son montant et le total initial validé. Les écritures financières existantes n’ont été ni recréées ni modifiées.
+
+- `corepack pnpm lint` : code 0.
+- `corepack pnpm typecheck` : code 0, tous les projets.
+- `corepack pnpm exec playwright test tests/e2e/p03-business.spec.ts --project=chromium` : code 0, **1/1**, avec contrôle du libellé de la source et du montant initial après activation.
