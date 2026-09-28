@@ -100,7 +100,7 @@ Exigence globale après chaque commande réussie : journaux équilibrés, projec
 | T83 | Désactiver dépôt avec stock ou crédit avec dettes | Aucun nouvel engagement, consultation et solde restent possibles |
 | T84 | Scénario complet décrit dans reporting 2.1 | Clôture attendue58 500, déclarée58 000, écart−500, CA5 000, créance2 000 ; suite après règlement/retour caisse59 000 |
 
-Ces scénarios sont des critères de recette à implémenter, pas des tests exécutés du logiciel. La vérification de leurs liens et de l’arithmétique documentaire ne prouve pas la conformité d’une application.
+Ces scénarios sont des critères de recette à implémenter, pas des tests exécutés du logiciel par le seul fait d’être listés ici. Les preuves locales réellement obtenues sont consignées dans [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md). La vérification de leurs liens et de l’arithmétique documentaire ne prouve pas à elle seule la conformité d’une application.
 
 ## Tests de propriétés
 

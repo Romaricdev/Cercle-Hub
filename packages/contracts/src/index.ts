@@ -18,3 +18,11 @@ export {
   periodVariation,
   previousCivilPeriod,
 } from "./sales-metrics.js";
+export {
+  XAF_DENOMINATIONS,
+  assertDenominationCounts,
+  declaredFromMinor,
+  reclassifyWithinResidual,
+  varianceMinor,
+} from "./cash.js";
+export type { DenominationCount } from "./cash.js";

@@ -34,6 +34,37 @@ export {
   validateOpening,
 } from "./p03.js";
 export { getSale, listSales, managerSaleContext, openCashSession, postSale, quoteSale } from "./p04.js";
+export {
+  cancelCount,
+  commentDiscrepancy,
+  completeAttachment,
+  createAttachmentIntent,
+  createExpense,
+  createFundTransfer,
+  currentCashSession,
+  decideExpense,
+  declareIrregularExpense,
+  getAttachmentForDownload,
+  getCashSession,
+  getDiscrepancy,
+  getExpense,
+  getOwnerSession,
+  listCashSessions,
+  listDiscrepancies,
+  listExpenses,
+  listFundAccounts,
+  listFundTransfers,
+  listOwnerSessions,
+  payExpense,
+  receiveFundTransfer,
+  resolveDiscrepancy,
+  scanAttachmentBytes,
+  sendFundTransfer,
+  startCount,
+  submitCount,
+  submitExpense,
+} from "./p05.js";
+export type { CountLineInput } from "./p05.js";
 export { getOwnerSale, listOwnerSales, ownerSalesCommerce, resolveOwnerPeriod } from "./p04-overview.js";
 export type { OwnerSalesQuery, OverviewPeriodQuery } from "./p04-overview.js";
 export type { PaymentInput, SaleContext, SaleLineInput } from "./p04.js";

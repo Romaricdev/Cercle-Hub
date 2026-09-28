@@ -10,4 +10,4 @@ Argent entier, stock et encaissement atomiques, idempotence, permissions serveur
 Ne jamais annoncer un test, une restauration ou une phase validés sans preuve. Aucune donnée démo en production. Aucun déploiement public, abonnement ou scan actif externe implicitement autorisé par ces fichiers.
 Choisir la skill pertinente dans .cursor/skills ; ne pas charger tous les documents sans rapport avec la tâche. Les liens de skills sont relatifs à leur SKILL.md ; les chemins en code sont relatifs à la racine du projet.
 
-P00 préparée et P01–P02 réalisées localement. Lire docs/p00/README.md, décisions, versions et backlog.json. P03–P12 restent à implémenter ; ne pas les démarrer sans demande explicite.
+P00 préparée et P01–P05 réalisées localement. Lire docs/p00/README.md, décisions, versions et backlog.json. P06–P12 restent à implémenter ; ne pas les démarrer sans demande explicite.

@@ -10,11 +10,14 @@ const execFileAsync = promisify(execFile);
 const password = "local-test-password-15";
 const managerEmail = "manager.p01@example.test";
 const ownerEmail = "owner.p02.e2e@example.test";
+const ownerVisualEmail = "owner.p02.visual@example.test";
 const ownerTotpEmail = "owner.p02.totp@example.test";
 const ownerP03Email = "owner.p03.e2e@example.test";
 const managerP04Email = "manager.p04.e2e@example.test";
 const ownerP04Email = "owner.p04.e2e@example.test";
 const managerP04OwnerEmail = "manager.p04.owner.e2e@example.test";
+const managerP05Email = "manager.p05.e2e@example.test";
+const ownerP05Email = "owner.p05.e2e@example.test";
 
 export default async function globalSetup(): Promise<void> {
   loadRootEnv();
@@ -56,6 +59,11 @@ export default async function globalSetup(): Promise<void> {
   await ensureOwner(prisma, auth, {
     email: ownerEmail,
     name: "Propriétaire P02",
+    organizationId: organization.id,
+  });
+  await ensureOwner(prisma, auth, {
+    email: ownerVisualEmail,
+    name: "Propriétaire visuel P02",
     organizationId: organization.id,
   });
   await ensureOwner(prisma, auth, {
@@ -127,6 +135,20 @@ export default async function globalSetup(): Promise<void> {
   await prisma.moneyAccount.create({ data: { organizationId: organization.id, shopId: ownerShop.id, paymentSourceId: ownerSource.id, name: ownerSource.name, currency: "XAF", balanceMinor: 80000n } });
   await prisma.stockBalance.create({ data: { shopId: ownerShop.id, variantId: ownerVariant.id, locationId: ownerLocation.id, quantity: "10" } });
   await prisma.costLayer.create({ data: { variantId: ownerVariant.id, locationId: ownerLocation.id, originType: "e2e_fixture", originId: ownerShop.id, initialQuantity: "10", remainingQuantity: "10", unitCostMinor: 700n, receivedAt: new Date() } });
+  const p05Auth = await prisma.user.findUnique({ where: { email: managerP05Email } }) ?? (await auth.api.signUpEmail({ body: { email: managerP05Email, password, name: "Gérant P05" } })).user;
+  const p05Manager = await prisma.appUser.upsert({
+    where: { authUserId: p05Auth.id },
+    create: { authUserId: p05Auth.id, organizationId: organization.id, role: "MANAGER", displayName: "Gérant P05" },
+    update: { organizationId: organization.id, status: "ACTIVE" },
+  });
+  await prisma.managerAssignment.updateMany({ where: { userId: p05Manager.id, endedAt: null }, data: { endedAt: new Date() } });
+  const p05Shop = await prisma.shop.create({ data: { organizationId: organization.id, code: `P05${Date.now().toString().slice(-6)}`, name: "Boutique Caisse E2E", status: "ACTIVE", activatedAt: new Date() } });
+  await prisma.managerAssignment.create({ data: { shopId: p05Shop.id, userId: p05Manager.id, reason: "Recette P05" } });
+  await prisma.device.create({ data: { organizationId: organization.id, shopId: p05Shop.id, userId: p05Manager.id, publicKey: `e2e-p05-${crypto.randomUUID()}-public-key-material`, name: "Tablette caisse P05", status: "ACTIVE" } });
+  await prisma.location.create({ data: { organizationId: organization.id, shopId: p05Shop.id, name: "Stock Caisse E2E", type: "SHOP" } });
+  const p05Source = await prisma.paymentSource.create({ data: { organizationId: organization.id, shopId: p05Shop.id, name: "Caisse Espèces E2E", type: "CASH" } });
+  await prisma.moneyAccount.create({ data: { organizationId: organization.id, shopId: p05Shop.id, paymentSourceId: p05Source.id, name: p05Source.name, currency: "XAF", balanceMinor: 50000n } });
+  await ensureOwner(prisma, auth, { email: ownerP05Email, name: "Propriétaire P05 caisse", organizationId: organization.id });
   await prisma.$disconnect();
 }
 
@@ -159,8 +181,11 @@ async function ensureOwner(
 
 export const e2eManager = { email: managerEmail, password };
 export const e2eOwner = { email: ownerEmail, password };
+export const e2eOwnerVisual = { email: ownerVisualEmail, password };
 export const e2eOwnerTotp = { email: ownerTotpEmail, password };
 export const e2eOwnerP03 = { email: ownerP03Email, password };
 export const e2eManagerP04 = { email: managerP04Email, password };
 export const e2eOwnerP04 = { email: ownerP04Email, password };
 export const e2eManagerP04Owner = { email: managerP04OwnerEmail, password };
+export const e2eManagerP05 = { email: managerP05Email, password };
+export const e2eOwnerP05 = { email: ownerP05Email, password };

@@ -1,6 +1,6 @@
 # P00 — Décisions et backlog exécutable
 
-Date : 24 septembre 2026. Ce dossier reste le registre de la préparation P00. Le socle P01 et l’accès P02 ont été réalisés ensuite ; l’état exécuté est dans [IMPLEMENTATION_STATUS.md](../IMPLEMENTATION_STATUS.md), [le verrouillage des versions](../p01/README.md) et [le compte rendu P02](../p02/README.md). Les décisions ci-dessous sont des arbitrages techniques pris dans la délégation de conception, pas de nouvelles validations individuelles attribuées au client.
+Date : 24 septembre 2026. Ce dossier reste le registre de la préparation P00. Les phases P01 à P05 ont été réalisées ensuite ; l’état exécuté est dans [IMPLEMENTATION_STATUS.md](../IMPLEMENTATION_STATUS.md), [le verrouillage des versions](../p01/README.md) et [le compte rendu P02](../p02/README.md). Les décisions ci-dessous sont des arbitrages techniques pris dans la délégation de conception, pas de nouvelles validations individuelles attribuées au client.
 
 1. [Décisions techniques et corrections](01-decisions-techniques.md)
 2. [Versions et compatibilités documentées](02-versions-compatibilite.md)

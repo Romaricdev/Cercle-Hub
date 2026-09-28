@@ -1,6 +1,6 @@
 # État d’implémentation
 
-Mise à jour : 26 septembre 2026. P00 documentaire et P01–P04 réalisées localement. P04-GATE est terminé ; P05–P12 ne sont pas commencées.
+Mise à jour : 28 septembre 2026. P00 documentaire et P01–P05 réalisées localement. P05-GATE est terminé sur preuves locales ; P06–P12 ne sont pas commencées.
 
 Plan actif : [phases P00 à P12](15-phases-developpement.md). Les livrables P00 sont disponibles dans [docs/p00](p00/README.md). La rédaction du backlog ne vaut pas implémentation des tâches.
 
@@ -16,8 +16,8 @@ Vérifications exécutées après ce complément : lint réussi, typecheck monor
 | P01 — Socle technique et qualité | RÉALISÉE LOCALEMENT | Commandes de socle exécutées sur Node 24.21.0 ; limites listées dans le compte rendu P01 |
 | P02 — Accès sécurisés et design system | RÉALISÉE LOCALEMENT ; P02-GATE TERMINÉ | Preuves dans le compte rendu P02 et la stabilisation SEC12 ci-dessous |
 | P03 — Boutiques, catalogue et initialisation | RÉALISÉE LOCALEMENT ; P03-GATE TERMINÉ | Migrations, API, écrans et recette locale décrits dans le compte rendu P03 |
-| P04 — Ventes en ligne | RÉALISÉE LOCALEMENT ; P04-GATE TERMINÉ | Vente gérant, historique et fiche propriétaire, dashboard commercial P04 et recette locale ; P05 non commencée |
-| P05 — Caisse, dépenses et clôture | NON COMMENCÉE | Aucun livrable applicatif ; démarrage non autorisé |
+| P04 — Ventes en ligne | RÉALISÉE LOCALEMENT ; P04-GATE TERMINÉ | Vente gérant, historique et fiche propriétaire, dashboard commercial P04 et recette locale |
+| P05 — Caisse, dépenses et clôture | RÉALISÉE LOCALEMENT ; P05-GATE TERMINÉ | Sessions, dépenses, mouvements, comptage aveugle, écarts, justificatifs privés et recette locale ; P06 non commencée |
 | P06 — Achats et réapprovisionnement | NON COMMENCÉE | Aucun livrable applicatif ; démarrage non autorisé |
 | P07 — Crédit, retours et inventaires | NON COMMENCÉE | Aucun livrable applicatif ; démarrage non autorisé |
 | P08 — Hors connexion | NON COMMENCÉE | Aucun livrable applicatif ; démarrage non autorisé |
@@ -102,7 +102,7 @@ Tests et contrôles non exécutés :
 - `pnpm test:e2e:responsive` en tant que script séparé : les deux largeurs ont toutefois réussi dans `pnpm test:e2e`.
 - Workflow `.github/workflows/ci.yml` : écrit, jamais lancé sur GitHub.
 - `gitleaks` et `trivy` : absents de la machine.
-- ClamAV : non déployé ; le circuit de fichiers relève de P05.
+- ClamAV : non déployé localement ; le circuit P05 refuse le téléchargement tant que le scan n’est pas `CLEAN` et consigne `UNAVAILABLE` sans faux succès.
 - Dexie, shadcn/ui, Motion et les écrans P02 : hors périmètre.
 - `@nestjs/bullmq` : présent au catalogue P00, non installé. Le worker parle à BullMQ directement.
 
@@ -260,7 +260,7 @@ Périmètre livré : vente en ligne gérant, session de caisse, recherche et pan
 - P04 utilise l’appareil actif unique de l’affectation gérant. La délivrance et la synchronisation des capacités hors ligne restent hors périmètre.
 - La clôture/comptage, les dépenses et les écarts de caisse commencent en P05.
 
-P04-GATE : **TERMINÉ** sur preuves locales. Aucun défaut critique P04 connu à cette clôture. P05 non commencée.
+P04-GATE : **TERMINÉ** sur preuves locales. Aucun défaut critique P04 connu à cette clôture.
 
 ### Complément P04 — encaissement espèces et gestion des sources
 
@@ -382,4 +382,55 @@ Recette réellement exécutée le 26 septembre 2026 :
 - `python scripts/check_docs.py` : code 0, 41 fichiers Markdown, 84 scénarios et 40 écrans.
 - `python scripts/check_design_examples.py` : code 0, exemples RM02, RM10, RM11, T57 et T84 cohérents.
 
-Limites restantes : P05 (clôture, comptage, dépenses) non commencée ; P07 (crédits, retours, remboursements) non commencée ; P08 hors connexion non commencé ; P09 exports CSV/PDF et graphiques analytiques non commencés. Aucun seuil de stock n’est inventé. Firefox et WebKit ne sont pas revendiqués. Node local observé : 24.14.0, inférieur à l’exigence `>=24.21.0` ; les lancements de tests passent par `corepack pnpm` et `PNPM_IGNORE_ENGINE=1` uniquement pour les processus enfants de recette.
+Limites restantes à la date de ce complément P04 : P05 (clôture, comptage, dépenses) n’était pas commencée ; P07 (crédits, retours, remboursements) non commencée ; P08 hors connexion non commencé ; P09 exports CSV/PDF et graphiques analytiques non commencés. Aucun seuil de stock n’est inventé. Firefox et WebKit ne sont pas revendiqués. Node local observé : 24.14.0, inférieur à l’exigence `>=24.21.0` ; les lancements de tests passent par `corepack pnpm` et `PNPM_IGNORE_ENGINE=1` uniquement pour les processus enfants de recette.
+
+## Compte rendu P05 — 28 septembre 2026
+
+Périmètre demandé : P05 intégrale (sessions de caisse, dépenses, mouvements de fonds, comptage aveugle, écarts, session suivante, justificatifs privés). P06–P09 non commencées, hors le socle de fichiers requis par P05.
+
+Skills projet utilisées : `cc-pilotage-phase`, `cc-workflow-metier`, `cc-securite`, `cc-interface-responsive`, `cc-donnees-migrations`, `cc-recette-tests`. `cc-hors-connexion` et `cc-exploitation-vps` n’ont pas élargi le périmètre. Aucune skill projet dédiée « design system / NestJS / Playwright » n’existe au-delà de celles-ci ; les documents 11 à 14 et les règles `.cursor/rules` ont servi de complément.
+
+### Livrables
+
+- Migration additive `20260928120000_p05_cash_expenses_close` : clôtures immuables, dépenses, transferts/transit/réceptions, dossiers d’écart, pièces jointes, verrou une session ouverte par boutique.
+- Domaine `packages/domain/src/p05.ts` : ouverture → comptage → clôture, plafonds de dépense, distinction autorisation/décaissement, transferts liés, corrections uniquement par écriture liée, scan réel ou `UNAVAILABLE`.
+- Verrouillage P04 pendant `COUNTING` (`COUNT_IN_PROGRESS`) : vente, dépense et décaissement refusés jusqu’à annulation ou clôture.
+- API NestJS/Fastify : routes consignées dans `docs/api/contrats.md` (contrat P05). DTO gérant sans `expectedMinor` ni `balanceMinor` avant la première déclaration.
+- Interfaces gérant : `/manager/cash`, `/manager/cash/count`, `/manager/expenses`, `/manager/funds`.
+- Interfaces propriétaire : `/owner/sessions`, `/owner/sessions/[id]`, `/owner/expenses`, `/owner/funds`, `/owner/discrepancies`, `/owner/discrepancies/[id]`.
+- Stockage S3 compatible (SeaweedFS déjà présent) : identifiants opaques, sniff MIME, taille, quarantaine, journal ; téléchargement uniquement si `CLEAN`.
+
+### Cycle métier
+
+Vente (P04) → dépense ou mouvement → comptage aveugle par source → calcul serveur déclaré − attendu → dossier d’écart si besoin → clôture → ouverture suivante sur le ledger après variance (déclaré), pas sur un solde théorique réécrit. Transit identifiable ; réception fractionnée conserve le reliquat. Aucune édition directe de solde.
+
+### Recette réellement exécutée le 28 septembre 2026
+
+- `corepack pnpm lint` : code 0.
+- `corepack pnpm typecheck` : code 0, tous les projets.
+- `corepack pnpm test` : code 0, **11 fichiers, 29/29 tests**.
+- `corepack pnpm test:integration` : code 0, **9 fichiers, 54/54 tests** sur PostgreSQL réel, dont T23–T26, T29 (avance/transit/réception), T30, T37–T41, concurrence vente/dépense pendant comptage, justificatif `UNAVAILABLE` et type falsifié, HTTP 401/403/404/422.
+- `corepack pnpm db:replay-test` : code 0, base `cercle_complet_test` recréée vide.
+- `corepack pnpm build` : code 0, Next.js 16.3.6, **31 routes**, dont les pages caisse/dépenses/fonds/écarts.
+- `corepack pnpm exec playwright test --project=chromium` : code 0, **19/19**, dont P05 clôture aveugle (320/375/768/1024/1440/1920), P03 boutique et P04 vente/consultation propriétaire.
+- `python scripts/check_docs.py` : code 0, **41 fichiers Markdown**, 84 scénarios et 40 écrans.
+- `python scripts/check_p00.py` : code 0, 72 tâches, 170 références, dépendances acycliques.
+- `python scripts/check_design_examples.py` : code 0, exemples RM02, RM10, RM11, T57 et T84 cohérents.
+
+### Traitement de la session suivante
+
+- Sans écart : ledger = déclaré = attendu ; nouvelle session ouverte sur ce montant.
+- Avec écart non résolu : dossier ouvert ; ouverture suivante sur le déclaré (ledger après écriture de variance).
+- Avec correction `ADJUST` : écriture liée dans la session courante ; l’original de clôture reste intact.
+- Fonds en transit : inchangés par la clôture ; réception ultérieure crédite la destination.
+- Réception fractionnée : `remainingMinor` conservé jusqu’à `RECEIVED`.
+
+### Limites et risques restants
+
+- ClamAV n’est pas déployé localement : le scan aboutit à `UNAVAILABLE`, jamais à un faux `CLEAN` ; le téléchargement reste interdit. Un adaptateur INSTREAM est en place pour un démon réel.
+- T29 n’inclut pas l’achat 92 000 (P06) ; seuls l’avance, le transit et la réception (y compris fractionnée et idempotente) sont démontrés.
+- Les inventaires de stock (partie E22) restent P07. Les rapports étendus E22/E23 restent P09. Les assertions hors ligne de T41/T50 restent P08.
+- Firefox et WebKit non exécutés. Node local observé : 24.14.0, inférieur à `>=24.21.0` ; recette via `corepack pnpm` et `PNPM_IGNORE_ENGINE=1`.
+- Aucune validation pilote, aucun déploiement public.
+
+P05-GATE : **TERMINÉ** sur preuves locales. P06 non commencée.

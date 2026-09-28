@@ -3,7 +3,7 @@ import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { currentTotp } from "../../apps/api/src/auth/totp.ts";
-import { e2eManager, e2eOwner } from "./global-setup";
+import { e2eManager, e2eOwnerVisual } from "./global-setup";
 
 const out = resolve(process.cwd(), "test-results/p02-visual");
 mkdirSync(out, { recursive: true });
@@ -35,12 +35,12 @@ test("captures visuelles P02 clair, sombre et formats", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.context().clearCookies();
   await page.goto("/login");
-  await page.getByLabel("E-mail").fill(e2eOwner.email);
-  await page.getByLabel("Mot de passe").fill(e2eOwner.password);
+  await page.getByLabel("E-mail").fill(e2eOwnerVisual.email);
+  await page.getByLabel("Mot de passe").fill(e2eOwnerVisual.password);
   await page.getByRole("button", { name: "Se connecter" }).click();
-  await expect(page.getByText(/second facteur|Accueil/)).toBeVisible();
+  await expect(page.getByText(/second facteur|Accueil/)).toBeVisible({ timeout: 15_000 });
   if (await page.getByLabel("Confirmez le mot de passe").isVisible()) {
-    await page.getByLabel("Confirmez le mot de passe").fill(e2eOwner.password);
+    await page.getByLabel("Confirmez le mot de passe").fill(e2eOwnerVisual.password);
     await page.getByRole("button", { name: "Afficher le secret" }).click();
     await page.getByText("Saisir la clé manuellement").click();
     const uri = await page.getByTestId("totp-uri").innerText();

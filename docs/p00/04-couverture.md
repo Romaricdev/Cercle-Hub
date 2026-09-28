@@ -1,6 +1,6 @@
 # Couverture prévue et état de preuve
 
-Les relations écrans/transitions/tests sont importées du catalogue existant. P02 a des preuves locales (TESTÉ ou PARTIEL) ; P10 vérifie la totalité et les assertions restant après livraison progressive. Ne pas lire « TESTÉ » comme une consolidation finale si la phase prévue est postérieure à P02.
+Les relations écrans/transitions/tests sont importées du catalogue existant. P02–P05 ont des preuves locales (TESTÉ ou PARTIEL) ; P10 vérifie la totalité et les assertions restant après livraison progressive. Ne pas lire « TESTÉ » comme une consolidation finale si la phase prévue est postérieure à la phase livrée.
 
 
 ## E
@@ -14,8 +14,8 @@ Les relations écrans/transitions/tests sont importées du catalogue existant. P
 | E05 | P04-E05, P07-01, P08-01 | P08 | NON TESTÉ |
 | E06 | P04-E06, P07-01 | P07 | PARTIEL |
 | E07 | P04-E07, P08-01 | P08 | NON TESTÉ |
-| E08 | P05-E08, P08-01 | P08 | NON TESTÉ |
-| E09 | P05-E09 | P05 | NON TESTÉ |
+| E08 | P05-E08, P08-01 | P08 | PARTIEL |
+| E09 | P05-E09 | P05 | TESTÉ |
 | E10 | P06-E10 | P06 | NON TESTÉ |
 | E11 | P06-E11 | P06 | NON TESTÉ |
 | E12 | P06-E12 | P06 | NON TESTÉ |
@@ -27,16 +27,16 @@ Les relations écrans/transitions/tests sont importées du catalogue existant. P
 | E18 | P06-E18 | P06 | NON TESTÉ |
 | E19 | P06-E19 | P06 | NON TESTÉ |
 | E20 | P06-E20 | P06 | NON TESTÉ |
-| E21 | P05-E21 | P05 | NON TESTÉ |
-| E22 | P05-E22, P09-01 | P09 | NON TESTÉ |
-| E23 | P05-E23, P09-01 | P09 | NON TESTÉ |
+| E21 | P05-E21 | P05 | TESTÉ |
+| E22 | P05-E22, P09-01 | P09 | PARTIEL |
+| E23 | P05-E23, P09-01 | P09 | PARTIEL |
 | E24 | P07-E24 | P07 | NON TESTÉ |
 | E25 | P03-E25 | P03 | TESTÉ |
 | E26 | P03-E26, P07-02 | P07 | PARTIEL |
 | E27 | P09-01, P09-E27 | P09 | NON TESTÉ |
 | E28 | P03-E28, P07-01 | P07 | PARTIEL |
 | E29 | P06-E29 | P06 | NON TESTÉ |
-| E30 | P05-E30 | P05 | NON TESTÉ |
+| E30 | P05-E30 | P05 | TESTÉ |
 | E31 | P07-E31 | P07 | NON TESTÉ |
 | E32 | P07-E32 | P07 | NON TESTÉ |
 | E33 | P07-E33 | P07 | NON TESTÉ |
@@ -56,11 +56,11 @@ Les relations écrans/transitions/tests sont importées du catalogue existant. P
 | S02 | P04-E03, P04-E04, P04-E05, P04-E06, P07-01, P07-E35, P08-01, P09-01 | P09 | NON TESTÉ |
 | S03 | P04-E03, P04-E07, P05-E08, P08-01, P08-E36, P09-01 | P09 | NON TESTÉ |
 | S04 | P03-E14, P03-E28, P06-E10, P06-E11, P06-E18, P07-01 | P07 | NON TESTÉ |
-| S05 | P05-E09 | P05 | NON TESTÉ |
+| S05 | P05-E09 | P05 | TESTÉ |
 | S06 | P04-E06, P07-01, P07-E33, P07-E35 | P07 | NON TESTÉ |
 | S07 | P06-E11, P06-E12, P06-E19 | P06 | NON TESTÉ |
 | S08 | P03-E40, P06-E12, P06-E13, P06-E19, P06-E20, P06-E29, P07-02 | P07 | NON TESTÉ |
-| S09 | P03-E39, P05-E21, P05-E30 | P05 | NON TESTÉ |
+| S09 | P03-E39, P05-E21, P05-E30 | P05 | TESTÉ |
 | S10 | P07-E34 | P07 | NON TESTÉ |
 | S11 | P03-E14, P07-E24, P07-E31, P07-E32 | P07 | NON TESTÉ |
 | S12 | P03-E02, P03-E28, P04-E05, P07-01, P07-E15, P07-E34, P08-01 | P08 | NON TESTÉ |
@@ -94,25 +94,25 @@ Les relations écrans/transitions/tests sont importées du catalogue existant. P
 | T20 | P04-E06, P07-01, P07-E33, P07-E35 | P07 | NON TESTÉ |
 | T21 | P04-E06, P07-01, P07-E33 | P07 | NON TESTÉ |
 | T22 | P04-E06, P07-01, P07-E33, P07-E35 | P07 | NON TESTÉ |
-| T23 | P05-E09 | P05 | NON TESTÉ |
-| T24 | P05-E09 | P05 | NON TESTÉ |
-| T25 | P03-E39, P05-E09 | P05 | NON TESTÉ |
-| T26 | P03-E28, P05-E09 | P05 | NON TESTÉ |
+| T23 | P05-E09 | P05 | TESTÉ |
+| T24 | P05-E09 | P05 | TESTÉ |
+| T25 | P03-E39, P05-E09 | P05 | TESTÉ |
+| T26 | P03-E28, P05-E09 | P05 | TESTÉ |
 | T27 | P06-01, P06-E10, P06-E11, P06-E12, P06-E18 | P06 | NON TESTÉ |
 | T28 | P06-01, P06-E10, P06-E11, P06-E18 | P06 | NON TESTÉ |
-| T29 | P03-E39, P05-E21, P05-E30, P06-E12 | P06 | NON TESTÉ |
-| T30 | P05-E21, P05-E30 | P05 | NON TESTÉ |
+| T29 | P03-E39, P05-E21, P05-E30, P06-E12 | P06 | PARTIEL |
+| T30 | P05-E21, P05-E30 | P05 | TESTÉ |
 | T31 | P03-E40, P06-01, P06-E13, P06-E19, P06-E20 | P06 | NON TESTÉ |
 | T32 | P06-E13, P06-E20, P06-E29 | P06 | NON TESTÉ |
 | T33 | P06-E13 | P06 | NON TESTÉ |
 | T34 | P06-E12, P06-E19 | P06 | NON TESTÉ |
 | T35 | P07-E34 | P07 | NON TESTÉ |
 | T36 | P07-E34 | P07 | NON TESTÉ |
-| T37 | P04-E07, P05-E08, P05-E22 | P05 | NON TESTÉ |
-| T38 | P04-E03, P04-E07, P05-E08 | P05 | NON TESTÉ |
-| T39 | P05-E08 | P05 | NON TESTÉ |
-| T40 | P05-E22, P05-E23 | P05 | NON TESTÉ |
-| T41 | P05-E08, P05-E23, P08-E36 | P08 | NON TESTÉ |
+| T37 | P04-E07, P05-E08, P05-E22 | P05 | TESTÉ |
+| T38 | P04-E03, P04-E07, P05-E08 | P05 | TESTÉ |
+| T39 | P05-E08 | P05 | TESTÉ |
+| T40 | P05-E22, P05-E23 | P05 | TESTÉ |
+| T41 | P05-E08, P05-E23, P08-E36 | P08 | PARTIEL |
 | T42 | P05-E22, P07-E24, P07-E32 | P07 | NON TESTÉ |
 | T43 | P07-E24, P07-E32 | P07 | NON TESTÉ |
 | T44 | P03-E14, P07-E31 | P07 | NON TESTÉ |
@@ -136,7 +136,7 @@ Les relations écrans/transitions/tests sont importées du catalogue existant. P
 | T62 | P02-E38, P04-01, P08-01, P08-E16 | P08 | PARTIEL |
 | T63 | P04-01, P08-01, P08-E16, P08-E36 | P08 | NON TESTÉ |
 | T64 | P05-E08, P08-01 | P08 | NON TESTÉ |
-| T65 | P05-E21, P05-E30 | P05 | NON TESTÉ |
+| T65 | P05-E21, P05-E30 | P05 | TESTÉ |
 | T66 | P03-01, P03-E39 | P03 | TESTÉ |
 | T67 | P03-E40, P07-02 | P07 | NON TESTÉ |
 | T68 | P06-01, P06-E12, P06-E19 | P06 | NON TESTÉ |
@@ -186,7 +186,7 @@ Les relations écrans/transitions/tests sont importées du catalogue existant. P
 | SEC08 | P02-02, P02-E01, P02-E37, P02-E38, P03-E02, P03-E14, P03-E25, P03-E26, P03-E28, P03-E39, P03-E40, P04-E03, P04-E04, P04-E05, P04-E06, P04-E07, P05-E08, P05-E09, P05-E21, P05-E22, P05-E23, P05-E30, P06-01, P06-E10, P06-E11, P06-E12, P06-E13, P06-E18, P06-E19, P06-E20, P06-E29, P07-02, P07-E15, P07-E24, P07-E31, P07-E32, P07-E33, P07-E34, P07-E35, P08-E16, P08-E36, P09-01, P09-E17, P09-E27 | P09 | PARTIEL |
 | SEC09 | P02-E01, P02-E37, P02-E38, P03-01, P03-E02, P03-E14, P03-E25, P03-E26, P03-E28, P03-E39, P03-E40, P04-01, P04-E03, P04-E04, P04-E05, P04-E06, P04-E07, P05-E08, P05-E09, P05-E21, P05-E22, P05-E23, P05-E30, P06-01, P06-E10, P06-E11, P06-E12, P06-E13, P06-E18, P06-E19, P06-E20, P06-E29, P07-01, P07-E15, P07-E24, P07-E31, P07-E32, P07-E33, P07-E34, P07-E35, P08-E16, P08-E36, P09-E17, P09-E27 | P09 | PARTIEL |
 | SEC10 | P05-E08, P08-01, P09-01 | P09 | NON TESTÉ |
-| SEC11 | P05-01 | P05 | NON TESTÉ |
+| SEC11 | P05-01 | P05 | PARTIEL |
 | SEC12 | P01-05, P05-01 | P05 | PARTIEL |
 | SEC13 | P05-01, P09-01 | P09 | NON TESTÉ |
 | SEC14 | P10-01 | P10 | NON TESTÉ |

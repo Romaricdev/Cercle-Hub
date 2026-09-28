@@ -485,7 +485,7 @@ Statut : A_FAIRE. Dépendances : P04-01, P04-E03, P04-E04, P04-E05, P04-E06, P04
 
 ## P05-01 — Fichiers privés et quarantaine antivirus
 
-Statut : A_FAIRE. Dépendances : P04-GATE.
+Statut : TERMINE. Dépendances : P04-GATE.
 
 **Livrables :** Code, tests et preuve de recette du périmètre.
 
@@ -501,7 +501,7 @@ Statut : A_FAIRE. Dépendances : P04-GATE.
 
 ## P05-E08 — Comptage aveugle
 
-Statut : A_FAIRE. Dépendances : P04-GATE.
+Statut : TERMINE. Dépendances : P04-GATE.
 
 **Livrables :** POST /cash-sessions/:id/submit-count; POST /cash-sessions/:id/cancel-count; Tests et états UI de E08.
 
@@ -519,7 +519,7 @@ Statut : A_FAIRE. Dépendances : P04-GATE.
 
 ## P05-E09 — Dépense
 
-Statut : A_FAIRE. Dépendances : P04-GATE, P05-01.
+Statut : TERMINE. Dépendances : P04-GATE, P05-01.
 
 **Livrables :** POST /expenses; POST /expenses/:id/submit; POST /expenses/:id/pay; POST /expenses/declare-irregular; Tests et états UI de E09.
 
@@ -537,7 +537,7 @@ Statut : A_FAIRE. Dépendances : P04-GATE, P05-01.
 
 ## P05-E21 — Fonds propriétaire
 
-Statut : A_FAIRE. Dépendances : P04-GATE.
+Statut : TERMINE. Dépendances : P04-GATE.
 
 **Livrables :** GET /fund-transfers; POST /fund-transfers; POST /fund-transfers/:id/send; POST /fund-transfers/:id/receive; Tests et états UI de E21.
 
@@ -555,7 +555,7 @@ Statut : A_FAIRE. Dépendances : P04-GATE.
 
 ## P05-E22 — Liste des contrôles
 
-Statut : A_FAIRE. Dépendances : P04-GATE.
+Statut : TERMINE. Dépendances : P04-GATE.
 
 **Livrables :** GET /discrepancies; GET /stock-counts; Tests et états UI de E22.
 
@@ -573,7 +573,7 @@ Statut : A_FAIRE. Dépendances : P04-GATE.
 
 ## P05-E23 — Dossier d’écart
 
-Statut : A_FAIRE. Dépendances : P04-GATE.
+Statut : TERMINE. Dépendances : P04-GATE.
 
 **Livrables :** GET /discrepancies/:id; POST /discrepancies/:id/resolve; Tests et états UI de E23.
 
@@ -591,7 +591,7 @@ Statut : A_FAIRE. Dépendances : P04-GATE.
 
 ## P05-E30 — Fonds du gérant
 
-Statut : A_FAIRE. Dépendances : P04-GATE.
+Statut : TERMINE. Dépendances : P04-GATE.
 
 **Livrables :** POST /fund-transfers; POST /fund-transfers/:id/send; POST /fund-transfers/:id/receive; Tests et états UI de E30.
 
@@ -609,7 +609,7 @@ Statut : A_FAIRE. Dépendances : P04-GATE.
 
 ## P05-GATE — Valider la sortie P05
 
-Statut : A_FAIRE. Dépendances : P05-01, P05-E08, P05-E09, P05-E21, P05-E22, P05-E23, P05-E30.
+Statut : TERMINE. Dépendances : P05-01, P05-E08, P05-E09, P05-E21, P05-E22, P05-E23, P05-E30.
 
 **Livrables :** Compte rendu de phase.
 

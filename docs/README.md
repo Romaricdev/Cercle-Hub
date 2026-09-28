@@ -14,7 +14,7 @@ Ordre de lecture et de priorité : décisions → règles métier → workflows 
 
 Lire d’abord [conception/00-audit.md](conception/00-audit.md), [conception/01-transitions.md](conception/01-transitions.md), [conception/02-donnees-et-relations.md](conception/02-donnees-et-relations.md) et [conception/03-fiches-ecrans.md](conception/03-fiches-ecrans.md). Ces précisions 2.1 ferment les ambiguïtés recensées ; elles priment sur une formulation générale 2.0 restante. La [matrice de couverture](conception/04-couverture.md) relie parcours, écrans, commandes, tables et scénarios.
 
-Les statuts de conception restent documentaires pour les parcours métier non livrés. Le socle P01 et l’accès P02 sont installés et testés localement ; P03 n’est pas commencée.
+Les statuts de conception restent documentaires pour les parcours métier non livrés. Le socle P01, l’accès P02, le catalogue P03, les ventes P04 et la caisse P05 sont installés et testés localement ; P06 n’est pas commencée.
 
 ## Phase P00 réalisée, socle P01 installé
 

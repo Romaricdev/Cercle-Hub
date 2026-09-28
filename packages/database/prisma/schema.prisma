@@ -112,6 +112,11 @@ model Organization {
   moneyEvents       MoneyEvent[]
   cashSessions      CashSession[]
   sales             Sale[]
+  expenses          Expense[]
+  fundTransfers     FundTransfer[]
+  discrepancyCases  DiscrepancyCase[]
+  attachments       Attachment[]
+  cashClosures      CashClosure[]
 
   @@map("organizations")
 }
@@ -138,8 +143,16 @@ model AppUser {
   moneyEvents     MoneyEvent[]
   stockEvents     StockEvent[]
   journalEntries  JournalEntry[]
-  cashSessions    CashSession[]
-  sales           Sale[]
+  cashSessions         CashSession[]
+  sales                Sale[]
+  expenses             Expense[]
+  approvedExpenses     Expense[]            @relation("ExpenseApprover")
+  fundTransfers        FundTransfer[]
+  fundReceipts         FundReceipt[]
+  discrepancyCases     DiscrepancyCase[]    @relation("DiscrepancyResolver")
+  discrepancyActions   DiscrepancyAction[]
+  attachments          Attachment[]
+  cashClosures         CashClosure[]
 
   @@index([organizationId, status])
   @@map("app_users")
@@ -172,8 +185,11 @@ model Shop {
   stockEvents    StockEvent[]
   stockBalances  StockBalance[]
   moneyAccounts  MoneyAccount[]
-  cashSessions   CashSession[]
-  sales          Sale[]
+  cashSessions     CashSession[]
+  sales            Sale[]
+  expenses         Expense[]
+  fundTransfers    FundTransfer[]
+  discrepancyCases DiscrepancyCase[]
 
   @@unique([organizationId, code])
   @@map("shops")
@@ -556,6 +572,9 @@ model CashSession {
   status         String                @default("OPEN")
   businessDate   DateTime              @map("business_date") @db.Date
   openedAt       DateTime              @default(now()) @map("opened_at") @db.Timestamptz(6)
+  countedAt      DateTime?             @map("counted_at") @db.Timestamptz(6)
+  closedAt       DateTime?             @map("closed_at") @db.Timestamptz(6)
+  version        Int                   @default(1)
   organization   Organization          @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   shop           Shop                  @relation(fields: [shopId], references: [id], onDelete: Restrict)
   manager        AppUser               @relation(fields: [managerId], references: [id], onDelete: Restrict)
@@ -563,6 +582,10 @@ model CashSession {
   location       Location              @relation(fields: [locationId], references: [id], onDelete: Restrict)
   sales          Sale[]
   authorizations OnlineAuthorization[]
+  closures       CashClosure[]
+  expenses       Expense[]
+  fundReceipts   FundReceipt[]
+  discrepancies  DiscrepancyCase[]
 
   @@index([shopId, status])
   @@map("cash_sessions")
@@ -699,8 +722,13 @@ model MoneyAccount {
   organization    Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   shop            Shop?         @relation(fields: [shopId], references: [id], onDelete: Restrict)
   paymentSource   PaymentSource @relation(fields: [paymentSourceId], references: [id], onDelete: Restrict)
-  entries         MoneyEntry[]
-  salePayments    SalePayment[]
+  entries             MoneyEntry[]
+  salePayments        SalePayment[]
+  expenses            Expense[]
+  closures            CashClosure[]
+  transfersOut        FundTransfer[] @relation("FundSource")
+  transfersIn         FundTransfer[] @relation("FundDestination")
+  transfersTransit    FundTransfer[] @relation("FundTransit")
 
   @@unique([paymentSourceId, currency])
   @@index([organizationId, shopId])
@@ -717,9 +745,11 @@ model MoneyEvent {
   postedAt       DateTime     @default(now()) @map("posted_at") @db.Timestamptz(6)
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   actor          AppUser      @relation(fields: [actorId], references: [id], onDelete: Restrict)
-  entries        MoneyEntry[]
-  correctionOf   MoneyEvent?  @relation("MoneyCorrections", fields: [correctionOfId], references: [id], onDelete: Restrict)
-  corrections    MoneyEvent[] @relation("MoneyCorrections")
+  entries              MoneyEntry[]
+  correctionOf         MoneyEvent?          @relation("MoneyCorrections", fields: [correctionOfId], references: [id], onDelete: Restrict)
+  corrections          MoneyEvent[]         @relation("MoneyCorrections")
+  paidExpenses         Expense[]
+  discrepancyActions   DiscrepancyAction[]
 
   @@index([organizationId, postedAt])
   @@map("money_events")
@@ -837,4 +867,170 @@ model OpeningObligation {
 
   @@index([draftId])
   @@map("opening_obligations")
+}
+
+model CashClosure {
+  id                  String       @id @default(uuid()) @db.Uuid
+  organizationId      String       @map("organization_id") @db.Uuid
+  sessionId           String       @map("session_id") @db.Uuid
+  accountId           String       @map("account_id") @db.Uuid
+  declaredMinor       BigInt       @map("declared_minor")
+  expectedMinor       BigInt       @map("expected_minor")
+  varianceMinor       BigInt       @map("variance_minor")
+  denominationCounts  Json         @map("denomination_counts")
+  explanation         String?
+  submittedAt         DateTime     @default(now()) @map("submitted_at") @db.Timestamptz(6)
+  submittedById       String       @map("submitted_by_id") @db.Uuid
+  version             Int          @default(1)
+  organization        Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  session             CashSession  @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+  account             MoneyAccount @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  submittedBy         AppUser      @relation(fields: [submittedById], references: [id], onDelete: Restrict)
+
+  @@unique([sessionId, accountId])
+  @@index([organizationId, submittedAt])
+  @@map("cash_closures")
+}
+
+model Expense {
+  id                      String       @id @default(uuid()) @db.Uuid
+  organizationId          String       @map("organization_id") @db.Uuid
+  shopId                  String       @map("shop_id") @db.Uuid
+  actorId                 String       @map("actor_id") @db.Uuid
+  sessionId               String?      @map("session_id") @db.Uuid
+  accountId               String       @map("account_id") @db.Uuid
+  category                String
+  description             String
+  amountMinor             BigInt       @map("amount_minor")
+  beneficiary             String?
+  status                  String       @default("DRAFT")
+  policyVersion           Int?         @map("policy_version")
+  receiptExceptionReason  String?      @map("receipt_exception_reason")
+  approvedById            String?      @map("approved_by_id") @db.Uuid
+  approvedAt              DateTime?    @map("approved_at") @db.Timestamptz(6)
+  rejectedReason          String?      @map("rejected_reason")
+  paidEventId             String?      @map("paid_event_id") @db.Uuid
+  occurredAt              DateTime     @default(now()) @map("occurred_at") @db.Timestamptz(6)
+  createdAt               DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  organization            Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  shop                    Shop         @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  actor                   AppUser      @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  session                 CashSession? @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+  account                 MoneyAccount @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  approvedBy              AppUser?     @relation("ExpenseApprover", fields: [approvedById], references: [id], onDelete: Restrict)
+  paidEvent               MoneyEvent?  @relation(fields: [paidEventId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, shopId, status])
+  @@index([sessionId])
+  @@map("expenses")
+}
+
+model FundTransfer {
+  id                    String        @id @default(uuid()) @db.Uuid
+  organizationId        String        @map("organization_id") @db.Uuid
+  shopId                String?       @map("shop_id") @db.Uuid
+  actorId               String        @map("actor_id") @db.Uuid
+  sourceAccountId       String        @map("source_account_id") @db.Uuid
+  destinationAccountId  String        @map("destination_account_id") @db.Uuid
+  transitAccountId      String        @map("transit_account_id") @db.Uuid
+  amountSentMinor       BigInt        @map("amount_sent_minor")
+  amountReceivedMinor   BigInt        @default(0) @map("amount_received_minor")
+  purpose               String
+  state                 String        @default("DRAFT")
+  reason                String
+  sentAt                DateTime?     @map("sent_at") @db.Timestamptz(6)
+  receivedAt            DateTime?     @map("received_at") @db.Timestamptz(6)
+  createdAt             DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  organization          Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  shop                  Shop?         @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  actor                 AppUser       @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  source                MoneyAccount  @relation("FundSource", fields: [sourceAccountId], references: [id], onDelete: Restrict)
+  destination           MoneyAccount  @relation("FundDestination", fields: [destinationAccountId], references: [id], onDelete: Restrict)
+  transit               MoneyAccount  @relation("FundTransit", fields: [transitAccountId], references: [id], onDelete: Restrict)
+  receipts              FundReceipt[]
+
+  @@index([organizationId, state, createdAt])
+  @@map("fund_transfers")
+}
+
+model FundReceipt {
+  id          String       @id @default(uuid()) @db.Uuid
+  transferId  String       @map("transfer_id") @db.Uuid
+  actorId     String       @map("actor_id") @db.Uuid
+  sessionId   String?      @map("session_id") @db.Uuid
+  amountMinor BigInt       @map("amount_minor")
+  comment     String?
+  receivedAt  DateTime     @default(now()) @map("received_at") @db.Timestamptz(6)
+  transfer    FundTransfer @relation(fields: [transferId], references: [id], onDelete: Restrict)
+  actor       AppUser      @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  session     CashSession? @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+
+  @@index([transferId])
+  @@map("fund_receipts")
+}
+
+model DiscrepancyCase {
+  id                   String               @id @default(uuid()) @db.Uuid
+  organizationId       String               @map("organization_id") @db.Uuid
+  shopId               String?              @map("shop_id") @db.Uuid
+  sessionId            String?              @map("session_id") @db.Uuid
+  type                 String
+  sourceType           String               @map("source_type")
+  sourceId             String               @map("source_id") @db.Uuid
+  expectedMinor        BigInt?              @map("expected_minor")
+  declaredMinor        BigInt?              @map("declared_minor")
+  originalAmountMinor  BigInt               @map("original_amount_minor")
+  residualAmountMinor  BigInt               @map("residual_amount_minor")
+  state                String               @default("OPEN")
+  ownerDecision        String?              @map("owner_decision")
+  resolvedAt           DateTime?            @map("resolved_at") @db.Timestamptz(6)
+  resolvedById         String?              @map("resolved_by_id") @db.Uuid
+  createdAt            DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  organization         Organization         @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  shop                 Shop?                @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  session              CashSession?         @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+  resolvedBy           AppUser?             @relation("DiscrepancyResolver", fields: [resolvedById], references: [id], onDelete: Restrict)
+  actions              DiscrepancyAction[]
+
+  @@index([organizationId, state, createdAt])
+  @@index([shopId, state])
+  @@map("discrepancy_cases")
+}
+
+model DiscrepancyAction {
+  id         String          @id @default(uuid()) @db.Uuid
+  caseId     String          @map("case_id") @db.Uuid
+  actorId    String          @map("actor_id") @db.Uuid
+  actionType String          @map("action_type")
+  text       String
+  eventId    String?         @map("event_id") @db.Uuid
+  createdAt  DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  case       DiscrepancyCase @relation(fields: [caseId], references: [id], onDelete: Restrict)
+  actor      AppUser         @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  event      MoneyEvent?     @relation(fields: [eventId], references: [id], onDelete: Restrict)
+
+  @@index([caseId, createdAt])
+  @@map("discrepancy_actions")
+}
+
+model Attachment {
+  id                 String       @id @default(uuid()) @db.Uuid
+  organizationId     String       @map("organization_id") @db.Uuid
+  ownerDocumentType  String       @map("owner_document_type")
+  ownerDocumentId    String?      @map("owner_document_id") @db.Uuid
+  storageKey         String       @unique @map("storage_key")
+  originalName       String       @map("original_name")
+  mime               String
+  size               Int
+  sha256             String
+  scanStatus         String       @default("PENDING") @map("scan_status")
+  scanEngine         String?      @map("scan_engine")
+  uploadedById       String       @map("uploaded_by_id") @db.Uuid
+  createdAt          DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  scannedAt          DateTime?    @map("scanned_at") @db.Timestamptz(6)
+  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  uploadedBy         AppUser      @relation(fields: [uploadedById], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, ownerDocumentType, ownerDocumentId])
+  @@map("attachments")
 }

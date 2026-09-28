@@ -1,10 +1,12 @@
 "use client";
 
 import {
+  Banknote,
   Bell,
   Boxes,
   Building2,
   ChevronDown,
+  CircleAlert,
   CircleUserRound,
   LayoutDashboard,
   LogOut,
@@ -36,6 +38,10 @@ import { ThemeSwitcher } from "./theme-switcher";
 const ownerLinks = [
   { href: paths.ownerHome, label: "Vue générale", icon: LayoutDashboard },
   { href: paths.ownerSales, label: "Ventes", icon: ReceiptText },
+  { href: paths.ownerSessions, label: "Caisse", icon: Banknote },
+  { href: paths.ownerExpenses, label: "Dépenses", icon: WalletCards },
+  { href: paths.ownerFunds, label: "Fonds", icon: WalletCards },
+  { href: paths.ownerDiscrepancies, label: "Écarts", icon: CircleAlert },
   { href: paths.ownerShops, label: "Boutiques", icon: Building2 },
   { href: paths.ownerProducts, label: "Catalogue", icon: Boxes },
   { href: paths.ownerStock, label: "Stock", icon: Warehouse },
@@ -56,6 +62,9 @@ const ownerLinks = [
 const managerLinks = [
   { href: paths.managerHome, label: "Vue générale", icon: LayoutDashboard },
   { href: paths.managerSale, label: "Vendre", icon: ShoppingCart },
+  { href: paths.managerCash, label: "Caisse", icon: Banknote },
+  { href: paths.managerExpenses, label: "Dépenses", icon: WalletCards },
+  { href: paths.managerFunds, label: "Fonds", icon: WalletCards },
   { href: paths.managerStock, label: "Stock", icon: Warehouse },
   { href: paths.managerSales, label: "Historique", icon: ReceiptText },
   { href: paths.managerDevice, label: "Mon appareil", icon: TabletSmartphone },
@@ -105,9 +114,15 @@ export function AppShell({ role, children }: { role: "OWNER" | "MANAGER"; childr
   const links = role === "OWNER" ? ownerLinks : managerLinks;
   const pageLabel =
     pathname.startsWith("/owner/sales/") ? "Détail de vente" :
+    pathname.startsWith("/owner/sessions/") ? "Fiche de session" :
+    pathname.startsWith("/owner/discrepancies/") ? "Dossier d’écart" :
     ({
       [paths.ownerHome]: "Vue générale",
       [paths.ownerSales]: "Ventes",
+      [paths.ownerSessions]: "Sessions de caisse",
+      [paths.ownerExpenses]: "Dépenses",
+      [paths.ownerFunds]: "Mouvements de fonds",
+      [paths.ownerDiscrepancies]: "Écarts de caisse",
       [paths.ownerUsers]: "Utilisateurs",
       [paths.ownerDevices]: "Appareils",
       [paths.ownerAccount]: "Mon compte",
@@ -124,6 +139,10 @@ export function AppShell({ role, children }: { role: "OWNER" | "MANAGER"; childr
       [paths.managerSale]: "Nouvelle vente",
       [paths.managerSalePayment]: "Paiement",
       [paths.managerSales]: "Historique des ventes",
+      [paths.managerCash]: "Caisse du jour",
+      [paths.managerCashCount]: "Comptage",
+      [paths.managerExpenses]: "Dépenses",
+      [paths.managerFunds]: "Mouvements de fonds",
     } as Record<string, string>)[pathname] ?? "Vue générale";
 
   async function signOut() {

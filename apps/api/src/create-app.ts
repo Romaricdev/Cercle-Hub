@@ -29,7 +29,7 @@ export async function createApp(): Promise<{ app: NestFastifyApplication; close:
   });
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule.register(prisma, auth, env),
-    new FastifyAdapter({ trustProxy: env.trustProxy, logger: false, bodyLimit: 1_200_000 }),
+    new FastifyAdapter({ trustProxy: env.trustProxy, logger: false, bodyLimit: 8_000_000 }),
     { logger: false },
   );
   app.useGlobalFilters(new ApiExceptionFilter());

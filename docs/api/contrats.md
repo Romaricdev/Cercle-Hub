@@ -184,6 +184,33 @@ Les dates `from`/`to` sont des jours civils `AAAA-MM-JJ`. Sans filtre, la pério
 
 Une source liée à une session de caisse ouverte ne peut pas être désactivée. Une source possédant déjà des écritures ne peut pas être déplacée vers une autre boutique : elle doit être désactivée puis recréée dans la nouvelle boutique afin de préserver la portée historique. Les apports restent des écritures dédiées et auditées.
 
+### Contrat P05 effectivement livré
+
+Les montants restent des chaînes d’entiers mineurs. Le DTO gérant de session courante n’inclut ni `expectedMinor` ni `balanceMinor` avant la première déclaration. Après clôture, le résultat autorisé (déclaré, attendu, écart) est renvoyé. Les fichiers ne sont téléchargeables qu’au statut `CLEAN` ; sans ClamAV local le scan reste `UNAVAILABLE` et le téléchargement est refusé.
+
+| Méthode et route | Entrée / résultat P05 |
+|---|---|
+| GET `/cash-sessions/current` | Session ouverte ou en comptage, opérations, sources filtrées selon le rôle |
+| GET `/cash-sessions` | Historique ; le gérant ne voit déclaré/attendu/écart que pour les sessions clôturées |
+| GET `/cash-sessions/:id` | Fiche ; le gérant sans clôture n’obtient pas les montants attendus |
+| POST `/cash-sessions/:id/start-count` | Passe `OPEN` → `COUNTING` ; verrouille ventes et décaissements |
+| POST `/cash-sessions/:id/cancel-count` | `{reason?}` ; interdit si un comptage est déjà enregistré |
+| POST `/cash-sessions/:id/submit-count` | `{lines:[{accountId,denominations?,declaredMinor?,explanation?}]}` ; première déclaration immuable |
+| GET/POST `/expenses` | Liste / création (demande gérant ou dépense d’organisation propriétaire) |
+| POST `/expenses/:id/submit` | Demande ou autorisation autonome selon plafonds |
+| POST `/expenses/:id/decide` | Propriétaire, session fraîche ; `{decision:APPROVE\|REJECT,reason}` |
+| POST `/expenses/:id/pay` | Mouvement financier distinct de l’autorisation |
+| POST `/expenses/declare-irregular` | Création `IRREGULAR` puis décaissement et dossier d’écart |
+| GET/POST `/fund-transfers` | Liste / création ; gérant limité à une remise |
+| POST `/fund-transfers/:id/send` | Sortie source + entrée transit |
+| POST `/fund-transfers/:id/receive` | `{amountMinor,comment?}` ; réception totale ou fractionnée |
+| GET `/fund-accounts` | Comptes actifs hors transit ; soldes visibles au propriétaire seulement |
+| GET `/owner/discrepancies` | Dossiers d’écart |
+| POST `/owner/discrepancies/:id/resolve` | `{decision:ACCEPT\|RECLASSIFY\|ADJUST\|REQUEST_INFO,reason,amountMinor?}` ; écriture liée |
+| POST `/attachments` | Intention opaques `{documentType,mime,size,name,sha256}` |
+| POST `/attachments/:id/content` | `{base64}` ; sniff MIME, hash, scan, stockage S3 privé |
+| GET `/attachments/:id/content` | Octets si `CLEAN` ; pas d’URL publique permanente |
+
 ```json
 {
   "operationId":"00000000-0000-4000-8000-000000000001",

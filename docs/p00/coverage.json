@@ -84,8 +84,10 @@
       "P08-01"
     ],
     "consolidationPhase": "P08",
-    "status": "NON_TESTE",
-    "evidence": []
+    "status": "PARTIEL",
+    "evidence": [
+      "tests/integration/p05.test.ts — T37/T38/T39 ; tests/e2e/p05-cash.spec.ts ; clôture hors ligne T50/T64 en P08"
+    ]
   },
   {
     "reference": "E09",
@@ -93,8 +95,11 @@
       "P05-E09"
     ],
     "consolidationPhase": "P05",
-    "status": "NON_TESTE",
-    "evidence": []
+    "status": "TESTE",
+    "evidence": [
+      "tests/integration/p05.test.ts — T23–T26",
+      "tests/e2e/p05-cash.spec.ts"
+    ]
   },
   {
     "reference": "E10",
@@ -206,8 +211,10 @@
       "P05-E21"
     ],
     "consolidationPhase": "P05",
-    "status": "NON_TESTE",
-    "evidence": []
+    "status": "TESTE",
+    "evidence": [
+      "tests/integration/p05.test.ts — T29/T30 transit et réception fractionnée"
+    ]
   },
   {
     "reference": "E22",
@@ -216,8 +223,10 @@
       "P09-01"
     ],
     "consolidationPhase": "P09",
-    "status": "NON_TESTE",
-    "evidence": []
+    "status": "PARTIEL",
+    "evidence": [
+      "tests/integration/p05.test.ts — dossiers d’écart de caisse ; inventaires et rapports P07/P09 restants"
+    ]
   },
   {
     "reference": "E23",
@@ -226,8 +235,10 @@
       "P09-01"
     ],
     "consolidationPhase": "P09",
-    "status": "NON_TESTE",
-    "evidence": []
+    "status": "PARTIEL",
+    "evidence": [
+      "tests/integration/p05.test.ts — T40/T41 décisions et écriture liée ; stock/P09 restants"
+    ]
   },
   {
     "reference": "E24",
@@ -300,8 +311,11 @@
       "P05-E30"
     ],
     "consolidationPhase": "P05",
-    "status": "NON_TESTE",
-    "evidence": []
+    "status": "TESTE",
+    "evidence": [
+      "tests/e2e/p05-cash.spec.ts",
+      "apps/web/src/components/business/p05-manager-pages.tsx"
+    ]
   },
   {
     "reference": "E31",
@@ -485,8 +499,10 @@
       "P05-E09"
     ],
     "consolidationPhase": "P05",
-    "status": "NON_TESTE",
-    "evidence": []
+    "status": "TESTE",
+    "evidence": [
+      "tests/integration/p05.test.ts — demande, autorisation, décaissement distincts"
+    ]
   },
   {
     "reference": "S06",
@@ -534,8 +550,10 @@
       "P05-E30"
     ],
     "consolidationPhase": "P05",
-    "status": "NON_TESTE",
-    "evidence": []
+    "status": "TESTE",
+    "evidence": [
+      "tests/integration/p05.test.ts — T29/T30 sortie, transit, réception"
+    ]
   },
   {
     "reference": "S10",
@@ -858,8 +876,10 @@
       "P05-E09"
     ],
     "consolidationPhase": "P05",
-    "status": "NON_TESTE",
-    "evidence": []
+    "status": "TESTE",
+    "evidence": [
+      "tests/integration/p05.test.ts"
+    ]
   },
   {
     "reference": "T24",
@@ -867,8 +887,10 @@
       "P05-E09"
     ],
     "consolidationPhase": "P05",
-    "status": "NON_TESTE",
-    "evidence": []
+    "status": "TESTE",
+    "evidence": [
+      "tests/integration/p05.test.ts"
+    ]
   },
   {
     "reference": "T25",
@@ -877,8 +899,10 @@
       "P05-E09"
     ],
     "consolidationPhase": "P05",
-    "status": "NON_TESTE",
-    "evidence": []
+    "status": "TESTE",
+    "evidence": [
+      "tests/integration/p05.test.ts"
+    ]
   },
   {
     "reference": "T26",
@@ -887,8 +911,10 @@
       "P05-E09"
     ],
     "consolidationPhase": "P05",
-    "status": "NON_TESTE",
-    "evidence": []
+    "status": "TESTE",
+    "evidence": [
+      "tests/integration/p05.test.ts"
+    ]
   },
   {
     "reference": "T27",
@@ -924,8 +950,10 @@
       "P06-E12"
     ],
     "consolidationPhase": "P06",
-    "status": "NON_TESTE",
-    "evidence": []
+    "status": "PARTIEL",
+    "evidence": [
+      "tests/integration/p05.test.ts — avance, transit, réception ; achat 92 000 reporté à P06"
+    ]
   },
   {
     "reference": "T30",
@@ -934,8 +962,10 @@
       "P05-E30"
     ],
     "consolidationPhase": "P05",
-    "status": "NON_TESTE",
-    "evidence": []
+    "status": "TESTE",
+    "evidence": [
+      "tests/integration/p05.test.ts"
+    ]
   },
   {
     "reference": "T31",
@@ -1006,8 +1036,11 @@
       "P05-E22"
     ],
     "consolidationPhase": "P05",
-    "status": "NON_TESTE",
-    "evidence": []
+    "status": "TESTE",
+    "evidence": [
+      "tests/integration/p05.test.ts",
+      "tests/e2e/p05-cash.spec.ts"
+    ]
   },
   {
     "reference": "T38",
@@ -1017,8 +1050,11 @@
       "P05-E08"
     ],
     "consolidationPhase": "P05",
-    "status": "NON_TESTE",
-    "evidence": []
+    "status": "TESTE",
+    "evidence": [
+      "tests/integration/p05.test.ts",
+      "tests/e2e/p05-cash.spec.ts"
+    ]
   },
   {
     "reference": "T39",
@@ -1026,8 +1062,10 @@
       "P05-E08"
     ],
     "consolidationPhase": "P05",
-    "status": "NON_TESTE",
-    "evidence": []
+    "status": "TESTE",
+    "evidence": [
+      "tests/integration/p05.test.ts"
+    ]
   },
   {
     "reference": "T40",
@@ -1036,8 +1074,10 @@
       "P05-E23"
     ],
     "consolidationPhase": "P05",
-    "status": "NON_TESTE",
-    "evidence": []
+    "status": "TESTE",
+    "evidence": [
+      "tests/integration/p05.test.ts"
+    ]
   },
   {
     "reference": "T41",
@@ -1047,8 +1087,10 @@
       "P08-E36"
     ],
     "consolidationPhase": "P08",
-    "status": "NON_TESTE",
-    "evidence": []
+    "status": "PARTIEL",
+    "evidence": [
+      "tests/integration/p05.test.ts — session suivante et ajustement lié ; assertions hors ligne P08 restantes"
+    ]
   },
   {
     "reference": "T42",
@@ -1320,8 +1362,11 @@
       "P05-E30"
     ],
     "consolidationPhase": "P05",
-    "status": "NON_TESTE",
-    "evidence": []
+    "status": "TESTE",
+    "evidence": [
+      "tests/integration/p05.test.ts — T29/T30",
+      "apps/web/src/components/business/p05-owner-pages.tsx"
+    ]
   },
   {
     "reference": "T66",
@@ -2133,8 +2178,10 @@
       "P05-01"
     ],
     "consolidationPhase": "P05",
-    "status": "NON_TESTE",
-    "evidence": []
+    "status": "PARTIEL",
+    "evidence": [
+      "tests/integration/p05.test.ts — sniff MIME, quarantaine UNAVAILABLE, téléchargement refusé ; ClamAV local non exécuté, pas de CLEAN réel"
+    ]
   },
   {
     "reference": "SEC12",

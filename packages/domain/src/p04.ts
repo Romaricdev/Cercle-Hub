@@ -86,7 +86,7 @@ export async function openCashSession(prisma: PrismaClient, context: SaleContext
 export async function managerSaleContext(prisma: PrismaClient, organizationId: string, actorId: string) {
   return prisma.$transaction(async (tx) => {
     const { shop, device } = await managerScope(tx, organizationId, actorId);
-    const session = await tx.cashSession.findFirst({ where: { shopId: shop.id, managerId: actorId, status: "OPEN" } });
+    const session = await tx.cashSession.findFirst({ where: { shopId: shop.id, managerId: actorId, status: { in: ["OPEN", "COUNTING"] } } });
     const products = await tx.shopProduct.findMany({
       where: { shopId: shop.id, active: true, product: { status: "ACTIVE" } },
       include: {
@@ -142,8 +142,9 @@ async function calculateQuote(tx: Tx, organizationId: string, shopId: string, li
 export async function quoteSale(prisma: PrismaClient, organizationId: string, actorId: string, lines: SaleLineInput[]) {
   return prisma.$transaction(async (tx) => {
     const { shop, device } = await managerScope(tx, organizationId, actorId);
-    const session = await tx.cashSession.findFirst({ where: { shopId: shop.id, managerId: actorId, deviceId: device.id, status: "OPEN" } });
+    const session = await tx.cashSession.findFirst({ where: { shopId: shop.id, managerId: actorId, deviceId: device.id, status: { in: ["OPEN", "COUNTING"] } } });
     if (!session) throw new DomainError("CASH_SESSION_REQUIRED", "Ouvrez votre session de caisse avant de vendre.", 409);
+    if (session.status === "COUNTING") throw new DomainError("COUNT_IN_PROGRESS", "Terminez ou annulez le comptage avant de vendre.", 409);
     const quote = await calculateQuote(tx, organizationId, shop.id, lines);
     const payloadHash = await sha256Hex(canonicalJson({ lines: quote.lines.map(({ saleUnitId, quantity, discountMinor }) => ({ saleUnitId, quantity, discountMinor })) }));
     const authorization = await tx.onlineAuthorization.create({ data: { deviceId: device.id, sessionId: session.id, payloadHash, expiresAt: new Date(Date.now() + 5 * 60_000) } });
@@ -154,8 +155,9 @@ export async function quoteSale(prisma: PrismaClient, organizationId: string, ac
 export async function postSale(prisma: PrismaClient, context: SaleContext, input: { authorizationId: string; lines: SaleLineInput[]; payments: PaymentInput[] }) {
   return effect(prisma, context, input, async (tx) => {
     const { shop, device } = await managerScope(tx, context.organizationId, context.actorId);
-    const sessionRows = await tx.$queryRaw<Array<{ id: string; location_id: string; business_date: Date }>>`SELECT id,location_id,business_date FROM cash_sessions WHERE shop_id=${shop.id}::uuid AND manager_id=${context.actorId}::uuid AND device_id=${device.id}::uuid AND status='OPEN' FOR UPDATE`;
+    const sessionRows = await tx.$queryRaw<Array<{ id: string; location_id: string; business_date: Date; status: string }>>`SELECT id,location_id,business_date,status FROM cash_sessions WHERE shop_id=${shop.id}::uuid AND manager_id=${context.actorId}::uuid AND device_id=${device.id}::uuid AND status IN ('OPEN','COUNTING') FOR UPDATE`;
     const session = sessionRows[0]; if (!session) throw new DomainError("CASH_SESSION_REQUIRED", "La session de caisse n’est pas ouverte.", 409);
+    if (session.status === "COUNTING") throw new DomainError("COUNT_IN_PROGRESS", "Terminez ou annulez le comptage avant de vendre.", 409);
     const quote = await calculateQuote(tx, context.organizationId, shop.id, input.lines);
     const payloadHash = await sha256Hex(canonicalJson({ lines: quote.lines.map(({ saleUnitId, quantity, discountMinor }) => ({ saleUnitId, quantity, discountMinor })) }));
     const authorization = await tx.onlineAuthorization.findFirst({ where: { id: input.authorizationId, deviceId: device.id, sessionId: session.id } });

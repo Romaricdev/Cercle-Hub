@@ -1,0 +1,68 @@
+import { expect, test } from "@playwright/test";
+
+import { currentTotp } from "../../apps/api/src/auth/totp.ts";
+import { e2eManagerP05, e2eOwnerP05 } from "./global-setup";
+
+test("P05 clôture aveugle, dépense et consultation propriétaire", async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.goto("/login");
+  await page.getByLabel("E-mail").fill(e2eManagerP05.email);
+  await page.getByLabel("Mot de passe").fill(e2eManagerP05.password);
+  await page.getByRole("button", { name: "Se connecter" }).click();
+  await expect(page.getByRole("heading", { name: "Accueil" })).toBeVisible();
+  await page.getByRole("link", { name: /Caisse du jour|Caisse/ }).first().click();
+  await expect(page.getByRole("heading", { name: "Caisse du jour" })).toBeVisible();
+  await page.getByRole("button", { name: "Ouvrir la session" }).click();
+  await expect(page.getByText("Boutique Caisse E2E")).toBeVisible();
+  const beforeCount = await page.content();
+  expect(beforeCount).not.toMatch(/expectedMinor|balanceMinor|Attendu/);
+  await page.getByRole("link", { name: "Demander une dépense" }).click();
+  await expect(page.getByRole("heading", { name: "Dépenses" })).toBeVisible();
+  await page.getByLabel("Montant").fill("1000");
+  await page.getByLabel("Motif de la dépense").fill("Achat de sacs pour la caisse");
+  await page.getByRole("button", { name: "Enregistrer la demande" }).click();
+  await expect(page.getByRole("heading", { name: "Aucune dépense" })).toHaveCount(0);
+  await expect(page.getByText("Achat de sacs pour la caisse")).toBeVisible();
+  await page.getByRole("link", { name: "Caisse" }).first().click();
+  await page.getByRole("button", { name: "Commencer le comptage" }).click();
+  await expect(page.getByRole("heading", { name: "Comptage de fin de journée" })).toBeVisible();
+  await expect(page.getByText(/première déclaration est définitive/i)).toBeVisible();
+  const counting = await page.content();
+  expect(counting).not.toMatch(/expectedMinor|balanceMinor/);
+  expect(counting).not.toMatch(/50[\s\u00a0\u202f]?000/);
+  await page.getByLabel("10 000 FCFA").fill("4");
+  await page.getByLabel("1 000 FCFA").fill("8");
+  await page.getByRole("button", { name: "Enregistrer le comptage" }).click();
+  await expect(page.getByRole("dialog", { name: "Confirmer la première déclaration" })).toBeVisible();
+  await page.getByRole("button", { name: "Enregistrer définitivement" }).click();
+  await expect(page.getByRole("heading", { name: "Résultat de clôture" })).toBeVisible();
+  await expect(page.getByText(/48.000 FCFA/).first()).toBeVisible();
+  await expect(page.getByText(/50.000 FCFA/).first()).toBeVisible();
+  for (const viewport of [{ width: 320, height: 700 }, { width: 375, height: 800 }, { width: 768, height: 1024 }, { width: 1024, height: 768 }, { width: 1440, height: 900 }, { width: 1920, height: 1080 }]) {
+    await page.setViewportSize(viewport);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), `largeur ${viewport.width}`).toBeLessThanOrEqual(1);
+  }
+  await page.keyboard.press("Tab");
+  await page.getByRole("button", { name: /Ouvrir le profil/ }).click();
+  await page.getByRole("button", { name: "Se déconnecter" }).click();
+  await expect(page.getByRole("button", { name: "Se connecter" })).toBeVisible();
+
+  await page.goto("/login");
+  await page.getByLabel("E-mail").fill(e2eOwnerP05.email);
+  await page.getByLabel("Mot de passe").fill(e2eOwnerP05.password);
+  await page.getByRole("button", { name: "Se connecter" }).click();
+  await expect(page.getByText(/second facteur/i)).toBeVisible();
+  await page.getByLabel("Confirmez le mot de passe").fill(e2eOwnerP05.password);
+  await page.getByRole("button", { name: "Afficher le secret" }).click();
+  await page.getByText("Saisir la clé manuellement").click();
+  const uri = await page.getByTestId("totp-uri").innerText();
+  await page.getByLabel("Code TOTP").fill(currentTotp(uri));
+  await page.getByRole("button", { name: "Confirmer" }).click();
+  await expect(page.getByRole("heading", { name: /Vue générale/ })).toBeVisible();
+  await page.getByRole("link", { name: "Caisse" }).first().click();
+  await expect(page.getByRole("heading", { name: "Sessions de caisse" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Boutique Caisse E2E" }).first()).toBeVisible();
+  await page.getByRole("link", { name: "Boutique Caisse E2E" }).first().click();
+  await expect(page.getByText("Attendu").first()).toBeVisible();
+  await expect(page.getByText("Déclaré").first()).toBeVisible();
+});
