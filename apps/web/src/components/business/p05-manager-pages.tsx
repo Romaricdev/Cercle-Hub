@@ -62,6 +62,7 @@ export function ManagerCashPage() {
   const [pending, setPending] = useState(false);
   const [query, setQuery] = useState("");
   const load = () => {
+    setError(null);
     Promise.all([api<SessionPayload>("/api/v1/cash-sessions/current"), api<{ sessions: SessionRow[] }>("/api/v1/cash-sessions")])
       .then(([current, listed]) => { setData(current); setHistory(listed.sessions); })
       .catch((caught: RequestError) => setError(caught.message));
@@ -70,6 +71,7 @@ export function ManagerCashPage() {
   const session = data?.session;
   const filtered = (history ?? []).filter((row) => `${row.businessDate} ${row.status}`.toLowerCase().includes(query.toLowerCase()));
   if (!data && !error) return <Skeleton className="h-[32rem]" />;
+  if (!data && error) return <section className="space-y-6"><PageHeader title="Caisse du jour">Consultez la session et les opérations de la journée.</PageHeader><Alert tone="error">{error}</Alert><div className="rounded-xl bg-[var(--surface)] p-6 text-center shadow-[var(--shadow-card)]"><h2 className="font-display text-lg font-semibold">Impossible de charger la caisse</h2><p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-[var(--muted)]">Vérifiez la connexion au serveur, puis réessayez. Aucune information de session n’a été déduite de cet échec.</p><Button className="mt-4" onClick={load}>Réessayer</Button></div></section>;
   return (
     <section className="space-y-6 overflow-x-clip">
       <PageHeader title="Caisse du jour" action={session?.status === "OPEN" ? <Button onClick={() => router.push(paths.managerCashCount)}>Commencer le comptage</Button> : undefined}>

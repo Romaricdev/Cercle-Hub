@@ -434,3 +434,14 @@ Vente (P04) → dépense ou mouvement → comptage aveugle par source → calcul
 - Aucune validation pilote, aucun déploiement public.
 
 P05-GATE : **TERMINÉ** sur preuves locales. P06 non commencée.
+
+### Correctif de démarrage local P05 — 28 septembre 2026
+
+La page gérant « Caisse du jour » renvoyait une erreur serveur parce que la base locale `cercle_complet` n’avait pas encore reçu la migration additive P05, bien que le code applicatif soit à jour. La migration `20260928120000_p05_cash_expenses_close` a été appliquée par `prisma migrate deploy` sans suppression de données. L’état d’erreur de la page a également été corrigé : un chargement échoué affiche désormais un diagnostic et une action « Réessayer », sans afficher simultanément l’état métier trompeur « Aucune session ouverte ».
+
+Vérifications exécutées :
+
+- `corepack pnpm --filter @cercle/database exec prisma migrate status` : code 0, schéma local à jour, 9 migrations.
+- `corepack pnpm lint` : code 0.
+- `corepack pnpm typecheck` : code 0, tous les projets.
+- `corepack pnpm exec playwright test tests/e2e/p05-cash.spec.ts --project=chromium` : code 0, **1/1**.
