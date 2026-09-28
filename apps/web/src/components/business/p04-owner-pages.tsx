@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, ArrowRight, CalendarDays, CircleDollarSign, Printer, ReceiptText, Search, ShoppingBag, Store, WalletCards } from "lucide-react";
+import { ArrowLeft, ArrowRight, CalendarDays, CheckCircle2, CircleDollarSign, Clock3, Package, Printer, ReceiptText, Search, ShoppingBag, Store, WalletCards } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -288,45 +288,45 @@ export function OwnerSaleDetailPage({ id }: { id: string }) {
   if (error) return <Alert tone="error">{error}</Alert>;
   if (!sale) return <Skeleton className="h-[36rem]" />;
   const back = `/owner/sales${queryString(searchParams)}`;
+  const hasDiscount = BigInt(sale.discountMinor) > 0n;
+  const hasDue = sale.dueMinor != null && BigInt(sale.dueMinor) > 0n;
   return (
     <section className="space-y-6">
       <PageHeader
-        title={sale.reference}
+        title="Détail de la vente"
         action={<div className="flex gap-2 print:hidden"><Link href={back}><Button variant="secondary"><ArrowLeft className="size-4" /> Retour</Button></Link><Button variant="secondary" onClick={() => window.print()}><Printer className="size-4" /> Imprimer</Button></div>}
       >
-        {sale.shop.name} · {sale.manager.name} · {new Date(sale.postedAt).toLocaleString("fr-FR")}
+        Consultez le ticket, son encaissement et les écritures associées.
       </PageHeader>
-      <div className="flex flex-wrap items-center gap-2 text-sm text-[var(--muted)]">
-        <Badge>{statusLabel(sale.status)}</Badge>
-        <span>Appareil {sale.device.name}</span>
-        <span>Journée {new Date(`${sale.businessDate}T00:00:00Z`).toLocaleDateString("fr-FR")}</span>
-      </div>
-      <dl className="grid gap-3 rounded-lg bg-[var(--surface)] p-5 shadow-[var(--shadow-card)] sm:grid-cols-2">
-        <div><dt className="text-xs uppercase tracking-wide text-[var(--muted)]">Sous-total</dt><dd className="mt-1 tabular-nums">{money(sale.grossMinor)}</dd></div>
-        <div><dt className="text-xs uppercase tracking-wide text-[var(--muted)]">Remises</dt><dd className="mt-1 tabular-nums">− {money(sale.discountMinor)}</dd></div>
-        <div><dt className="text-xs uppercase tracking-wide text-[var(--muted)]">Total net de la vente</dt><dd className="mt-1 font-semibold tabular-nums">{money(sale.netMinor)}</dd></div>
-        <div><dt className="text-xs uppercase tracking-wide text-[var(--muted)]">Total encaissé</dt><dd className="mt-1 tabular-nums">{money(sale.collectedMinor)}</dd></div>
-        {sale.dueMinor ? <div><dt className="text-xs uppercase tracking-wide text-[var(--muted)]">Reste dû</dt><dd className="mt-1 tabular-nums">{money(sale.dueMinor)}</dd></div> : null}
-        <div><dt className="text-xs uppercase tracking-wide text-[var(--muted)]">Coût total</dt><dd className="mt-1 tabular-nums">{money(sale.costMinor)}</dd></div>
-        <div>
-          <dt className="text-xs uppercase tracking-wide text-[var(--muted)]">Marge brute estimée</dt>
-          <dd className="mt-1 tabular-nums">{money(sale.estimatedGrossMarginMinor)}</dd>
-          {sale.estimatedGrossMargin ? <p className="mt-1 text-xs text-[var(--muted)]">Estimée à partir des coûts déjà alloués à cette vente.</p> : null}
+      <section className="rounded-lg bg-[var(--surface)] p-5 shadow-[var(--shadow-card)] sm:p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div><div className="flex flex-wrap items-center gap-2"><Badge>{statusLabel(sale.status)}</Badge><span className="font-mono text-sm font-semibold">{sale.reference}</span></div><p className="mt-2 font-display text-lg font-semibold">{sale.shop.name}</p><p className="mt-1 text-sm text-[var(--muted)]">Enregistrée par {sale.manager.name} le {new Date(sale.postedAt).toLocaleString("fr-FR")}</p></div>
+          <div className="grid gap-1 text-sm text-[var(--muted)] sm:text-right"><span>Appareil : {sale.device.name}</span><span>Journée d’activité : {new Date(`${sale.businessDate}T00:00:00Z`).toLocaleDateString("fr-FR")}</span></div>
         </div>
-      </dl>
+        <dl className="mt-6 grid gap-3 sm:grid-cols-2">
+          <div className="rounded-lg bg-[var(--surface-subtle)] p-4"><dt className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--muted)]">Total net de la vente</dt><dd className="mt-2 font-display text-2xl font-semibold tabular-nums">{money(sale.netMinor)}</dd></div>
+          <div className="rounded-lg bg-[color-mix(in_srgb,var(--success)_8%,var(--surface))] p-4"><dt className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--muted)]">Total encaissé</dt><dd className="mt-2 font-display text-2xl font-semibold tabular-nums text-[var(--success)]">{money(sale.collectedMinor)}</dd></div>
+        </dl>
+        <dl className="mt-4 flex flex-wrap gap-x-8 gap-y-3 text-sm">
+          <div><dt className="text-[var(--muted)]">Sous-total</dt><dd className="mt-0.5 font-semibold tabular-nums">{money(sale.grossMinor)}</dd></div>
+          {hasDiscount ? <div><dt className="text-[var(--muted)]">Remise accordée</dt><dd className="mt-0.5 font-semibold tabular-nums text-[var(--success)]">− {money(sale.discountMinor)}</dd></div> : null}
+          {hasDue ? <div><dt className="text-[var(--muted)]">Reste à payer</dt><dd className="mt-0.5 font-semibold tabular-nums text-[var(--warning)]">{money(sale.dueMinor)}</dd></div> : null}
+        </dl>
+        <div className="mt-5 border-t border-[var(--separator)]/60 pt-4"><p className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--muted)]">Rentabilité propriétaire</p><dl className="mt-3 grid gap-3 sm:grid-cols-2"><div><dt className="text-sm text-[var(--muted)]">Coût alloué</dt><dd className="mt-1 font-semibold tabular-nums">{money(sale.costMinor)}</dd></div><div><dt className="text-sm text-[var(--muted)]">Marge brute estimée</dt><dd className="mt-1 font-semibold tabular-nums">{money(sale.estimatedGrossMarginMinor)}</dd>{sale.estimatedGrossMargin ? <p className="mt-1 text-xs text-[var(--muted)]">Calculée à partir des coûts alloués à cette vente.</p> : null}</div></dl></div>
+      </section>
       <section className="rounded-lg bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]">
         <h2 className="font-display font-semibold">Produits vendus</h2>
         <ul className="mt-3 divide-y divide-[var(--separator)]/60">
           {sale.lines.map((line) => (
-            <li key={line.id} className="grid gap-3 py-3 sm:grid-cols-[auto_1fr_auto]">
-              {line.imageUrl ? <img src={line.imageUrl} alt="" className="size-12 rounded-md object-cover" /> : <div className="grid size-12 place-items-center rounded-md bg-[var(--surface-subtle)] text-[var(--muted)]"><ReceiptText className="size-4" /></div>}
+            <li key={line.id} className="grid gap-3 py-4 sm:grid-cols-[auto_1fr_auto] sm:items-center">
+              {line.imageUrl ? <img src={line.imageUrl} alt="" className="size-14 rounded-md object-cover" /> : <div className="grid size-14 place-items-center rounded-md bg-[var(--surface-subtle)] text-[var(--muted)]"><Package className="size-5" /></div>}
               <div>
                 <p className="font-medium">{line.product}</p>
-                <p className="text-sm text-[var(--muted)]">{line.variant} · {line.quantity} {line.symbol} · {line.unit} · {money(line.unitPriceMinor)}</p>
-                {BigInt(line.discountMinor) > 0n ? <p className="text-xs text-[var(--success)]">Remise {money(line.discountMinor)}</p> : null}
-                <p className="text-xs text-[var(--muted)]">Coût alloué {money(line.costMinor)}</p>
+                <p className="mt-0.5 text-sm text-[var(--muted)]">{line.variant} · {line.unit}</p>
+                <p className="mt-1 text-xs text-[var(--muted)]">{line.quantity} {line.symbol} × {money(line.unitPriceMinor)}{BigInt(line.discountMinor) > 0n ? ` · remise ${money(line.discountMinor)}` : ""}</p>
+                <p className="mt-1 text-xs text-[var(--muted)]">Coût alloué : {money(line.costMinor)}</p>
               </div>
-              <strong className="tabular-nums">{money(line.netMinor)}</strong>
+              <div className="sm:text-right"><p className="text-xs text-[var(--muted)]">Total de la ligne</p><strong className="mt-1 block tabular-nums">{money(line.netMinor)}</strong></div>
             </li>
           ))}
         </ul>
@@ -335,21 +335,16 @@ export function OwnerSaleDetailPage({ id }: { id: string }) {
         <h2 className="font-display font-semibold">Paiements</h2>
         <ul className="mt-3 space-y-3">
           {sale.payments.map((payment) => (
-            <li key={payment.id} className="rounded-md bg-[var(--surface-subtle)] p-4 text-sm">
+            <li key={payment.id} className="rounded-lg bg-[var(--surface-subtle)] p-4 text-sm">
               <div className="flex justify-between gap-4">
                 <div>
                   <p className="font-semibold">{modeLabel(payment.mode)} · {payment.source}</p>
                   {payment.externalReference ? <p className="text-[var(--muted)]">Référence {payment.externalReference}</p> : null}
                 </div>
-                <strong>{money(payment.amountMinor)}</strong>
+                <div className="text-right"><p className="text-xs text-[var(--muted)]">Montant encaissé</p><strong className="mt-1 block tabular-nums">{money(payment.amountMinor)}</strong></div>
               </div>
-              <p className="mt-2 text-[var(--muted)]">Montant payé avec ce moyen</p>
               {payment.mode === "CASH" ? (
-                <dl className="mt-3 grid gap-2 border-t border-[var(--separator)]/60 pt-3 sm:grid-cols-3">
-                  <div><dt className="text-[var(--muted)]">Somme remise par le client</dt><dd className="mt-1 font-semibold">{money(payment.cashReceivedMinor)}</dd></div>
-                  <div><dt className="text-[var(--muted)]">Monnaie calculée</dt><dd className="mt-1 font-semibold">{money(payment.changeDueMinor)}</dd></div>
-                  <div><dt className="text-[var(--muted)]">Monnaie rendue</dt><dd className="mt-1 font-semibold">{money(payment.changeGivenMinor)}</dd></div>
-                </dl>
+                BigInt(payment.changeDueMinor ?? "0") > 0n ? <dl className="mt-3 grid gap-3 border-t border-[var(--separator)]/60 pt-3 sm:grid-cols-3"><div><dt className="text-[var(--muted)]">Somme remise par le client</dt><dd className="mt-1 font-semibold tabular-nums">{money(payment.cashReceivedMinor)}</dd></div><div><dt className="text-[var(--muted)]">Monnaie à rendre</dt><dd className="mt-1 font-semibold tabular-nums">{money(payment.changeDueMinor)}</dd></div><div><dt className="text-[var(--muted)]">Monnaie rendue</dt><dd className="mt-1 font-semibold tabular-nums text-[var(--success)]">{money(payment.changeGivenMinor)}</dd></div></dl> : <p className="mt-3 flex items-center gap-2 border-t border-[var(--separator)]/60 pt-3 text-[var(--muted)]"><CheckCircle2 className="size-4 text-[var(--success)]" /> Paiement exact, aucune monnaie à rendre.</p>
               ) : null}
             </li>
           ))}
@@ -357,16 +352,15 @@ export function OwnerSaleDetailPage({ id }: { id: string }) {
       </section>
       <section className="rounded-lg bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]">
         <h2 className="font-display font-semibold">Traçabilité</h2>
-        <ol className="mt-3 space-y-2 text-sm">
+        <ol className="relative mt-4 space-y-0 text-sm before:absolute before:bottom-4 before:left-[0.6875rem] before:top-4 before:w-px before:bg-[var(--separator)]">
           {sale.timeline.map((event, index) => (
-            <li key={`${event.type}-${index}`} className="flex justify-between gap-4">
-              <span>{event.label}</span>
-              <span className="text-[var(--muted)]">{new Date(event.at).toLocaleString("fr-FR")}</span>
+            <li key={`${event.type}-${index}`} className="relative flex gap-3 py-3">
+              <span className="relative z-10 grid size-6 shrink-0 place-items-center rounded-full bg-[var(--surface-subtle)] text-[var(--primary)]">{index === sale.timeline.length - 1 ? <CheckCircle2 className="size-3.5" /> : <Clock3 className="size-3.5" />}</span>
+              <div className="flex min-w-0 flex-1 flex-col gap-1 sm:flex-row sm:items-center sm:justify-between"><span className="font-medium">{event.label}</span><time className="text-xs text-[var(--muted)]" dateTime={event.at}>{new Date(event.at).toLocaleString("fr-FR")}</time></div>
             </li>
           ))}
         </ol>
       </section>
-      <p className="text-sm text-[var(--muted)]">Les retours et remboursements seront disponibles dans une phase ultérieure. Cette fiche reste consultative.</p>
     </section>
   );
 }

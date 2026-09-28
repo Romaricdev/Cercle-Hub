@@ -53,6 +53,7 @@ test("P04 propriétaire consulte les ventes réelles et conserve les filtres", a
   await page.getByLabel("Boutique").selectOption({ label: "Boutique Pilotage E2E" });
   await expect(page.getByText(/V-\d{8}-/).first()).toBeVisible();
   await page.getByRole("link", { name: "Voir la vente" }).first().click();
+  await expect(page.getByRole("heading", { name: "Détail de la vente" })).toBeVisible();
   await expect(page.getByText("Galette E2E")).toBeVisible();
   await expect(page.getByText("Total net de la vente")).toBeVisible();
   await expect(page.getByText("Espèces · Caisse Pilotage E2E")).toBeVisible();
@@ -60,6 +61,11 @@ test("P04 propriétaire consulte les ventes réelles et conserve les filtres", a
   await expect(page.getByText("Monnaie rendue", { exact: true })).toBeVisible();
   await expect(page.getByText("2 000 FCFA").first()).toBeVisible();
   await expect(page.getByText("500 FCFA").first()).toBeVisible();
+  for (const viewport of [{ width: 320, height: 700 }, { width: 768, height: 1024 }, { width: 1024, height: 768 }, { width: 1440, height: 900 }]) {
+    await page.setViewportSize(viewport);
+    await expect(page.getByRole("heading", { name: "Détail de la vente" })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
+  }
   await page.getByRole("link", { name: "Retour" }).click();
   await expect(page).toHaveURL(/shopId=/);
   await expect(page.getByLabel("Boutique")).toHaveValue(/.+/);

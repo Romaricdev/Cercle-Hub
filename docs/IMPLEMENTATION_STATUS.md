@@ -319,6 +319,18 @@ Sur `/owner/sales`, la période est désormais formulée en français, les indic
 - `corepack pnpm build` : code 0, 23 routes.
 - `corepack pnpm exec playwright test tests/e2e/p04-owner-sales.spec.ts --project=chromium` : code 0, **1/1**, avec contrôle explicite de l’état sans résultat et des quatre largeurs cibles.
 
+### Raffinement ergonomique de la fiche de vente propriétaire — 28 septembre 2026
+
+La fiche `/owner/sales/[id]` hiérarchise désormais le ticket autour du total net et du montant encaissé. La référence, la boutique, le gérant, l’appareil et la journée d’activité sont regroupés dans un en-tête compact ; les remises et restes à payer n’apparaissent que lorsqu’ils existent. Les coûts et la marge sont identifiés comme informations de rentabilité réservées au propriétaire. Les lignes de produit distinguent variante, format, calcul de quantité et total. Le paiement en espèces résume le cas exact sans répéter trois zéros, tout en conservant le détail reçu/à rendre/rendu lorsqu’une monnaie existe. La traçabilité est présentée sous forme de chronologie et le texte interne annonçant une phase future a été retiré.
+
+Vérifications du complément :
+
+- `corepack pnpm typecheck` : code 0, tous les projets.
+- `corepack pnpm lint` : code 0.
+- `corepack pnpm build` : code 0, Next.js 16.3.6, **23 routes**.
+- `corepack pnpm exec playwright test tests/e2e/p04-owner-sales.spec.ts --project=chromium` : code 0, **1/1**, avec contrôle de la fiche aux largeurs 320, 768, 1024 et 1440 px.
+- `python scripts/check_docs.py` : code 0, **41 fichiers Markdown**, 84 scénarios et 40 écrans.
+
 ### Complément P04 — consultation propriétaire et synthèse commerciale
 
 Le propriétaire consulte les ventes réellement postées, ouvre une fiche détaillée et dispose sur `/owner` d’indicateurs issus des écritures P04. Aucune donnée fictive n’est affichée. Une donnée indisponible n’est pas convertie en zéro. Les coûts et la marge estimée restent dans le DTO propriétaire. Le DTO gérant continue d’exclure les coûts. Les encaissements mesurent les paiements postés de la période, distincts du solde actuel d’une source. La période civile utilise le fuseau de la boutique sélectionnée, sinon `Africa/Douala`. La période précédente a la même durée inclusive ; la variation est indisponible si le chiffre d’affaires précédent est nul ou négatif.
