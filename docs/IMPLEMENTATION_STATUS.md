@@ -310,6 +310,15 @@ La vue `/owner` utilise désormais un en-tête opérationnel compact, des raccou
 - `corepack pnpm exec playwright test tests/e2e/p02-responsive.spec.ts --project=chromium` : code 0, **2/2**.
 - `corepack pnpm exec playwright test tests/e2e/p04-owner-sales.spec.ts --project=chromium` : code 0, **1/1** après adaptation des libellés de filtre et d’action.
 
+### Raffinement ergonomique de l’historique des ventes — 28 septembre 2026
+
+Sur `/owner/sales`, la période est désormais formulée en français, les indicateurs complets ne sont rendus qu’en présence de ventes et les filtres gérant/statut/source/recherche sont regroupés dans une zone avancée repliable. La réinitialisation n’apparaît qu’avec des filtres actifs. L’état sans résultat est compact, distingue une recherche filtrée d’une absence de vente et propose un retour à la vue générale sans présenter une vente comme la conséquence d’un simple encaissement.
+
+- `corepack pnpm lint` : code 0.
+- `corepack pnpm typecheck` : code 0, tous les projets.
+- `corepack pnpm build` : code 0, 23 routes.
+- `corepack pnpm exec playwright test tests/e2e/p04-owner-sales.spec.ts --project=chromium` : code 0, **1/1**, avec contrôle explicite de l’état sans résultat et des quatre largeurs cibles.
+
 ### Complément P04 — consultation propriétaire et synthèse commerciale
 
 Le propriétaire consulte les ventes réellement postées, ouvre une fiche détaillée et dispose sur `/owner` d’indicateurs issus des écritures P04. Aucune donnée fictive n’est affichée. Une donnée indisponible n’est pas convertie en zéro. Les coûts et la marge estimée restent dans le DTO propriétaire. Le DTO gérant continue d’exclure les coûts. Les encaissements mesurent les paiements postés de la période, distincts du solde actuel d’une source. La période civile utilise le fuseau de la boutique sélectionnée, sinon `Africa/Douala`. La période précédente a la même durée inclusive ; la variation est indisponible si le chiffre d’affaires précédent est nul ou négatif.

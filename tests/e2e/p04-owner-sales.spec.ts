@@ -70,4 +70,8 @@ test("P04 propriétaire consulte les ventes réelles et conserve les filtres", a
     await expect(page.getByRole("heading", { name: "Ventes" })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
   }
+  await page.goto("/owner/sales?from=2099-01-01&to=2099-01-01");
+  await expect(page.getByRole("heading", { name: "Aucun résultat pour ces filtres" })).toBeVisible();
+  await expect(page.getByText("Chiffre d’affaires", { exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Filtres avancés" })).toBeVisible();
 });

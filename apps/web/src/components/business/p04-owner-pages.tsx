@@ -127,6 +127,7 @@ export function OwnerSalesPage() {
   const [sources, setSources] = useState<Source[]>([]);
   const [managers, setManagers] = useState<User[]>([]);
   const [extra, setExtra] = useState<SaleRow[]>([]);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   const filters = useMemo(() => ({
     shopId: searchParams.get("shopId") ?? "",
@@ -170,6 +171,8 @@ export function OwnerSalesPage() {
   const rows = [...(data?.sales ?? []), ...extra];
   const listQuery = queryString(searchParams);
   const selectedShop = shops.find((shop) => shop.id === filters.shopId);
+  const advancedFilterCount = [filters.managerId, filters.status, filters.paymentSourceId, filters.query].filter(Boolean).length;
+  const hasSales = Boolean(data && data.totals.count > 0);
 
   return (
     <section className="min-w-0 max-w-full space-y-6 overflow-x-clip">
@@ -178,7 +181,7 @@ export function OwnerSalesPage() {
       </PageHeader>
       {error ? <Alert tone="error">{error}</Alert> : null}
       <div className="flex flex-wrap items-center gap-2 text-sm text-[var(--muted)]">
-        <span>{data ? `${data.period.from} → ${data.period.to}` : "Période en cours de chargement"}</span>
+        <span>{data ? periodLabel(data.period.from, data.period.to) : "Période en cours de chargement"}</span>
         <span aria-hidden="true">·</span>
         <span>{selectedShop?.name ?? "Toutes les boutiques"}</span>
         <span aria-hidden="true">·</span>
@@ -187,48 +190,22 @@ export function OwnerSalesPage() {
         <span>{data?.freshness === "LIVE" ? "Données à jour" : data?.freshness ?? "—"}</span>
         {activeFilterCount ? <Badge>{activeFilterCount} filtre{activeFilterCount > 1 ? "s" : ""} actif{activeFilterCount > 1 ? "s" : ""}</Badge> : null}
       </div>
-      {data ? (
+      {hasSales && data ? (
         <motion.div initial={reduced ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.16 }} className="grid overflow-hidden rounded-lg bg-[var(--surface)] shadow-[var(--shadow-card)] sm:grid-cols-2 xl:grid-cols-4">
           <Metric label="Chiffre d’affaires" value={money(data.totals.revenueMinor)} hint="Somme des ventes enregistrées, hors monnaie rendue." />
           <Metric label="Ventes" value={String(data.totals.count)} hint="Nombre de tickets enregistrés sur la période." />
           <Metric label="Panier moyen" value={data.totals.averageBasketMinor ? money(data.totals.averageBasketMinor) : "Indisponible"} hint="Chiffre d’affaires divisé par le nombre de ventes." />
           <Metric label="Encaissements" value={money(data.totals.collectedMinor)} hint="Montants payés avec les moyens de paiement, distincts du solde actuel d’une caisse." />
         </motion.div>
-      ) : <Skeleton className="h-28" />}
+      ) : !data ? <Skeleton className="h-28" /> : null}
       {data && data.totals.reversedCount > 0 ? <p className="text-sm text-[var(--muted)]">{data.totals.reversedCount} vente{data.totals.reversedCount > 1 ? "s" : ""} renversée{data.totals.reversedCount > 1 ? "s" : ""} sur cette période.</p> : null}
-      <form className="grid gap-3 rounded-lg bg-[var(--surface)] p-4 shadow-[var(--shadow-card)] md:grid-cols-2 xl:grid-cols-4" onSubmit={(event) => event.preventDefault()}>
-        <FieldSelect id="sales-shop" label="Boutique" value={filters.shopId} onChange={(value) => setFilter("shopId", value)}>
-          <option value="">Toutes les boutiques</option>
-          {shops.map((shop) => <option key={shop.id} value={shop.id}>{shop.name}</option>)}
-        </FieldSelect>
-        <div className="space-y-1.5"><Label htmlFor="sales-from">Date de début</Label><Input id="sales-from" type="date" value={filters.from || data?.period.from || ""} onChange={(event) => setFilter("from", event.target.value)} /></div>
-        <div className="space-y-1.5"><Label htmlFor="sales-to">Date de fin</Label><Input id="sales-to" type="date" value={filters.to || data?.period.to || ""} onChange={(event) => setFilter("to", event.target.value)} /></div>
-        <FieldSelect id="sales-manager" label="Gérant" value={filters.managerId} onChange={(value) => setFilter("managerId", value)}>
-          <option value="">Tous les gérants</option>
-          {managers.map((user) => <option key={user.id} value={user.id}>{user.displayName}</option>)}
-        </FieldSelect>
-        <FieldSelect id="sales-status" label="Statut" value={filters.status} onChange={(value) => setFilter("status", value)}>
-          <option value="">Tous les statuts</option>
-          <option value="POSTED">Enregistrée</option>
-          <option value="REVERSED">Renversée</option>
-        </FieldSelect>
-        <FieldSelect id="sales-source" label="Moyen de paiement" value={filters.paymentSourceId} onChange={(value) => setFilter("paymentSourceId", value)}>
-          <option value="">Tous les moyens</option>
-          {sources.map((source) => <option key={source.id} value={source.id}>{source.name}</option>)}
-        </FieldSelect>
-        <div className="space-y-1.5 xl:col-span-2">
-          <Label htmlFor="sales-query">Recherche</Label>
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--muted)]" />
-            <Input id="sales-query" className="pl-9" placeholder="Référence ou produit" value={filters.query} onChange={(event) => setFilter("query", event.target.value)} />
-          </div>
-        </div>
-        <div className="flex items-end"><Button type="button" variant="ghost" onClick={() => router.replace(pathname)}>Réinitialiser les filtres</Button></div>
+      <form className="rounded-lg bg-[var(--surface)] p-4 shadow-[var(--shadow-card)]" onSubmit={(event) => event.preventDefault()}>
+        <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(9rem,.65fr)_minmax(9rem,.65fr)_auto] md:items-end"><FieldSelect id="sales-shop" label="Boutique" value={filters.shopId} onChange={(value) => setFilter("shopId", value)}><option value="">Toutes les boutiques</option>{shops.map((shop) => <option key={shop.id} value={shop.id}>{shop.name}</option>)}</FieldSelect><div className="space-y-1.5"><Label htmlFor="sales-from">Du</Label><Input id="sales-from" type="date" value={filters.from || data?.period.from || ""} onChange={(event) => setFilter("from", event.target.value)} /></div><div className="space-y-1.5"><Label htmlFor="sales-to">Au</Label><Input id="sales-to" type="date" value={filters.to || data?.period.to || ""} onChange={(event) => setFilter("to", event.target.value)} /></div><Button type="button" variant="secondary" onClick={() => setAdvancedOpen((value) => !value)}>Filtres avancés{advancedFilterCount ? ` (${advancedFilterCount})` : ""}</Button></div>
+        {advancedOpen || advancedFilterCount ? <motion.div initial={reduced ? false : { opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="mt-4 grid gap-3 border-t border-[var(--separator)]/60 pt-4 md:grid-cols-2 xl:grid-cols-4"><FieldSelect id="sales-manager" label="Gérant" value={filters.managerId} onChange={(value) => setFilter("managerId", value)}><option value="">Tous les gérants</option>{managers.map((user) => <option key={user.id} value={user.id}>{user.displayName}</option>)}</FieldSelect><FieldSelect id="sales-status" label="Statut" value={filters.status} onChange={(value) => setFilter("status", value)}><option value="">Tous les statuts</option><option value="POSTED">Enregistrée</option><option value="REVERSED">Renversée</option></FieldSelect><FieldSelect id="sales-source" label="Moyen de paiement" value={filters.paymentSourceId} onChange={(value) => setFilter("paymentSourceId", value)}><option value="">Tous les moyens</option>{sources.map((source) => <option key={source.id} value={source.id}>{source.name}</option>)}</FieldSelect><div className="space-y-1.5"><Label htmlFor="sales-query">Recherche</Label><div className="relative"><Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--muted)]" /><Input id="sales-query" className="pl-9" placeholder="Référence ou produit" value={filters.query} onChange={(event) => setFilter("query", event.target.value)} /></div></div></motion.div> : null}
+        {activeFilterCount ? <div className="mt-3 flex justify-end"><Button type="button" variant="ghost" onClick={() => router.replace(pathname)}>Réinitialiser les filtres</Button></div> : null}
       </form>
       {!data ? <Skeleton className="h-64" /> : rows.length === 0 ? (
-        <EmptyState icon={<ReceiptText />} title={activeFilterCount ? "Aucun résultat pour ces filtres" : "Aucune vente sur la période"}>
-          {activeFilterCount ? "Modifiez ou réinitialisez les filtres pour élargir la recherche." : "Les ventes apparaîtront ici dès qu’un encaissement réel aura été enregistré."}
-        </EmptyState>
+        <section className="rounded-lg bg-[var(--surface)] px-5 py-7 text-center shadow-[var(--shadow-card)]"><div className="mx-auto grid size-10 place-items-center rounded-md bg-[var(--surface-subtle)] text-[var(--primary)]"><ReceiptText className="size-5" /></div><h2 className="mt-3 font-display text-lg font-semibold">{activeFilterCount ? "Aucun résultat pour ces filtres" : "Aucune vente sur la période"}</h2><p className="mx-auto mt-1 max-w-xl text-sm leading-6 text-[var(--muted)]">{activeFilterCount ? "Modifiez ou réinitialisez les filtres pour élargir la recherche." : "Les ventes validées apparaîtront ici. Vous pouvez aussi choisir une période plus large ou consulter une autre boutique."}</p><div className="mt-4 flex flex-wrap justify-center gap-2">{activeFilterCount ? <Button variant="secondary" onClick={() => router.replace(pathname)}>Réinitialiser les filtres</Button> : null}<Link href="/owner"><Button variant="secondary">Retour à la vue générale</Button></Link></div></section>
       ) : (
         <>
           <div className="hidden min-w-0 overflow-x-auto rounded-lg bg-[var(--surface)] shadow-[var(--shadow-card)] xl:block">
