@@ -346,6 +346,18 @@ Vérifications du complément :
 - `corepack pnpm exec playwright test tests/e2e/p03-business.spec.ts --project=chromium` : code 0, **1/1**, parcours complet de création, initialisation et activation d’une boutique.
 - `python scripts/check_docs.py` : code 0, **41 fichiers Markdown**, 84 scénarios et 40 écrans.
 
+### Adaptation de la caisse aux catalogues volumineux — 28 septembre 2026
+
+Sur téléphone et tablette, le catalogue de vente utilise désormais une grille dense dès 480 px et conserve la recherche visible pendant le défilement. Chaque format indique la quantité déjà placée dans le panier. Le panier n’est plus repoussé sous toute la liste : un bouton fixe affiche en permanence le nombre de lignes et le total, puis ouvre un panneau latéral accessible contenant les quantités, suppressions, total et passage au paiement. À partir de 1024 px, le panier reste affiché et fixé à droite du catalogue. Les calculs, la persistance de session et la commande serveur n’ont pas été modifiés.
+
+Vérifications du complément :
+
+- `corepack pnpm typecheck` : code 0, tous les projets.
+- `corepack pnpm lint` : code 0.
+- `corepack pnpm build` : code 0, Next.js 16.3.6, **23 routes**.
+- `corepack pnpm exec playwright test tests/e2e/p04-sale.spec.ts --project=chromium` : code 0, **1/1**, avec ajout au panier, ouverture du panneau à 768 px, encaissement et reçu.
+- `python scripts/check_docs.py` : code 0, **41 fichiers Markdown**, 84 scénarios et 40 écrans.
+
 ### Complément P04 — consultation propriétaire et synthèse commerciale
 
 Le propriétaire consulte les ventes réellement postées, ouvre une fiche détaillée et dispose sur `/owner` d’indicateurs issus des écritures P04. Aucune donnée fictive n’est affichée. Une donnée indisponible n’est pas convertie en zéro. Les coûts et la marge estimée restent dans le DTO propriétaire. Le DTO gérant continue d’exclure les coûts. Les encaissements mesurent les paiements postés de la période, distincts du solde actuel d’une source. La période civile utilise le fuseau de la boutique sélectionnée, sinon `Africa/Douala`. La période précédente a la même durée inclusive ; la variation est indisponible si le chiffre d’affaires précédent est nul ou négatif.

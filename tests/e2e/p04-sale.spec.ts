@@ -12,7 +12,11 @@ test("P04 ouvre une session, vend, encaisse et affiche le reçu", async ({ page 
   await expect(page.getByRole("heading", { name: "Nouvelle vente" })).toBeVisible();
   await page.getByRole("button", { name: "Ouvrir ma session" }).click();
   await expect(page.getByText("Biscuit E2E")).toBeVisible();
+  await page.setViewportSize({ width: 768, height: 1024 });
   await page.getByRole("button", { name: "Ajouter" }).click();
+  await expect(page.getByText("1 dans le panier")).toBeVisible();
+  await page.getByRole("button", { name: /Ouvrir le panier, 1 ligne/ }).click();
+  await expect(page.getByRole("dialog", { name: "Panier · 1 ligne" })).toBeVisible();
   await page.getByRole("button", { name: /Passer au paiement/ }).click();
   await expect(page.getByRole("heading", { name: "Encaisser la vente" })).toBeVisible();
   await expect(page.getByText("Montant du panier", { exact: true })).toBeVisible();
