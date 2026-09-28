@@ -19,7 +19,7 @@ import { Modal } from "../ui/modal";
 import { PageHeader } from "../ui/page-header";
 import { Skeleton } from "../ui/skeleton";
 
-type Shop = { id: string; code: string; name: string; status: string; manager: string | null; opening: { status: string; step: number } | null; currency?: string; timezone?: string; openingDrafts?: Array<{ status: string; step: number; version: number }> };
+type Shop = { id: string; code: string; name: string; status: string; manager: string | null; opening: { status: string; step: number } | null; updatedAt?: string; currency?: string; timezone?: string; openingDrafts?: Array<{ status: string; step: number; version: number }> };
 type Product = { id: string; name: string; sku: string | null; family: string | null; status: string; imageUrl: string | null; tracksLots: boolean; tracksExpiry: boolean; variants: Variant[] };
 type Variant = { id: string; name: string; units: Array<{ id: string; name: string; symbol: string; factor: string; prices: Array<{ amountMinor: string; validUntil: string | null }> }> };
 type Source = { id: string; shopId: string | null; name: string; type: string; status: string; accounts: Array<{ id: string; currency: string; balanceMinor: string }> };
@@ -65,16 +65,27 @@ export function ShopsPage() {
   const [feedback, setFeedback] = useState<{ error: string | null; success: string | null }>({ error: null, success: null });
   const [pending, setPending] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [query, setQuery] = useState("");
+  const [status, setStatus] = useState("ALL");
+  const shops = useMemo(() => (data?.shops ?? []).filter((shop) => {
+    const matchesQuery = `${shop.name} ${shop.code} ${shop.manager ?? ""}`.toLowerCase().includes(query.trim().toLowerCase());
+    return matchesQuery && (status === "ALL" || shop.status === status);
+  }), [data, query, status]);
   return <section className="space-y-6">
-    <PageHeader title="Boutiques" action={<Button onClick={() => setCreating(true)}><Plus className="size-4" /> Nouvelle boutique</Button>}>Créez les lieux d’exploitation, affectez un gérant puis validez leur initialisation.</PageHeader>
+    <PageHeader title="Boutiques" action={<Button onClick={() => setCreating(true)}><Plus className="size-4" /> Nouvelle boutique</Button>}>Suivez la préparation et l’activité de chaque point de vente.</PageHeader>
     <Feedback error={loadError ?? feedback.error} success={feedback.success} />
+    {data?.shops.length ? <div className="grid gap-3 rounded-lg bg-[var(--surface)] p-4 shadow-[var(--shadow-card)] sm:grid-cols-[1fr_14rem]">
+      <div><Label htmlFor="shop-search">Rechercher</Label><div className="relative mt-1.5"><Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--muted)]" /><Input id="shop-search" className="pl-9" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Nom, code ou gérant" /></div></div>
+      <div><Label htmlFor="shop-status">État</Label><select id="shop-status" value={status} onChange={(event) => setStatus(event.target.value)} className="mt-1.5 h-10 w-full rounded-md border border-[var(--separator)]/70 bg-[var(--surface-subtle)] px-3 text-sm outline-none focus-visible:ring-1 focus-visible:ring-[var(--focus)]"><option value="ALL">Toutes les boutiques</option><option value="SETUP">En préparation</option><option value="ACTIVE">Actives</option><option value="SUSPENDED">Suspendues</option><option value="CLOSED">Fermées</option></select></div>
+    </div> : null}
     <div className="space-y-3">
         {!data ? <Skeleton className="h-40" /> : data.shops.length === 0 ? <EmptyState icon={<Building2 />} title="Créez votre première boutique" action={<Button onClick={() => setCreating(true)}><Plus className="size-4" /> Créer une boutique</Button>}>Une boutique regroupe son gérant, son stock, ses fonds et son initialisation.</EmptyState> :
-          <ul className="overflow-hidden rounded-lg bg-[var(--surface)] shadow-[var(--shadow-card)]">{data.shops.map((shop) =>
-            <li key={shop.id} className="flex flex-col gap-3 border-b border-[var(--separator)]/60 px-5 py-4 last:border-0 sm:flex-row sm:items-center sm:justify-between">
-              <div><Link className="font-display font-semibold hover:text-[var(--primary)]" href={`/owner/shops/${shop.id}`}>{shop.name}</Link><p className="mt-1 text-sm text-[var(--muted)]">{shop.code} · {shop.manager ?? "Sans gérant"} · Étape {shop.opening?.step ?? 0}/13</p></div>
-              <div className="flex items-center gap-2"><Badge>{shop.status === "SETUP" ? "Configuration" : shop.status === "ACTIVE" ? "Active" : shop.status}</Badge><Link href={`/owner/shops/${shop.id}`}><Button className="h-8 px-2.5" variant="ghost">Gérer <ArrowRight className="size-3.5" /></Button></Link></div>
-            </li>)}</ul>}
+          shops.length === 0 ? <EmptyState icon={<Search />} title="Aucune boutique correspondante">Modifiez la recherche ou le filtre d’état.</EmptyState> : <ul className="grid gap-3 lg:grid-cols-2">{shops.map((shop) => { const openingValidated = shop.opening?.status === "VALIDATED"; const progress = openingValidated ? 100 : Math.min(100, ((shop.opening?.step ?? 0) / 13) * 100); const needsManager = !shop.manager; const stateLabel = shop.status === "ACTIVE" ? "Active" : shop.status === "SETUP" ? "En préparation" : shop.status === "SUSPENDED" ? "Suspendue" : shop.status === "CLOSED" ? "Fermée" : shop.status; return <li key={shop.id} className="rounded-lg bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]">
+            <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--muted)]">{shop.code}</p><Link className="mt-1 block truncate font-display text-lg font-semibold hover:text-[var(--primary)]" href={`/owner/shops/${shop.id}`}>{shop.name}</Link></div><Badge>{stateLabel}</Badge></div>
+            <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2"><div><dt className="text-[var(--muted)]">Gérant responsable</dt><dd className={`mt-1 font-semibold ${needsManager ? "text-[var(--warning)]" : ""}`}>{shop.manager ?? "À affecter"}</dd></div><div><dt className="text-[var(--muted)]">Initialisation</dt><dd className="mt-1 font-semibold">{openingValidated ? "Validée" : `${shop.opening?.step ?? 0} étape${(shop.opening?.step ?? 0) > 1 ? "s" : ""} sur 13 terminée${(shop.opening?.step ?? 0) > 1 ? "s" : ""}`}</dd></div></dl>
+            {!openingValidated ? <div className="mt-3"><div className="h-1.5 overflow-hidden rounded-full bg-[var(--surface-subtle)]"><div className="h-full rounded-full bg-[var(--primary)]" style={{ width: `${progress}%` }} /></div><p className="mt-2 text-xs text-[var(--muted)]">{needsManager ? "Affectez un gérant puis poursuivez la préparation de la boutique." : "La préparation peut être reprise sans perdre les données enregistrées."}</p></div> : <p className="mt-3 flex items-center gap-2 text-xs text-[var(--success)]"><CheckCircle2 className="size-4" /> Données initiales validées</p>}
+            <div className="mt-5 flex flex-wrap gap-2"><Link href={`/owner/shops/${shop.id}`}><Button variant="secondary">Ouvrir la fiche <ArrowRight className="size-4" /></Button></Link>{shop.status === "SETUP" ? <Link href={`/setup?shopId=${shop.id}`}><Button variant="ghost">Continuer l’initialisation</Button></Link> : null}</div>
+          </li>; })}</ul>}
     </div>
     <Modal open={creating} onOpenChange={setCreating} title="Créer une boutique" description="Enregistrez son identité. Le gérant, le stock et les fonds seront configurés ensuite." size="sm">
       <form className="space-y-5" onSubmit={(event) => {

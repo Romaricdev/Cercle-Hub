@@ -331,6 +331,21 @@ Vérifications du complément :
 - `corepack pnpm exec playwright test tests/e2e/p04-owner-sales.spec.ts --project=chromium` : code 0, **1/1**, avec contrôle de la fiche aux largeurs 320, 768, 1024 et 1440 px.
 - `python scripts/check_docs.py` : code 0, **41 fichiers Markdown**, 84 scénarios et 40 écrans.
 
+### Raffinement ergonomique des boutiques et appareils — 28 septembre 2026
+
+La liste des boutiques présente désormais chaque point de vente comme une fiche opérationnelle : état formulé en français, gérant responsable, progression compréhensible de l’initialisation et actions explicites pour ouvrir la fiche ou reprendre la préparation. Une recherche par nom, code ou gérant et un filtre d’état facilitent la gestion de plusieurs boutiques. La liste n’invente aucun indicateur de stock, de fonds ou d’activité non fourni par l’API.
+
+La page des appareils distingue les accès à approuver, autorisés et révoqués. Elle affiche la boutique rattachée, la date d’enregistrement, le dernier contact réel et la restriction à une utilisation connectée. Le libellé interne de phase a été retiré et l’action destructive est présentée comme un retrait d’autorisation, avec confirmation et motif obligatoire. La page conserve son contenu lorsqu’une action échoue afin d’afficher l’erreur dans son contexte.
+
+Vérifications du complément :
+
+- `corepack pnpm typecheck` : code 0, tous les projets.
+- `corepack pnpm lint` : code 0.
+- `corepack pnpm build` : code 0, Next.js 16.3.6, **23 routes**.
+- `corepack pnpm exec playwright test tests/e2e/owner-management-ux.spec.ts --project=chromium` : code 0, **1/1**, avec recherche, filtres et contrôle responsive à 320, 768, 1024 et 1440 px.
+- `corepack pnpm exec playwright test tests/e2e/p03-business.spec.ts --project=chromium` : code 0, **1/1**, parcours complet de création, initialisation et activation d’une boutique.
+- `python scripts/check_docs.py` : code 0, **41 fichiers Markdown**, 84 scénarios et 40 écrans.
+
 ### Complément P04 — consultation propriétaire et synthèse commerciale
 
 Le propriétaire consulte les ventes réellement postées, ouvre une fiche détaillée et dispose sur `/owner` d’indicateurs issus des écritures P04. Aucune donnée fictive n’est affichée. Une donnée indisponible n’est pas convertie en zéro. Les coûts et la marge estimée restent dans le DTO propriétaire. Le DTO gérant continue d’exclure les coûts. Les encaissements mesurent les paiements postés de la période, distincts du solde actuel d’une source. La période civile utilise le fuseau de la boutique sélectionnée, sinon `Africa/Douala`. La période précédente a la même durée inclusive ; la variation est indisponible si le chiffre d’affaires précédent est nul ou négatif.
