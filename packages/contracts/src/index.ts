@@ -7,3 +7,14 @@ export { redactLogValue } from "./log.js";
 export { assertDocumentMinor, formatMinor, multiplyPriceByQuantity, parseMinor, roundHalfUpDiv } from "./money.js";
 export { ContractError } from "./money.js";
 export { convertQuantity, formatQuantity, parseConversionFactor, parseQuantity } from "./quantity.js";
+export {
+  addCivilDays,
+  aggregatePaymentsByType,
+  averageBasketMinor,
+  civilToUtcDate,
+  inclusiveCivilDays,
+  parseCivilDate,
+  paymentTypeOf,
+  periodVariation,
+  previousCivilPeriod,
+} from "./sales-metrics.js";

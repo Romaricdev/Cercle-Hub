@@ -16,7 +16,7 @@ Vérifications exécutées après ce complément : lint réussi, typecheck monor
 | P01 — Socle technique et qualité | RÉALISÉE LOCALEMENT | Commandes de socle exécutées sur Node 24.21.0 ; limites listées dans le compte rendu P01 |
 | P02 — Accès sécurisés et design system | RÉALISÉE LOCALEMENT ; P02-GATE TERMINÉ | Preuves dans le compte rendu P02 et la stabilisation SEC12 ci-dessous |
 | P03 — Boutiques, catalogue et initialisation | RÉALISÉE LOCALEMENT ; P03-GATE TERMINÉ | Migrations, API, écrans et recette locale décrits dans le compte rendu P03 |
-| P04 — Ventes en ligne | RÉALISÉE LOCALEMENT ; P04-GATE TERMINÉ | Vente gérant, session, devis, paiements, stock/coûts/fonds/journal, reçus et historique couverts par la recette P04 |
+| P04 — Ventes en ligne | RÉALISÉE LOCALEMENT ; P04-GATE TERMINÉ | Vente gérant, historique et fiche propriétaire, dashboard commercial P04 et recette locale ; P05 non commencée |
 | P05 — Caisse, dépenses et clôture | NON COMMENCÉE | Aucun livrable applicatif ; démarrage non autorisé |
 | P06 — Achats et réapprovisionnement | NON COMMENCÉE | Aucun livrable applicatif ; démarrage non autorisé |
 | P07 — Crédit, retours et inventaires | NON COMMENCÉE | Aucun livrable applicatif ; démarrage non autorisé |
@@ -299,3 +299,39 @@ Pour un paiement unique, le total du panier est désormais affecté automatiquem
 - `corepack pnpm typecheck` : code 0, tous les projets.
 - `corepack pnpm build` : code 0, 22 routes.
 - `corepack pnpm exec playwright test tests/e2e/p04-sale.spec.ts --project=chromium` : code 0, **1/1**.
+
+### Raffinement ergonomique de la vue générale propriétaire — 28 septembre 2026
+
+La vue `/owner` utilise désormais un en-tête opérationnel compact, des raccourcis vers les ventes et les sources, une barre unique de périmètre/période et quatre indicateurs commerciaux prioritaires. En l’absence de ventes, un seul état vide contextualisé remplace les tableaux et répétitions de montants nuls. Les ventes récentes, encaissements non nuls, comparaisons multi-boutiques et produits vendus ne sont affichés que lorsqu’ils apportent une information exploitable. La variation n’est plus mise en avant lorsque la période ne contient aucune vente.
+
+- `corepack pnpm lint` : code 0.
+- `corepack pnpm typecheck` : code 0, tous les projets.
+- `corepack pnpm build` : code 0, 23 routes.
+- `corepack pnpm exec playwright test tests/e2e/p02-responsive.spec.ts --project=chromium` : code 0, **2/2**.
+- `corepack pnpm exec playwright test tests/e2e/p04-owner-sales.spec.ts --project=chromium` : code 0, **1/1** après adaptation des libellés de filtre et d’action.
+
+### Complément P04 — consultation propriétaire et synthèse commerciale
+
+Le propriétaire consulte les ventes réellement postées, ouvre une fiche détaillée et dispose sur `/owner` d’indicateurs issus des écritures P04. Aucune donnée fictive n’est affichée. Une donnée indisponible n’est pas convertie en zéro. Les coûts et la marge estimée restent dans le DTO propriétaire. Le DTO gérant continue d’exclure les coûts. Les encaissements mesurent les paiements postés de la période, distincts du solde actuel d’une source. La période civile utilise le fuseau de la boutique sélectionnée, sinon `Africa/Douala`. La période précédente a la même durée inclusive ; la variation est indisponible si le chiffre d’affaires précédent est nul ou négatif.
+
+Livrables :
+
+- Routes `GET /owner/sales` et `GET /owner/sales/:id` ; `GET /reports/overview` accepte `from`/`to` en plus de `shopId`.
+- Interfaces `/owner/sales` et `/owner/sales/[id]`, navigation « Ventes », dashboard `/owner` enrichi (périmètre, période, fraîcheur, ventes récentes, comparaison de boutiques, encaissements par type, produits vendus).
+- Agrégats `packages/contracts/src/sales-metrics.ts` et requêtes `packages/domain/src/p04-overview.ts`.
+- Migration additive `20260926200000_p04_owner_sales_indexes` : index de liste par organisation/boutique/gérant/date.
+
+Recette réellement exécutée le 26 septembre 2026 :
+
+- `corepack pnpm lint` : code 0.
+- `corepack pnpm typecheck` : code 0, tous les projets.
+- `corepack pnpm test` : code 0, **10 fichiers, 25/25 tests**.
+- `corepack pnpm db:replay-test` : code 0, base `cercle_complet_test` recréée vide.
+- `corepack pnpm db:migrate` : code 0 sur la base locale existante ; application de `20260926200000_p04_owner_sales_indexes` sans suppression de données.
+- `corepack pnpm test:integration` : code 0, **7 fichiers, 42/42 tests** sur PostgreSQL réel, dont liste multi-boutiques, filtres, pagination, détail, monnaie, coût/marge, isolation inter-organisation, 401/403, paramètres invalides et absence de coût dans le DTO gérant.
+- `corepack pnpm build` : code 0, Next.js 16.3.6, routes `/owner/sales` et `/owner/sales/[id]` ajoutées.
+- `corepack pnpm exec playwright test --project=chromium` : code 0, **17/17**. Le premier `corepack pnpm test:e2e` a échoué parce que le port 4311 était encore occupé par un serveur précédent ; après libération et démarrage via `corepack pnpm`, la suite Chromium complète a réussi, y compris le parcours propriétaire 320/768/1024/1440.
+- `python scripts/check_docs.py` : code 0, 41 fichiers Markdown, 84 scénarios et 40 écrans.
+- `python scripts/check_design_examples.py` : code 0, exemples RM02, RM10, RM11, T57 et T84 cohérents.
+
+Limites restantes : P05 (clôture, comptage, dépenses) non commencée ; P07 (crédits, retours, remboursements) non commencée ; P08 hors connexion non commencé ; P09 exports CSV/PDF et graphiques analytiques non commencés. Aucun seuil de stock n’est inventé. Firefox et WebKit ne sont pas revendiqués. Node local observé : 24.14.0, inférieur à l’exigence `>=24.21.0` ; les lancements de tests passent par `corepack pnpm` et `PNPM_IGNORE_ENGINE=1` uniquement pour les processus enfants de recette.

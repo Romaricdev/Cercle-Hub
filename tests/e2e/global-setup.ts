@@ -13,6 +13,8 @@ const ownerEmail = "owner.p02.e2e@example.test";
 const ownerTotpEmail = "owner.p02.totp@example.test";
 const ownerP03Email = "owner.p03.e2e@example.test";
 const managerP04Email = "manager.p04.e2e@example.test";
+const ownerP04Email = "owner.p04.e2e@example.test";
+const managerP04OwnerEmail = "manager.p04.owner.e2e@example.test";
 
 export default async function globalSetup(): Promise<void> {
   loadRootEnv();
@@ -22,9 +24,9 @@ export default async function globalSetup(): Promise<void> {
   if (!databaseUrl || !migrationUrl || !secret) {
     throw new Error("La base de test et le secret local sont requis pour l’E2E.");
   }
-  await execFileAsync("pnpm", ["--filter", "@cercle/database", "exec", "prisma", "migrate", "deploy"], {
+  await execFileAsync("corepack", ["pnpm", "--filter", "@cercle/database", "exec", "prisma", "migrate", "deploy"], {
     cwd: process.cwd(),
-    env: { ...process.env, DATABASE_MIGRATION_URL: migrationUrl },
+    env: { ...process.env, DATABASE_MIGRATION_URL: migrationUrl, PNPM_IGNORE_ENGINE: "1" },
     shell: true,
   });
   const prisma = createPrismaClient(databaseUrl);
@@ -97,6 +99,34 @@ export default async function globalSetup(): Promise<void> {
     name: "Propriétaire TOTP",
     organizationId: organization.id,
   });
+  await ensureOwner(prisma, auth, {
+    email: ownerP04Email,
+    name: "Propriétaire P04 ventes",
+    organizationId: organization.id,
+  });
+  const ownerSalesAuth = await prisma.user.findUnique({ where: { email: managerP04OwnerEmail } }) ?? (await auth.api.signUpEmail({ body: { email: managerP04OwnerEmail, password, name: "Gérant Pilotage P04" } })).user;
+  const ownerSalesManager = await prisma.appUser.upsert({
+    where: { authUserId: ownerSalesAuth.id },
+    create: { authUserId: ownerSalesAuth.id, organizationId: organization.id, role: "MANAGER", displayName: "Gérant Pilotage P04" },
+    update: { organizationId: organization.id, status: "ACTIVE" },
+  });
+  await prisma.managerAssignment.updateMany({
+    where: { userId: ownerSalesManager.id, endedAt: null },
+    data: { endedAt: new Date() },
+  });
+  const ownerShop = await prisma.shop.create({ data: { organizationId: organization.id, code: `P04O${Date.now().toString().slice(-5)}`, name: "Boutique Pilotage E2E", status: "ACTIVE", activatedAt: new Date() } });
+  await prisma.shop.create({ data: { organizationId: organization.id, code: `P04X${Date.now().toString().slice(-5)}`, name: "Autre Boutique E2E", status: "ACTIVE", activatedAt: new Date() } });
+  await prisma.managerAssignment.create({ data: { shopId: ownerShop.id, userId: ownerSalesManager.id, reason: "Recette propriétaire P04" } });
+  await prisma.device.create({ data: { organizationId: organization.id, shopId: ownerShop.id, userId: ownerSalesManager.id, publicKey: `e2e-p04-owner-${crypto.randomUUID()}-public-key-material`, name: "Tablette pilotage E2E", status: "ACTIVE" } });
+  const ownerLocation = await prisma.location.create({ data: { organizationId: organization.id, shopId: ownerShop.id, name: "Stock Pilotage E2E", type: "SHOP" } });
+  const ownerProduct = await prisma.product.create({ data: { organizationId: organization.id, name: "Galette E2E", sku: `GAL-${Date.now()}`, shops: { create: { shopId: ownerShop.id } } } });
+  const ownerVariant = await prisma.productVariant.create({ data: { productId: ownerProduct.id, name: "Pièce" } });
+  const ownerUnit = await prisma.saleUnit.create({ data: { variantId: ownerVariant.id, name: "Pièce", symbol: "pc", factor: "1", precision: 0, isReference: true } });
+  await prisma.price.create({ data: { saleUnitId: ownerUnit.id, shopId: ownerShop.id, amountMinor: 1500n, validFrom: new Date() } });
+  const ownerSource = await prisma.paymentSource.create({ data: { organizationId: organization.id, shopId: ownerShop.id, name: "Caisse Pilotage E2E", type: "CASH" } });
+  await prisma.moneyAccount.create({ data: { organizationId: organization.id, shopId: ownerShop.id, paymentSourceId: ownerSource.id, name: ownerSource.name, currency: "XAF", balanceMinor: 80000n } });
+  await prisma.stockBalance.create({ data: { shopId: ownerShop.id, variantId: ownerVariant.id, locationId: ownerLocation.id, quantity: "10" } });
+  await prisma.costLayer.create({ data: { variantId: ownerVariant.id, locationId: ownerLocation.id, originType: "e2e_fixture", originId: ownerShop.id, initialQuantity: "10", remainingQuantity: "10", unitCostMinor: 700n, receivedAt: new Date() } });
   await prisma.$disconnect();
 }
 
@@ -132,3 +162,5 @@ export const e2eOwner = { email: ownerEmail, password };
 export const e2eOwnerTotp = { email: ownerTotpEmail, password };
 export const e2eOwnerP03 = { email: ownerP03Email, password };
 export const e2eManagerP04 = { email: managerP04Email, password };
+export const e2eOwnerP04 = { email: ownerP04Email, password };
+export const e2eManagerP04Owner = { email: managerP04OwnerEmail, password };

@@ -35,6 +35,7 @@ import { ThemeSwitcher } from "./theme-switcher";
 
 const ownerLinks = [
   { href: paths.ownerHome, label: "Vue générale", icon: LayoutDashboard },
+  { href: paths.ownerSales, label: "Ventes", icon: ReceiptText },
   { href: paths.ownerShops, label: "Boutiques", icon: Building2 },
   { href: paths.ownerProducts, label: "Catalogue", icon: Boxes },
   { href: paths.ownerStock, label: "Stock", icon: Warehouse },
@@ -103,8 +104,10 @@ export function AppShell({ role, children }: { role: "OWNER" | "MANAGER"; childr
 
   const links = role === "OWNER" ? ownerLinks : managerLinks;
   const pageLabel =
+    pathname.startsWith("/owner/sales/") ? "Détail de vente" :
     ({
       [paths.ownerHome]: "Vue générale",
+      [paths.ownerSales]: "Ventes",
       [paths.ownerUsers]: "Utilisateurs",
       [paths.ownerDevices]: "Appareils",
       [paths.ownerAccount]: "Mon compte",
@@ -297,7 +300,7 @@ export function AppShell({ role, children }: { role: "OWNER" | "MANAGER"; childr
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-          className="mx-auto w-full max-w-[96rem] px-4 pb-12 pt-6 md:px-6 lg:px-8"
+          className="mx-auto min-w-0 w-full max-w-[96rem] overflow-x-clip px-4 pb-12 pt-6 md:px-6 lg:px-8"
         >
           {children}
         </motion.main>

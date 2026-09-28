@@ -24,6 +24,7 @@ export const paths = {
   ownerLocations: "/owner/locations",
   ownerSettings: "/owner/settings",
   ownerStock: "/owner/stock",
+  ownerSales: "/owner/sales",
   setup: "/setup",
   managerHome: "/manager",
   managerDevice: "/manager/device",

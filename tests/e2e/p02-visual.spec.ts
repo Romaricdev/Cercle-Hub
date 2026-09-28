@@ -47,7 +47,7 @@ test("captures visuelles P02 clair, sombre et formats", async ({ page }) => {
     await page.getByLabel("Code TOTP").fill(currentTotp(uri));
     await page.getByRole("button", { name: "Confirmer" }).click();
   }
-  await expect(page.getByRole("heading", { name: /Bonjour/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Vue générale/ })).toBeVisible();
   await page.screenshot({ path: resolve(out, "proprietaire-1440.png"), fullPage: true });
   await page.getByRole("link", { name: "Utilisateurs" }).click();
   await expect(page.getByRole("heading", { name: "Équipe et accès" })).toBeVisible();

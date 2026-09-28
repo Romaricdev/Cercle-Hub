@@ -142,7 +142,7 @@ Les routes `/sales` et `/sync/push` ne constituent pas deux chemins de posting :
 | POST `/attachments/upload-intent` | documentType/id,mime,size,name,sha256 ; URL privée temporaire |
 | POST `/attachments/:id/complete` | vérification objet puis scan |
 | GET `/attachments/:id/download` | URL signée après autorisation |
-| GET `/reports/overview` | shopId? ; état serveur SETUP/EMPTY, périmètre, devise, fuseau, calculatedAt, fraîcheur, couverture, indicateurs P03 et alertes sourcées |
+| GET `/reports/overview` | shopId?, from?, to? ; état SETUP/EMPTY/ACTIVE, période civile, fraîcheur, indicateurs P03 et, si des ventes existent, KPIs P04, encaissements par type, ventes récentes, comparaison de boutiques et produits vendus |
 | POST `/exports` | type,format CSV/PDF,filters ; jobId |
 | GET `/exports/:id` | état et URL courte après droits |
 | GET `/notifications` | cursor,unreadOnly |
@@ -168,8 +168,12 @@ Le premier chemin en ligne utilise les routes ci-dessous. L’enveloppe signée 
 | POST `/sales` | `{authorizationId,lines,payments:[{accountId,amountMinor,cashReceivedMinor?,changeGivenMinor?,externalReference?}]}` ; `Idempotency-Key` UUID obligatoire ; revalide puis poste atomiquement |
 | GET `/sales` | Historique de la boutique affectée au gérant |
 | GET `/sales/:id` | Reçu autorisé de la boutique affectée ; coûts internes exclus de l’interface gérant |
+| GET `/owner/sales` | Propriétaire uniquement ; `shopId?`, `from?`, `to?`, `managerId?`, `status?`, `paymentSourceId?`, `query?`, `cursor?`, `limit?` ; page, curseur, totaux filtrés, période et fraîcheur |
+| GET `/owner/sales/:id` | DTO propriétaire distinct : vente, boutique, gérant, appareil, lignes, paiements, monnaie, coûts/marge estimée, chronologie existante |
 
 Une ligne P04 référence le format vendu (`saleUnitId`) et une quantité décimale bornée à six chiffres. Le serveur résout la variante, le prix courant et le facteur de stock. `discountMinor` est un montant par ligne contrôlé par la politique effective. Pour les espèces, `amountMinor` est le montant affecté à la vente, `cashReceivedMinor` le montant remis par le client et `changeGivenMinor` la monnaie effectivement rendue. Le serveur recalcule `changeDueMinor = cashReceivedMinor - amountMinor`, exige l’égalité avec `changeGivenMinor`, et seul `amountMinor` crédite la caisse et le chiffre d’affaires. Le reçu restitue les trois montants.
+
+Les dates `from`/`to` sont des jours civils `AAAA-MM-JJ`. Sans filtre, la période par défaut est le jour civil courant dans le fuseau de la boutique demandée, sinon `Africa/Douala`. Le champ `businessDate` de chaque vente est déjà calculé dans ce fuseau au posting. Le chiffre d’affaires est la somme des `netMinor` des ventes `POSTED` ; les encaissements sont la somme des `sale_payments.amountMinor` de ces ventes, jamais le solde courant d’un compte. Le panier moyen est une division entière `bigint` ; il est indisponible sans vente. La variation compare deux périodes de même durée inclusive et reste indisponible si le chiffre d’affaires précédent est ≤ 0. Les montants restent des chaînes d’entiers mineurs. Un identifiant de boutique ou de vente hors organisation est refusé. Un gérant ne peut pas appeler les routes `/owner/sales`.
 
 ### Complément de gestion des sources de fonds
 

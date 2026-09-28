@@ -19,7 +19,7 @@ export default defineConfig({
   },
   webServer: [
     {
-      command: "pnpm --filter @cercle/api start",
+      command: "corepack pnpm --filter @cercle/api start",
       url: "http://127.0.0.1:4311/api/v1/health/live",
       reuseExistingServer: false,
       timeout: 120_000,
@@ -30,16 +30,18 @@ export default defineConfig({
         PUBLIC_ORIGIN: "http://127.0.0.1:8080",
         WEB_ORIGIN: "http://127.0.0.1:8080",
         API_PORT: "4311",
+        PNPM_IGNORE_ENGINE: "1",
       },
     },
     {
-      command: "pnpm --filter @cercle/web start",
+      command: "corepack pnpm --filter @cercle/web start",
       url: "http://127.0.0.1:4310/health",
       reuseExistingServer: false,
       timeout: 120_000,
       env: {
         ...process.env,
         NODE_ENV: "production",
+        PNPM_IGNORE_ENGINE: "1",
       },
     },
   ],

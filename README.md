@@ -60,6 +60,7 @@ corepack pnpm --filter @cercle/web start
 | Même origine via Caddy | http://127.0.0.1:8080 |
 | Connexion | http://127.0.0.1:8080/login |
 | Propriétaire | http://127.0.0.1:8080/owner |
+| Ventes propriétaire | http://127.0.0.1:8080/owner/sales |
 | Initialisation | http://127.0.0.1:8080/setup |
 | Stock gérant | http://127.0.0.1:8080/manager/stock |
 

@@ -1,10 +1,10 @@
-import { Body, Controller, Get, Headers, HttpCode, Inject, Param, Post, Req, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Headers, HttpCode, Inject, Param, Post, Query, Req, UseGuards } from "@nestjs/common";
 import { PROTOCOL_VERSION } from "@cercle/contracts";
 import type { PrismaClient } from "@cercle/database";
-import { DomainError, getSale, listSales, managerSaleContext, openCashSession, postSale, quoteSale } from "@cercle/domain";
+import { DomainError, getOwnerSale, getSale, listOwnerSales, listSales, managerSaleContext, openCashSession, postSale, quoteSale } from "@cercle/domain";
 import { z } from "zod";
 
-import { AuthenticatedGuard, OwnerMfaGuard, requireActor, type Actor } from "../auth/guards.js";
+import { AuthenticatedGuard, OwnerGuard, OwnerMfaGuard, requireActor, type Actor } from "../auth/guards.js";
 import { DomainHttpError } from "../http/domain-http.js";
 import { PRISMA } from "../tokens.js";
 
@@ -55,6 +55,52 @@ export class P04Controller {
   async create(@Req() request: RequestWithActor, @Headers("idempotency-key") key: string | undefined, @Body() body: unknown) {
     try { return { protocolVersion: PROTOCOL_VERSION, ...(await postSale(this.prisma, this.context(request, key), saleSchema.parse(body))) }; }
     catch (error) { throw DomainHttpError.from(error); }
+  }
+
+  @Get("owner/sales")
+  @UseGuards(OwnerGuard)
+  async ownerList(
+    @Req() request: RequestWithActor,
+    @Query("shopId") shopId?: string,
+    @Query("from") from?: string,
+    @Query("to") to?: string,
+    @Query("managerId") managerId?: string,
+    @Query("status") status?: string,
+    @Query("paymentSourceId") paymentSourceId?: string,
+    @Query("query") query?: string,
+    @Query("cursor") cursor?: string,
+    @Query("limit") limit?: string,
+  ) {
+    try {
+      const actor = requireActor(request);
+      return {
+        protocolVersion: PROTOCOL_VERSION,
+        ...(await listOwnerSales(this.prisma, actor.organizationId, {
+          shopId: shopId ? z.uuid().parse(shopId) : undefined,
+          from,
+          to,
+          managerId: managerId ? z.uuid().parse(managerId) : undefined,
+          status,
+          paymentSourceId: paymentSourceId ? z.uuid().parse(paymentSourceId) : undefined,
+          query,
+          cursor,
+          limit: limit ? z.coerce.number().int().parse(limit) : undefined,
+        })),
+      };
+    } catch (error) {
+      throw DomainHttpError.from(error);
+    }
+  }
+
+  @Get("owner/sales/:id")
+  @UseGuards(OwnerGuard)
+  async ownerDetail(@Req() request: RequestWithActor, @Param("id") id: string) {
+    try {
+      const actor = requireActor(request);
+      return { protocolVersion: PROTOCOL_VERSION, sale: await getOwnerSale(this.prisma, actor.organizationId, z.uuid().parse(id)) };
+    } catch (error) {
+      throw DomainHttpError.from(error);
+    }
   }
 
   @Get("sales")

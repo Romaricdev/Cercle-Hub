@@ -3,6 +3,7 @@ import type { Prisma, PrismaClient } from "@cercle/database";
 
 import { writeAudit } from "./audit.js";
 import { DomainError, withDeadlockRetry } from "./errors.js";
+import { ownerSalesCommerce, type OverviewPeriodQuery } from "./p04-overview.js";
 
 type Tx = Prisma.TransactionClient;
 type JsonResult = Prisma.InputJsonObject;
@@ -830,10 +831,10 @@ export async function listStockMovements(prisma: PrismaClient, organizationId: s
   }));
 }
 
-export async function ownerOverview(prisma: PrismaClient, organizationId: string, shopId?: string) {
+export async function ownerOverview(prisma: PrismaClient, organizationId: string, shopId?: string, period?: OverviewPeriodQuery) {
   const scope = shopId ? { organizationId, id: shopId } : { organizationId };
   if (shopId && !(await prisma.shop.count({ where: scope }))) throw new DomainError("SHOP_NOT_FOUND", "Boutique introuvable.", 404);
-  const [shops, products, variants, stock, funds, sources, productsWithoutPrice, sales] = await Promise.all([
+  const [shops, products, variants, stock, funds, sources, productsWithoutPrice, commerce] = await Promise.all([
     prisma.shop.groupBy({ by: ["status"], where: scope, _count: true }),
     prisma.product.count({ where: { organizationId, ...(shopId ? { shops: { some: { shopId, active: true } } } : {}) } }),
     prisma.productVariant.count({ where: { product: { organizationId, ...(shopId ? { shops: { some: { shopId, active: true } } } : {}) } } }),
@@ -841,7 +842,7 @@ export async function ownerOverview(prisma: PrismaClient, organizationId: string
     prisma.moneyAccount.aggregate({ where: { organizationId, ...(shopId ? { shopId } : {}) }, _sum: { balanceMinor: true } }),
     prisma.paymentSource.count({ where: { organizationId, status: "ACTIVE", ...(shopId ? { OR: [{ shopId }, { shopId: null }] } : {}) } }),
     prisma.product.count({ where: { organizationId, variants: { some: { units: { none: { prices: { some: { validUntil: null, ...(shopId ? { OR: [{ shopId }, { shopId: null }] } : {}) } } } } } } } }),
-    prisma.sale.aggregate({ where: { organizationId, status: "POSTED", ...(shopId ? { shopId } : {}) }, _count: true, _sum: { netMinor: true } }),
+    ownerSalesCommerce(prisma, organizationId, { shopId, from: period?.from, to: period?.to }),
   ]);
   const active = shops.find((row) => row.status === "ACTIVE")?._count ?? 0;
   const totalShops = shops.reduce((sum, row) => sum + row._count, 0);
@@ -851,10 +852,11 @@ export async function ownerOverview(prisma: PrismaClient, organizationId: string
     return sum + (scaled * layer.unitCostMinor) / 1_000_000n;
   }, 0n);
   return {
-    state: active > 0 ? (sales._count > 0 ? "ACTIVE" : "EMPTY") : "SETUP",
+    state: active > 0 ? (commerce.allTimeCount > 0 ? "ACTIVE" : "EMPTY") : "SETUP",
     scope: shopId ? { type: "SHOP", shopId } : { type: "GLOBAL" },
     currency: "XAF",
-    timezone: "Africa/Douala",
+    timezone: commerce.period.timezone,
+    period: commerce.period,
     calculatedAt: new Date().toISOString(),
     freshness: "LIVE",
     coverage: "P04",
@@ -866,8 +868,20 @@ export async function ownerOverview(prisma: PrismaClient, organizationId: string
         valueMinor: stockValue.toString(),
       },
       funds: { balanceMinor: (funds._sum.balanceMinor ?? 0n).toString(), activeSources: sources },
-      sales: { count: sales._count, revenueMinor: (sales._sum.netMinor ?? 0n).toString() },
+      sales: {
+        available: commerce.available,
+        count: commerce.count,
+        revenueMinor: commerce.revenueMinor,
+        collectedMinor: commerce.collectedMinor,
+        averageBasketMinor: commerce.averageBasketMinor,
+        shopsWithSales: commerce.shopsWithSales,
+        variation: commerce.variation,
+      },
     },
+    collections: commerce.collections,
+    recentSales: commerce.recentSales,
+    shopComparisons: commerce.shops,
+    topProducts: commerce.topProducts,
     alerts: [
       ...(productsWithoutPrice ? [{ code: "PRODUCTS_WITHOUT_PRICE", count: productsWithoutPrice }] : []),
       ...(!active ? [{ code: "NO_ACTIVE_SHOP", count: totalShops }] : []),

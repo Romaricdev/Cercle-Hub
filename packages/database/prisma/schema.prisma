@@ -608,6 +608,9 @@ model Sale {
 
   @@unique([organizationId, reference])
   @@index([shopId, postedAt])
+  @@index([organizationId, businessDate, postedAt, id])
+  @@index([organizationId, shopId, businessDate])
+  @@index([organizationId, actorId, businessDate])
   @@map("sales")
 }
 
@@ -650,6 +653,7 @@ model SalePayment {
   account           MoneyAccount @relation(fields: [accountId], references: [id], onDelete: Restrict)
 
   @@index([saleId])
+  @@index([accountId])
   @@map("sale_payments")
 }
 

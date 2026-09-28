@@ -15,7 +15,7 @@ test("P03 configure puis active une boutique sans donnée commerciale fictive", 
   const uri = await page.getByTestId("totp-uri").innerText();
   await page.getByLabel("Code TOTP").fill(currentTotp(uri));
   await page.getByRole("button", { name: "Confirmer" }).click();
-  await expect(page.getByRole("heading", { name: /Bonjour/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Vue générale/ })).toBeVisible();
 
   await page.goto("/owner/shops");
   await page.getByRole("button", { name: "Nouvelle boutique" }).click();

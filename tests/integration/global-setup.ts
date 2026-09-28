@@ -37,9 +37,9 @@ export default async function setup(): Promise<void> {
   await owner.query("ALTER SCHEMA public OWNER TO cercle_migrator");
   await owner.query("GRANT USAGE ON SCHEMA public TO cercle_app");
   await owner.end();
-  await execFileAsync("pnpm", ["--filter", "@cercle/database", "exec", "prisma", "migrate", "deploy"], {
+  await execFileAsync("corepack", ["pnpm", "--filter", "@cercle/database", "exec", "prisma", "migrate", "deploy"], {
     cwd: process.cwd(),
-    env: { ...process.env, DATABASE_MIGRATION_URL: migrationUrl },
+    env: { ...process.env, DATABASE_MIGRATION_URL: migrationUrl, PNPM_IGNORE_ENGINE: "1" },
     shell: true,
   });
 }

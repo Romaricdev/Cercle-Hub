@@ -467,8 +467,25 @@ export class P03Controller {
 
   @Get("reports/overview")
   @UseGuards(OwnerGuard)
-  async overview(@Req() request: RequestWithActor, @Query("shopId") shopId?: string) {
+  async overview(
+    @Req() request: RequestWithActor,
+    @Query("shopId") shopId?: string,
+    @Query("from") from?: string,
+    @Query("to") to?: string,
+  ) {
     const actor = requireActor(request);
-    return { protocolVersion: PROTOCOL_VERSION, ...(await ownerOverview(this.prisma, actor.organizationId, shopId ? z.uuid().parse(shopId) : undefined)) };
+    try {
+      return {
+        protocolVersion: PROTOCOL_VERSION,
+        ...(await ownerOverview(
+          this.prisma,
+          actor.organizationId,
+          shopId ? z.uuid().parse(shopId) : undefined,
+          { from, to },
+        )),
+      };
+    } catch (error) {
+      throw DomainHttpError.from(error);
+    }
   }
 }

@@ -50,7 +50,7 @@ export function RefinedSalePaymentPage() {
   useEffect(() => {
     if (!quote) return;
     setPayments((current) => current.length === 1 && current[0] && !current[0].amountMinor ? [{ ...current[0], amountMinor: quote.netMinor }] : current);
-  }, [quote]);
+  }, [quote, context]);
 
   const total = BigInt(quote?.netMinor ?? "0");
   const allocated = payments.reduce((sum, payment) => sum + numeric(payment.amountMinor), 0n);
