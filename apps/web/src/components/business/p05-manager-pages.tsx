@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Banknote, Search, WalletCards } from "lucide-react";
+import { ArrowRight, Banknote, FileUp, LockKeyhole, Search, WalletCards } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -54,6 +54,19 @@ function leakCheck(value: unknown) {
   return JSON.stringify(value).includes("expectedMinor") || JSON.stringify(value).includes("balanceMinor");
 }
 
+function formatBusinessDate(value: string) {
+  return new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${value}T00:00:00Z`));
+}
+
+async function filePayload(file: File) {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  const sha256 = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+  let binary = "";
+  for (let offset = 0; offset < bytes.length; offset += 0x8000) binary += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000));
+  return { sha256, base64: btoa(binary) };
+}
+
 export function ManagerCashPage() {
   const router = useRouter();
   const [data, setData] = useState<SessionPayload | null>(null);
@@ -75,7 +88,7 @@ export function ManagerCashPage() {
   return (
     <section className="space-y-6 overflow-x-clip">
       <PageHeader title="Caisse du jour" action={session?.status === "OPEN" ? <Button onClick={() => router.push(paths.managerCashCount)}>Commencer le comptage</Button> : undefined}>
-        {session ? `${session.shopName} · activité du ${session.businessDate}` : "Ouvrez une session pour rattacher les opérations de la journée."}
+        {session ? `${session.shopName} · activité du ${formatBusinessDate(session.businessDate)}` : "Ouvrez une session pour rattacher les opérations de la journée."}
       </PageHeader>
       {error ? <Alert tone="error">{error}</Alert> : null}
       {!session ? (
@@ -92,7 +105,7 @@ export function ManagerCashPage() {
             </article>
             <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]">
               <p className="text-sm text-[var(--muted)]">Date d’activité</p>
-              <p className="mt-1 font-display text-lg font-semibold">{session.businessDate}</p>
+              <p className="mt-1 font-display text-lg font-semibold">{formatBusinessDate(session.businessDate)}</p>
               <div className="mt-2"><Badge tone={sessionStatus[session.status]?.tone ?? "neutral"}>{sessionStatus[session.status]?.label ?? session.status}</Badge></div>
             </article>
             <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]">
@@ -102,11 +115,11 @@ export function ManagerCashPage() {
             </article>
           </div>
           {session.status === "COUNTING" ? <Alert>Le comptage est en cours. Les ventes et décaissements sont suspendus jusqu’à l’enregistrement ou l’annulation.</Alert> : null}
-          <div className="flex flex-wrap gap-2">
-            <Link href={paths.managerExpenses}><Button variant="secondary">Demander une dépense</Button></Link>
-            <Link href={paths.managerFunds}><Button variant="secondary">Mouvement de fonds</Button></Link>
-            {session.status === "COUNTING" ? <Button onClick={() => router.push(paths.managerCashCount)}>Reprendre le comptage</Button> : null}
-          </div>
+          {session.status === "COUNTING" ? (
+            <div className="flex flex-wrap items-center gap-3"><Button onClick={() => router.push(paths.managerCashCount)}>Reprendre le comptage</Button><p className="text-sm text-[var(--muted)]">Les dépenses et mouvements reprendront après l’enregistrement ou l’annulation du comptage.</p></div>
+          ) : (
+            <div className="flex flex-wrap gap-2"><Link href={paths.managerExpenses}><Button variant="secondary">Demander une dépense</Button></Link><Link href={paths.managerFunds}><Button variant="secondary">Mouvement de fonds</Button></Link></div>
+          )}
           <section className="grid gap-4 xl:grid-cols-2">
             <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]">
               <h2 className="font-display font-semibold">Ventes enregistrées</h2>
@@ -123,17 +136,17 @@ export function ManagerCashPage() {
       )}
       <section className="space-y-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <h2 className="font-display text-lg font-semibold">Historique des sessions</h2>
+          <h2 className="font-display text-lg font-semibold">Sessions récentes</h2>
           <label className="relative block w-full sm:max-w-xs"><Search className="absolute left-3 top-3 size-4 text-[var(--muted)]" /><span className="sr-only">Rechercher une session</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Date ou état" className="h-11 w-full rounded-lg bg-[var(--surface)] pl-10 pr-4 text-sm shadow-[var(--shadow-card)] outline-none focus:ring-2 focus:ring-[var(--focus)]" /></label>
         </div>
         {!history ? <Skeleton className="h-40" /> : filtered.length === 0 ? <EmptyState title="Aucune session correspondante">Les sessions clôturées de cette boutique apparaîtront ici.</EmptyState> : (
-          <ul className="grid gap-3 xl:hidden">{filtered.map((row) => <li key={row.id} className="rounded-xl bg-[var(--surface)] p-4 shadow-[var(--shadow-card)]"><p className="font-semibold">{row.businessDate}</p><p className="mt-1 text-sm text-[var(--muted)]">{sessionStatus[row.status]?.label}</p>{row.status === "CLOSED" && row.declaredMinor ? <p className="mt-2 tabular-nums">{formatFcfa(row.declaredMinor)}</p> : null}</li>)}</ul>
+          <ul className="grid gap-3 xl:hidden">{filtered.map((row) => <li key={row.id} className="rounded-xl bg-[var(--surface)] p-4 shadow-[var(--shadow-card)]"><p className="font-semibold">{formatBusinessDate(row.businessDate)}</p><p className="mt-1 text-sm text-[var(--muted)]">{sessionStatus[row.status]?.label}</p>{row.status === "CLOSED" && row.declaredMinor ? <p className="mt-2 tabular-nums">{formatFcfa(row.declaredMinor)}</p> : null}</li>)}</ul>
         )}
         {history && filtered.length > 0 ? (
           <div className="hidden overflow-x-auto rounded-xl bg-[var(--surface)] shadow-[var(--shadow-card)] xl:block">
             <table className="w-full text-sm">
               <thead className="sticky top-0 bg-[var(--surface)] text-left text-[var(--muted)]"><tr><th className="px-5 py-3 font-medium">Date</th><th className="px-5 py-3 font-medium">État</th><th className="px-5 py-3 font-medium">Ouverture</th><th className="px-5 py-3 text-right font-medium">Déclaré</th></tr></thead>
-              <tbody>{filtered.map((row) => <tr key={row.id} className="border-t border-[var(--separator)]/50"><td className="px-5 py-3">{row.businessDate}</td><td className="px-5 py-3"><Badge tone={sessionStatus[row.status]?.tone ?? "neutral"}>{sessionStatus[row.status]?.label ?? row.status}</Badge></td><td className="px-5 py-3 text-[var(--muted)]">{new Date(row.openedAt).toLocaleString("fr-FR")}</td><td className="px-5 py-3 text-right tabular-nums">{row.status === "CLOSED" && row.declaredMinor ? formatFcfa(row.declaredMinor) : "—"}</td></tr>)}</tbody>
+              <tbody>{filtered.map((row) => <tr key={row.id} className="border-t border-[var(--separator)]/50"><td className="px-5 py-3">{formatBusinessDate(row.businessDate)}</td><td className="px-5 py-3"><Badge tone={sessionStatus[row.status]?.tone ?? "neutral"}>{sessionStatus[row.status]?.label ?? row.status}</Badge></td><td className="px-5 py-3 text-[var(--muted)]">{new Date(row.openedAt).toLocaleString("fr-FR")}</td><td className="px-5 py-3 text-right tabular-nums">{row.status === "CLOSED" && row.declaredMinor ? formatFcfa(row.declaredMinor) : "—"}</td></tr>)}</tbody>
             </table>
           </div>
         ) : null}
@@ -169,6 +182,7 @@ export function ManagerCountPage() {
     if (source.type !== "CASH") return declared[source.id] ?? "0";
     return XAF_NOTES.reduce((sum, note) => sum + BigInt(note.valueMinor) * BigInt(counts[source.id]?.[note.valueMinor] || "0"), 0n).toString();
   };
+  const grandTotal = sources.reduce((sum, source) => sum + BigInt(declaredTotal(source)), 0n).toString();
   const submit = () => {
     if (!session) return;
     setPending(true); setError(null);
@@ -194,27 +208,37 @@ export function ManagerCountPage() {
   return (
     <section className="space-y-6 overflow-x-clip">
       <PageHeader title="Comptage de fin de journée" action={session ? <Button variant="ghost" onClick={() => api(`/api/v1/cash-sessions/${session.id}/cancel-count`, { method: "POST", body: JSON.stringify({ reason: "Reprise des opérations" }) }).then(() => router.push(paths.managerCash)).catch((caught: RequestError) => setError(caught.message))}>Annuler le comptage</Button> : undefined}>
-        {session ? `Déclarez le montant réellement présent pour ${session.shopName}, session du ${session.businessDate}. La première déclaration est définitive.` : "Aucune session à clôturer."}
+        {session ? `Déclarez le montant réellement présent pour ${session.shopName}, session du ${formatBusinessDate(session.businessDate)}. La première déclaration est définitive.` : "Aucune session à clôturer."}
       </PageHeader>
       {error ? <Alert tone="error">{error}</Alert> : null}
       {!session ? <EmptyState title="Session introuvable" action={<Link href={paths.managerCash}><Button>Retour à la caisse</Button></Link>}>Ouvrez d’abord une session de caisse.</EmptyState> : (
         <>
           <Alert>Comptez chaque source séparément. Le montant attendu n’est pas affiché et ne peut pas être déduit d’un solde.</Alert>
-          <div className="space-y-5">{sources.map((source) => (
+          <div className="space-y-5 pb-24">{sources.map((source) => (
             <article key={source.id} className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]">
               <div className="flex flex-wrap items-start justify-between gap-3">
-                <div><h2 className="font-display text-lg font-semibold">{source.name}</h2><p className="text-sm text-[var(--muted)]">{source.type === "CASH" ? "Espèces — saisissez les coupures réellement présentes." : "Indiquez le solde réellement constaté."}</p></div>
+                <div><h2 className="font-display text-lg font-semibold">{source.name}</h2><p className="text-sm text-[var(--muted)]">{source.type === "CASH" ? `Espèces rattachées à ${session.shopName} · indiquez le nombre de coupures.` : `Source rattachée à ${session.shopName} · indiquez le solde réellement constaté.`}</p></div>
                 <p className="tabular-nums font-display text-xl font-semibold">{formatFcfa(declaredTotal(source))}</p>
               </div>
               {source.type === "CASH" ? (
-                <ul className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{XAF_NOTES.map((note) => (
-                  <li key={note.valueMinor}><Field id={`${source.id}-${note.valueMinor}`} label={`${note.label} FCFA`} inputMode="numeric" value={counts[source.id]?.[note.valueMinor] ?? "0"} onChange={(event) => setCounts((current) => ({ ...current, [source.id]: { ...current[source.id], [note.valueMinor]: event.target.value.replace(/\D/g, "") } }))} /></li>
-                ))}</ul>
+                <ul className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-3">{XAF_NOTES.map((note) => {
+                  const quantity = counts[source.id]?.[note.valueMinor] ?? "";
+                  const subtotal = (BigInt(note.valueMinor) * BigInt(quantity || "0")).toString();
+                  return <li key={note.valueMinor} className="grid grid-cols-[minmax(5.5rem,auto)_5rem_1fr] items-center gap-2 rounded-lg bg-[var(--surface-subtle)] px-3 py-2">
+                    <label htmlFor={`${source.id}-${note.valueMinor}`} className="text-sm font-medium">{note.label} FCFA</label>
+                    <input id={`${source.id}-${note.valueMinor}`} aria-label={`${note.label} FCFA`} inputMode="numeric" placeholder="0" value={quantity} onChange={(event) => setCounts((current) => ({ ...current, [source.id]: { ...current[source.id], [note.valueMinor]: event.target.value.replace(/\D/g, "") } }))} className="h-10 min-w-0 rounded-md bg-[var(--surface)] px-2 text-center tabular-nums outline-none focus:ring-2 focus:ring-[var(--focus)]" />
+                    <span className="text-right text-xs tabular-nums text-[var(--muted)]">{formatFcfa(subtotal)}</span>
+                  </li>;
+                })}</ul>
               ) : <div className="mt-4 max-w-sm"><Field id={`declared-${source.id}`} label="Montant constaté" inputMode="numeric" value={declared[source.id] ?? ""} onChange={(event) => setDeclared((current) => ({ ...current, [source.id]: event.target.value.replace(/\D/g, "") }))} /></div>}
             </article>
-          ))}</div>
-          <Field id="count-explanation" label="Commentaire d’écart (facultatif, 10 caractères minimum s’il y a un écart)" value={explanation} onChange={(event) => setExplanation(event.target.value)} />
-          <Button className="w-full sm:w-auto" onClick={() => setConfirm(true)}>Enregistrer le comptage</Button>
+          ))}
+          <Field id="count-explanation" label="Observation (facultative ; obligatoire si un écart est détecté)" value={explanation} onChange={(event) => setExplanation(event.target.value)} />
+          </div>
+          <div className="sticky bottom-3 z-20 flex flex-col gap-3 rounded-xl bg-[var(--surface)] p-4 shadow-[var(--shadow-card)] ring-1 ring-[var(--separator)]/40 sm:flex-row sm:items-center sm:justify-between">
+            <div><p className="text-sm text-[var(--muted)]">Total physiquement déclaré</p><p className="font-display text-xl font-semibold tabular-nums">{formatFcfa(grandTotal)}</p></div>
+            <Button className="w-full sm:w-auto" onClick={() => setConfirm(true)}>Vérifier et enregistrer</Button>
+          </div>
           <ConfirmDialog open={confirm} onOpenChange={setConfirm} title="Confirmer la première déclaration" confirmLabel="Enregistrer définitivement" pending={pending} onConfirm={submit}>
             <p>Vous déclarez les montants réellement présents. Cette saisie sera conservée telle quelle. Un écart éventuel sera calculé ensuite par le serveur.</p>
           </ConfirmDialog>
@@ -227,43 +251,64 @@ export function ManagerCountPage() {
 export function ManagerExpensesPage() {
   const [rows, setRows] = useState<ExpenseRow[] | null>(null);
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [cash, setCash] = useState<SessionPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("ALL");
   const [pending, setPending] = useState(false);
+  const [receipt, setReceipt] = useState<File | null>(null);
+  const [withoutReceipt, setWithoutReceipt] = useState(false);
   const [form, setForm] = useState({ category: "SUPPLIES", description: "", amountMinor: "", accountId: "", beneficiary: "", receiptExceptionReason: "" });
   const load = () => {
-    Promise.all([api<{ expenses: ExpenseRow[] }>("/api/v1/expenses"), api<{ accounts: Account[] }>("/api/v1/fund-accounts")])
-      .then(([listed, funds]) => { setRows(listed.expenses); setAccounts(funds.accounts); if (!form.accountId && funds.accounts[0]) setForm((current) => ({ ...current, accountId: funds.accounts[0]!.id })); })
+    Promise.all([api<{ expenses: ExpenseRow[] }>("/api/v1/expenses"), api<{ accounts: Account[] }>("/api/v1/fund-accounts"), api<SessionPayload>("/api/v1/cash-sessions/current")])
+      .then(([listed, funds, current]) => { setRows(listed.expenses); setAccounts(funds.accounts); setCash(current); if (!form.accountId && funds.accounts[0]) setForm((currentForm) => ({ ...currentForm, accountId: funds.accounts[0]!.id })); })
       .catch((caught: RequestError) => setError(caught.message));
   };
   useEffect(() => { void load(); }, []);
   const filtered = (rows ?? []).filter((row) => (status === "ALL" || row.status === status) && `${row.description} ${row.category}`.toLowerCase().includes(query.toLowerCase()));
-  const submit = () => {
+  const submit = async () => {
     setPending(true); setError(null);
-    api<{ id: string }>("/api/v1/expenses", { method: "POST", body: JSON.stringify({ ...form, receiptExceptionReason: form.receiptExceptionReason || "Justificatif à numériser après l’opération." }) })
-      .then((created) => api(`/api/v1/expenses/${created.id}/submit`, { method: "POST" }))
-      .then(() => { setForm((current) => ({ ...current, description: "", amountMinor: "", beneficiary: "", receiptExceptionReason: "" })); return load(); })
-      .catch((caught: RequestError) => setError(caught.message))
-      .finally(() => setPending(false));
+    try {
+      const attachmentIds: string[] = [];
+      if (receipt) {
+        const payload = await filePayload(receipt);
+        const created = await api<{ id: string }>("/api/v1/attachments", { method: "POST", body: JSON.stringify({ documentType: "expenses", mime: receipt.type, size: receipt.size, name: receipt.name, sha256: payload.sha256 }) });
+        await api(`/api/v1/attachments/${created.id}/content`, { method: "POST", body: JSON.stringify({ base64: payload.base64 }) });
+        attachmentIds.push(created.id);
+      }
+      const body = { ...form, beneficiary: form.beneficiary || undefined, receiptExceptionReason: withoutReceipt ? form.receiptExceptionReason : undefined, attachmentIds };
+      const created = await api<{ id: string }>("/api/v1/expenses", { method: "POST", body: JSON.stringify(body) });
+      await api(`/api/v1/expenses/${created.id}/submit`, { method: "POST" });
+      setForm((current) => ({ ...current, description: "", amountMinor: "", beneficiary: "", receiptExceptionReason: "" }));
+      setReceipt(null); setWithoutReceipt(false); load();
+    } catch (caught) { setError(caught instanceof RequestError ? caught.message : "Le justificatif n’a pas pu être préparé."); }
+    finally { setPending(false); }
   };
+  const blocked = cash?.session?.status === "COUNTING";
+  const hasOpenSession = cash?.session?.status === "OPEN";
   return (
     <section className="space-y-6 overflow-x-clip">
       <PageHeader title="Dépenses">Créez une demande, suivez l’autorisation, puis décaissiez uniquement après accord. L’autorisation n’est pas un mouvement de fonds.</PageHeader>
       {error ? <Alert tone="error">{error}</Alert> : null}
-      <form className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]" onSubmit={(event) => { event.preventDefault(); submit(); }}>
+      {blocked ? <Alert><span className="inline-flex items-center gap-2"><LockKeyhole className="size-4" />Le comptage est en cours. Les nouvelles demandes et les décaissements reprendront après son enregistrement ou son annulation.</span></Alert> : null}
+      {!blocked && cash && !hasOpenSession ? <Alert>Ouvrez d’abord la caisse du jour pour créer une demande de dépense.</Alert> : null}
+      {!blocked && hasOpenSession ? <form className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]" onSubmit={(event) => { event.preventDefault(); void submit(); }}>
         <h2 className="font-display font-semibold">Nouvelle demande</h2>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <label className="block text-sm font-medium">Catégorie<select value={form.category} onChange={(event) => setForm((current) => ({ ...current, category: event.target.value }))} className="mt-1.5 h-11 w-full rounded-md bg-[var(--surface-subtle)] px-3 outline-none focus:ring-2 focus:ring-[var(--focus)]">{Object.entries(expenseLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
           <label className="block text-sm font-medium">Source de fonds<select value={form.accountId} onChange={(event) => setForm((current) => ({ ...current, accountId: event.target.value }))} className="mt-1.5 h-11 w-full rounded-md bg-[var(--surface-subtle)] px-3 outline-none focus:ring-2 focus:ring-[var(--focus)]">{accounts.map((account) => <option key={account.id} value={account.id}>{account.name}</option>)}</select></label>
-          <Field id="expense-amount" label="Montant" inputMode="numeric" value={form.amountMinor} onChange={(event) => setForm((current) => ({ ...current, amountMinor: event.target.value.replace(/\D/g, "") }))} />
+          <Field id="expense-amount" label="Montant (FCFA)" inputMode="numeric" value={form.amountMinor} onChange={(event) => setForm((current) => ({ ...current, amountMinor: event.target.value.replace(/\D/g, "") }))} />
           <Field id="expense-beneficiary" label="Bénéficiaire (facultatif)" value={form.beneficiary} onChange={(event) => setForm((current) => ({ ...current, beneficiary: event.target.value }))} />
           <div className="md:col-span-2"><Field id="expense-description" label="Motif de la dépense" value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} /></div>
-          <div className="md:col-span-2"><Field id="expense-receipt" label="Motif d’absence de justificatif, si besoin" value={form.receiptExceptionReason} onChange={(event) => setForm((current) => ({ ...current, receiptExceptionReason: event.target.value }))} /></div>
+          <div className="md:col-span-2 rounded-lg bg-[var(--surface-subtle)] p-4">
+            <label className="flex cursor-pointer items-center gap-3 font-medium"><FileUp className="size-5 text-[var(--primary)]" /><span>{receipt?.name ?? "Ajouter un justificatif (PDF ou image)"}</span><input className="sr-only" type="file" accept="application/pdf,image/jpeg,image/png,image/webp" onChange={(event) => { setReceipt(event.target.files?.[0] ?? null); setWithoutReceipt(false); }} /></label>
+            <label className="mt-3 flex items-center gap-2 text-sm"><input type="checkbox" checked={withoutReceipt} onChange={(event) => { setWithoutReceipt(event.target.checked); if (event.target.checked) setReceipt(null); }} />Je n’ai pas de justificatif</label>
+            {withoutReceipt ? <div className="mt-3"><Field id="expense-receipt" label="Motif de l’absence de justificatif" value={form.receiptExceptionReason} onChange={(event) => setForm((current) => ({ ...current, receiptExceptionReason: event.target.value }))} /></div> : null}
+          </div>
         </div>
         <p className="mt-3 text-sm text-[var(--muted)]">Sera enregistré : {form.amountMinor ? formatFcfa(form.amountMinor) : "montant à préciser"} · {expenseLabels[form.category]}.</p>
-        <Button type="submit" className="mt-4" disabled={pending || !form.amountMinor || !form.description || !form.accountId}>{pending ? "Envoi…" : "Enregistrer la demande"}</Button>
-      </form>
+        <Button type="submit" className="mt-4" disabled={pending || !form.amountMinor || !form.description || !form.accountId || (!receipt && (!withoutReceipt || form.receiptExceptionReason.trim().length < 5))}>{pending ? "Envoi…" : "Enregistrer la demande"}</Button>
+      </form> : null}
       <div className="flex flex-col gap-3 sm:flex-row">
         <label className="relative block flex-1"><Search className="absolute left-3 top-3 size-4 text-[var(--muted)]" /><span className="sr-only">Rechercher une dépense</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher" className="h-11 w-full rounded-lg bg-[var(--surface)] pl-10 pr-4 text-sm shadow-[var(--shadow-card)] outline-none focus:ring-2 focus:ring-[var(--focus)]" /></label>
         <select value={status} onChange={(event) => setStatus(event.target.value)} className="h-11 rounded-lg bg-[var(--surface)] px-3 text-sm shadow-[var(--shadow-card)] outline-none focus:ring-2 focus:ring-[var(--focus)]" aria-label="Filtrer par état"><option value="ALL">Tous les états</option>{Object.entries(expenseStatus).map(([value, item]) => <option key={value} value={value}>{item.label}</option>)}</select>
@@ -275,7 +320,7 @@ export function ManagerExpensesPage() {
               <div className="min-w-0"><p className="font-semibold">{row.description}</p><p className="mt-1 text-sm text-[var(--muted)]">{expenseLabels[row.category]} · {row.source}</p></div>
               <div className="text-right"><p className="tabular-nums font-semibold">{formatFcfa(row.amountMinor)}</p><div className="mt-1"><Badge tone={expenseStatus[row.status]?.tone ?? "neutral"}>{expenseStatus[row.status]?.label ?? row.status}</Badge></div></div>
             </div>
-            {row.status === "AUTHORIZED" ? <Button className="mt-3" variant="secondary" onClick={() => api(`/api/v1/expenses/${row.id}/pay`, { method: "POST" }).then(() => load()).catch((caught: RequestError) => setError(caught.message))}>Décaisser réellement</Button> : null}
+            {row.status === "AUTHORIZED" ? <Button className="mt-3" variant="secondary" disabled={blocked} onClick={() => api(`/api/v1/expenses/${row.id}/pay`, { method: "POST" }).then(() => load()).catch((caught: RequestError) => setError(caught.message))}>{blocked ? "Décaissement suspendu" : "Décaisser réellement"}</Button> : null}
           </li>
         ))}</ul>
       )}
@@ -286,31 +331,36 @@ export function ManagerExpensesPage() {
 export function ManagerFundsPage() {
   const [rows, setRows] = useState<TransferRow[] | null>(null);
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [cash, setCash] = useState<SessionPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [receiveId, setReceiveId] = useState<string | null>(null);
   const [receiveAmount, setReceiveAmount] = useState("");
   const [form, setForm] = useState({ sourceAccountId: "", destinationAccountId: "", amountMinor: "", reason: "" });
   const load = () => {
-    Promise.all([api<{ transfers: TransferRow[] }>("/api/v1/fund-transfers"), api<{ accounts: Account[] }>("/api/v1/fund-accounts")])
-      .then(([listed, funds]) => { setRows(listed.transfers); setAccounts(funds.accounts); })
+    Promise.all([api<{ transfers: TransferRow[] }>("/api/v1/fund-transfers"), api<{ accounts: Account[] }>("/api/v1/fund-accounts"), api<SessionPayload>("/api/v1/cash-sessions/current")])
+      .then(([listed, funds, current]) => { setRows(listed.transfers); setAccounts(funds.accounts); setCash(current); })
       .catch((caught: RequestError) => setError(caught.message));
   };
   useEffect(() => { void load(); }, []);
+  const blocked = cash?.session?.status === "COUNTING";
+  const hasOpenSession = cash?.session?.status === "OPEN";
   return (
     <section className="space-y-6 overflow-x-clip">
       <PageHeader title="Mouvements de fonds">Une remise sort de la caisse vers le transit. La réception crédite la destination sans créer ni détruire d’argent.</PageHeader>
       {error ? <Alert tone="error">{error}</Alert> : null}
-      <form className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]" onSubmit={(event) => { event.preventDefault(); setPending(true); api<{ id: string }>("/api/v1/fund-transfers", { method: "POST", body: JSON.stringify({ ...form, purpose: "REMITTANCE" }) }).then((created) => api(`/api/v1/fund-transfers/${created.id}/send`, { method: "POST" })).then(() => { setForm({ sourceAccountId: "", destinationAccountId: "", amountMinor: "", reason: "" }); return load(); }).catch((caught: RequestError) => setError(caught.message)).finally(() => setPending(false)); }}>
+      {blocked ? <Alert><span className="inline-flex items-center gap-2"><LockKeyhole className="size-4" />Le comptage est en cours. Aucun fonds ne peut sortir ni être réceptionné avant sa fin.</span></Alert> : null}
+      {!blocked && cash && !hasOpenSession ? <Alert>Ouvrez d’abord la caisse du jour pour effectuer un mouvement de fonds.</Alert> : null}
+      {!blocked && hasOpenSession ? <form className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]" onSubmit={(event) => { event.preventDefault(); setPending(true); api<{ id: string }>("/api/v1/fund-transfers", { method: "POST", body: JSON.stringify({ ...form, purpose: "REMITTANCE" }) }).then((created) => api(`/api/v1/fund-transfers/${created.id}/send`, { method: "POST" })).then(() => { setForm({ sourceAccountId: "", destinationAccountId: "", amountMinor: "", reason: "" }); return load(); }).catch((caught: RequestError) => setError(caught.message)).finally(() => setPending(false)); }}>
         <h2 className="font-display font-semibold">Remise de fonds</h2>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <label className="block text-sm font-medium">Source<select required value={form.sourceAccountId} onChange={(event) => setForm((current) => ({ ...current, sourceAccountId: event.target.value }))} className="mt-1.5 h-11 w-full rounded-md bg-[var(--surface-subtle)] px-3 outline-none focus:ring-2 focus:ring-[var(--focus)]"><option value="">Choisir</option>{accounts.map((account) => <option key={account.id} value={account.id}>{account.name}</option>)}</select></label>
           <label className="block text-sm font-medium">Destination<select required value={form.destinationAccountId} onChange={(event) => setForm((current) => ({ ...current, destinationAccountId: event.target.value }))} className="mt-1.5 h-11 w-full rounded-md bg-[var(--surface-subtle)] px-3 outline-none focus:ring-2 focus:ring-[var(--focus)]"><option value="">Choisir</option>{accounts.filter((account) => account.id !== form.sourceAccountId).map((account) => <option key={account.id} value={account.id}>{account.name}</option>)}</select></label>
-          <Field id="fund-amount" label="Montant" inputMode="numeric" value={form.amountMinor} onChange={(event) => setForm((current) => ({ ...current, amountMinor: event.target.value.replace(/\D/g, "") }))} />
+          <Field id="fund-amount" label="Montant (FCFA)" inputMode="numeric" value={form.amountMinor} onChange={(event) => setForm((current) => ({ ...current, amountMinor: event.target.value.replace(/\D/g, "") }))} />
           <Field id="fund-reason" label="Motif" value={form.reason} onChange={(event) => setForm((current) => ({ ...current, reason: event.target.value }))} />
         </div>
         <Button type="submit" className="mt-4" disabled={pending || !form.amountMinor || !form.reason}>{pending ? "Envoi…" : "Remettre les fonds"}</Button>
-      </form>
+      </form> : null}
       {!rows ? <Skeleton className="h-48" /> : rows.length === 0 ? <EmptyState title="Aucun mouvement" icon={<Banknote className="size-5" />}>Les remises et réceptions de cette boutique apparaîtront ici.</EmptyState> : (
         <ul className="grid gap-3">{rows.map((row) => (
           <li key={row.id} className="rounded-xl bg-[var(--surface)] p-4 shadow-[var(--shadow-card)]">
@@ -319,12 +369,12 @@ export function ManagerFundsPage() {
               <div className="text-right"><p className="tabular-nums font-semibold">{formatFcfa(row.amountSentMinor)}</p><Badge tone={transferState[row.state]?.tone ?? "neutral"}>{transferState[row.state]?.label ?? row.state}</Badge></div>
             </div>
             {["SENT", "PARTIAL"].includes(row.state) ? <p className="mt-2 text-sm text-[var(--muted)]">Reste en transit : {formatFcfa(row.remainingMinor)}</p> : null}
-            {["SENT", "PARTIAL"].includes(row.state) ? <Button className="mt-3" variant="secondary" onClick={() => { setReceiveId(row.id); setReceiveAmount(row.remainingMinor); }}>Confirmer une réception</Button> : null}
+            {["SENT", "PARTIAL"].includes(row.state) ? <Button className="mt-3" variant="secondary" disabled={blocked} onClick={() => { setReceiveId(row.id); setReceiveAmount(row.remainingMinor); }}>{blocked ? "Réception suspendue" : "Confirmer une réception"}</Button> : null}
           </li>
         ))}</ul>
       )}
       <ConfirmDialog open={Boolean(receiveId)} onOpenChange={(open) => { if (!open) setReceiveId(null); }} title="Réception des fonds" confirmLabel="Enregistrer la réception" pending={pending} onConfirm={() => { if (!receiveId) return; setPending(true); api(`/api/v1/fund-transfers/${receiveId}/receive`, { method: "POST", body: JSON.stringify({ amountMinor: receiveAmount }) }).then(() => { setReceiveId(null); return load(); }).catch((caught: RequestError) => setError(caught.message)).finally(() => setPending(false)); }}>
-        <Field id="receive-amount" label="Montant reçu" inputMode="numeric" value={receiveAmount} onChange={(event) => setReceiveAmount(event.target.value.replace(/\D/g, ""))} />
+        <Field id="receive-amount" label="Montant reçu (FCFA)" inputMode="numeric" value={receiveAmount} onChange={(event) => setReceiveAmount(event.target.value.replace(/\D/g, ""))} />
         <p className="mt-2 text-sm">Une réception partielle conserve le reliquat en transit.</p>
       </ConfirmDialog>
     </section>

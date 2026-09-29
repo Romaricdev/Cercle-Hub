@@ -445,3 +445,21 @@ Vérifications exécutées :
 - `corepack pnpm lint` : code 0.
 - `corepack pnpm typecheck` : code 0, tous les projets.
 - `corepack pnpm exec playwright test tests/e2e/p05-cash.spec.ts --project=chromium` : code 0, **1/1**.
+
+### Correctif ergonomique et verrouillage du comptage P05 — 29 septembre 2026
+
+- Pendant `COUNTING`, les raccourcis Dépenses et Fonds disparaissent de la caisse ; leurs pages contrôlent aussi la session et remplacent les formulaires par un état bloqué explicite. Les décaissements et réceptions déjà affichés sont désactivés.
+- Le comptage des espèces utilise une grille compacte par coupure, des champs initialement vides, un sous-total par ligne et un total déclaré fixe en bas d’écran. Le rattachement de chaque source à la boutique est explicite ; les dates métier sont affichées en français.
+- La liste est renommée « Sessions récentes » puisqu’elle peut contenir la session active.
+- Une demande de dépense exige désormais soit un justificatif PDF/image réellement téléversé via la quarantaine S3, soit un motif explicite d’absence. Aucun motif artificiel n’est injecté par l’interface. Les libellés monétaires précisent FCFA.
+
+Vérifications exécutées :
+
+- `corepack pnpm lint` : code 0.
+- `corepack pnpm typecheck` : code 0, tous les projets.
+- `corepack pnpm test:unit` : code 0, **11 fichiers, 29/29 tests**.
+- `corepack pnpm test:integration` : code 0, **9 fichiers, 54/54 tests** sur PostgreSQL réel.
+- `corepack pnpm build` : code 0, Next.js 16.3.6, **31 routes**.
+- `corepack pnpm exec playwright test tests/e2e/p05-cash.spec.ts --project=chromium` : code 0, **1/1**, avec assertion du blocage du formulaire Dépenses pendant le comptage et contrôle responsive 320 à 1920 px.
+
+Limites inchangées : ClamAV local reste indisponible et tout fichier demeure non téléchargeable tant qu’il n’est pas `CLEAN`. Firefox, WebKit et appareils physiques n’ont pas été exécutés pour ce correctif.

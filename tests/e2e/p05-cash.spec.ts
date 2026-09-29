@@ -20,6 +20,8 @@ test("P05 clôture aveugle, dépense et consultation propriétaire", async ({ pa
   await expect(page.getByRole("heading", { name: "Dépenses" })).toBeVisible();
   await page.getByLabel("Montant").fill("1000");
   await page.getByLabel("Motif de la dépense").fill("Achat de sacs pour la caisse");
+  await page.getByLabel("Je n’ai pas de justificatif").check();
+  await page.getByLabel("Motif de l’absence de justificatif").fill("Justificatif indisponible auprès du fournisseur");
   await page.getByRole("button", { name: "Enregistrer la demande" }).click();
   await expect(page.getByRole("heading", { name: "Aucune dépense" })).toHaveCount(0);
   await expect(page.getByText("Achat de sacs pour la caisse")).toBeVisible();
@@ -30,9 +32,13 @@ test("P05 clôture aveugle, dépense et consultation propriétaire", async ({ pa
   const counting = await page.content();
   expect(counting).not.toMatch(/expectedMinor|balanceMinor/);
   expect(counting).not.toMatch(/50[\s\u00a0\u202f]?000/);
+  await page.goto("/manager/expenses");
+  await expect(page.getByText(/Le comptage est en cours/)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Nouvelle demande" })).toHaveCount(0);
+  await page.goto("/manager/cash/count");
   await page.getByLabel("10 000 FCFA").fill("4");
   await page.getByLabel("1 000 FCFA").fill("8");
-  await page.getByRole("button", { name: "Enregistrer le comptage" }).click();
+  await page.getByRole("button", { name: "Vérifier et enregistrer" }).click();
   await expect(page.getByRole("dialog", { name: "Confirmer la première déclaration" })).toBeVisible();
   await page.getByRole("button", { name: "Enregistrer définitivement" }).click();
   await expect(page.getByRole("heading", { name: "Résultat de clôture" })).toBeVisible();
