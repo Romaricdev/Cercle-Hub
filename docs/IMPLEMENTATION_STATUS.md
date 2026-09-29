@@ -463,3 +463,9 @@ Vérifications exécutées :
 - `corepack pnpm exec playwright test tests/e2e/p05-cash.spec.ts --project=chromium` : code 0, **1/1**, avec assertion du blocage du formulaire Dépenses pendant le comptage et contrôle responsive 320 à 1920 px.
 
 Limites inchangées : ClamAV local reste indisponible et tout fichier demeure non téléchargeable tant qu’il n’est pas `CLEAN`. Firefox, WebKit et appareils physiques n’ont pas été exécutés pour ce correctif.
+
+### Protection contre une déclaration vide accidentelle — 29 septembre 2026
+
+Une source dont tous les champs sont laissés vides reste désormais « Non comptée ». La clôture est bloquée tant que chaque source n’a pas un montant physique positif ou une confirmation explicite « source vide ». La même règle est contrôlée par l’API avec `COUNT_SOURCE_UNCONFIRMED`, afin qu’un autre client ne puisse pas transformer silencieusement un fonds de caisse existant en déclaration à zéro. L’aide rappelle de compter l’intégralité des fonds présents, y compris le fonds conservé des jours précédents ; le montant attendu reste absent du DTO gérant avant la déclaration.
+
+Vérifications exécutées : `corepack pnpm lint` code 0 ; `corepack pnpm typecheck` code 0 ; `corepack pnpm test:unit` **29/29** ; test d’intégration P05 ciblé **12/12**, dont le nouveau refus d’une source non comptée ; `corepack pnpm build` code 0, **31 routes** ; parcours Playwright P05 Chromium **1/1**.

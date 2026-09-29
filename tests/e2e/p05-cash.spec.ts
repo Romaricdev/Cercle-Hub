@@ -36,8 +36,11 @@ test("P05 clôture aveugle, dépense et consultation propriétaire", async ({ pa
   await expect(page.getByText(/Le comptage est en cours/)).toBeVisible();
   await expect(page.getByRole("heading", { name: "Nouvelle demande" })).toHaveCount(0);
   await page.goto("/manager/cash/count");
+  await expect(page.getByText("Non comptée")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Vérifier et enregistrer" })).toBeDisabled();
   await page.getByLabel("10 000 FCFA").fill("4");
   await page.getByLabel("1 000 FCFA").fill("8");
+  await expect(page.getByText("Comptée", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Vérifier et enregistrer" }).click();
   await expect(page.getByRole("dialog", { name: "Confirmer la première déclaration" })).toBeVisible();
   await page.getByRole("button", { name: "Enregistrer définitivement" }).click();

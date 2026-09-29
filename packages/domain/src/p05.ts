@@ -202,6 +202,7 @@ export interface CountLineInput {
   accountId: string;
   denominations?: DenominationCount[] | undefined;
   declaredMinor?: string | undefined;
+  confirmedEmpty?: boolean | undefined;
   explanation?: string | undefined;
 }
 
@@ -236,6 +237,9 @@ export async function submitCount(prisma: PrismaClient, context: CommandContext,
         } else {
           declared = declaredFromMinor(line.declaredMinor ?? "");
           denominations = [];
+        }
+        if (declared === 0n && line.confirmedEmpty !== true) {
+          throw new DomainError("COUNT_SOURCE_UNCONFIRMED", `Confirmez explicitement que la source « ${account.name} » est physiquement vide.`, 422);
         }
         const expected = account.balanceMinor;
         const variance = varianceMinor(declared, expected);

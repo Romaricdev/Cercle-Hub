@@ -160,6 +160,7 @@ export function ManagerCountPage() {
   const [data, setData] = useState<SessionPayload | null>(null);
   const [counts, setCounts] = useState<Record<string, Record<string, string>>>({});
   const [declared, setDeclared] = useState<Record<string, string>>({});
+  const [confirmedEmpty, setConfirmedEmpty] = useState<Record<string, boolean>>({});
   const [explanation, setExplanation] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -183,12 +184,15 @@ export function ManagerCountPage() {
     return XAF_NOTES.reduce((sum, note) => sum + BigInt(note.valueMinor) * BigInt(counts[source.id]?.[note.valueMinor] || "0"), 0n).toString();
   };
   const grandTotal = sources.reduce((sum, source) => sum + BigInt(declaredTotal(source)), 0n).toString();
+  const isCounted = (source: Source) => BigInt(declaredTotal(source)) > 0n || confirmedEmpty[source.id] === true;
+  const completedSources = sources.filter(isCounted).length;
+  const allSourcesCounted = sources.length > 0 && completedSources === sources.length;
   const submit = () => {
     if (!session) return;
     setPending(true); setError(null);
     const lines = sources.map((source) => source.type === "CASH"
-      ? { accountId: source.id, denominations: XAF_NOTES.map((note) => ({ valueMinor: note.valueMinor, quantity: Number(counts[source.id]?.[note.valueMinor] || "0") })), explanation: explanation || undefined }
-      : { accountId: source.id, declaredMinor: declared[source.id] || "0", explanation: explanation || undefined });
+      ? { accountId: source.id, denominations: XAF_NOTES.map((note) => ({ valueMinor: note.valueMinor, quantity: Number(counts[source.id]?.[note.valueMinor] || "0") })), confirmedEmpty: confirmedEmpty[source.id] === true, explanation: explanation || undefined }
+      : { accountId: source.id, declaredMinor: declared[source.id] || "0", confirmedEmpty: confirmedEmpty[source.id] === true, explanation: explanation || undefined });
     api<{ closures: NonNullable<SessionPayload["closures"]> }>(`/api/v1/cash-sessions/${session.id}/submit-count`, { method: "POST", body: JSON.stringify({ lines }) })
       .then((payload) => { setResult(payload.closures); setConfirm(false); })
       .catch((caught: RequestError) => setError(caught.message))
@@ -213,12 +217,12 @@ export function ManagerCountPage() {
       {error ? <Alert tone="error">{error}</Alert> : null}
       {!session ? <EmptyState title="Session introuvable" action={<Link href={paths.managerCash}><Button>Retour à la caisse</Button></Link>}>Ouvrez d’abord une session de caisse.</EmptyState> : (
         <>
-          <Alert>Comptez chaque source séparément. Le montant attendu n’est pas affiché et ne peut pas être déduit d’un solde.</Alert>
+          <Alert>Comptez tout l’argent physiquement présent dans chaque source, y compris le fonds de caisse conservé des jours précédents. Le montant attendu reste masqué pour préserver le comptage aveugle.</Alert>
           <div className="space-y-5 pb-24">{sources.map((source) => (
             <article key={source.id} className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div><h2 className="font-display text-lg font-semibold">{source.name}</h2><p className="text-sm text-[var(--muted)]">{source.type === "CASH" ? `Espèces rattachées à ${session.shopName} · indiquez le nombre de coupures.` : `Source rattachée à ${session.shopName} · indiquez le solde réellement constaté.`}</p></div>
-                <p className="tabular-nums font-display text-xl font-semibold">{formatFcfa(declaredTotal(source))}</p>
+                <div className="text-right"><p className="tabular-nums font-display text-xl font-semibold">{formatFcfa(declaredTotal(source))}</p><Badge tone={isCounted(source) ? "success" : "warning"}>{isCounted(source) ? "Comptée" : "Non comptée"}</Badge></div>
               </div>
               {source.type === "CASH" ? (
                 <ul className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-3">{XAF_NOTES.map((note) => {
@@ -226,18 +230,19 @@ export function ManagerCountPage() {
                   const subtotal = (BigInt(note.valueMinor) * BigInt(quantity || "0")).toString();
                   return <li key={note.valueMinor} className="grid grid-cols-[minmax(5.5rem,auto)_5rem_1fr] items-center gap-2 rounded-lg bg-[var(--surface-subtle)] px-3 py-2">
                     <label htmlFor={`${source.id}-${note.valueMinor}`} className="text-sm font-medium">{note.label} FCFA</label>
-                    <input id={`${source.id}-${note.valueMinor}`} aria-label={`${note.label} FCFA`} inputMode="numeric" placeholder="0" value={quantity} onChange={(event) => setCounts((current) => ({ ...current, [source.id]: { ...current[source.id], [note.valueMinor]: event.target.value.replace(/\D/g, "") } }))} className="h-10 min-w-0 rounded-md bg-[var(--surface)] px-2 text-center tabular-nums outline-none focus:ring-2 focus:ring-[var(--focus)]" />
+                    <input id={`${source.id}-${note.valueMinor}`} aria-label={`${note.label} FCFA`} inputMode="numeric" placeholder="0" value={quantity} onChange={(event) => { const value = event.target.value.replace(/\D/g, ""); setCounts((current) => ({ ...current, [source.id]: { ...current[source.id], [note.valueMinor]: value } })); if (value && value !== "0") setConfirmedEmpty((current) => ({ ...current, [source.id]: false })); }} className="h-10 min-w-0 rounded-md bg-[var(--surface)] px-2 text-center tabular-nums outline-none focus:ring-2 focus:ring-[var(--focus)]" />
                     <span className="text-right text-xs tabular-nums text-[var(--muted)]">{formatFcfa(subtotal)}</span>
                   </li>;
                 })}</ul>
-              ) : <div className="mt-4 max-w-sm"><Field id={`declared-${source.id}`} label="Montant constaté" inputMode="numeric" value={declared[source.id] ?? ""} onChange={(event) => setDeclared((current) => ({ ...current, [source.id]: event.target.value.replace(/\D/g, "") }))} /></div>}
+              ) : <div className="mt-4 max-w-sm"><Field id={`declared-${source.id}`} label="Montant constaté" inputMode="numeric" value={declared[source.id] ?? ""} onChange={(event) => { const value = event.target.value.replace(/\D/g, ""); setDeclared((current) => ({ ...current, [source.id]: value })); if (value && value !== "0") setConfirmedEmpty((current) => ({ ...current, [source.id]: false })); }} /></div>}
+              {BigInt(declaredTotal(source)) === 0n ? <label className="mt-4 flex items-start gap-2 rounded-lg bg-[var(--surface-subtle)] p-3 text-sm"><input className="mt-0.5" type="checkbox" checked={confirmedEmpty[source.id] === true} onChange={(event) => setConfirmedEmpty((current) => ({ ...current, [source.id]: event.target.checked }))} /><span><strong>Confirmer que cette source est vide</strong><span className="mt-0.5 block text-[var(--muted)]">Cochez uniquement après avoir vérifié physiquement qu’aucun fonds n’est présent.</span></span></label> : null}
             </article>
           ))}
           <Field id="count-explanation" label="Observation (facultative ; obligatoire si un écart est détecté)" value={explanation} onChange={(event) => setExplanation(event.target.value)} />
           </div>
           <div className="sticky bottom-3 z-20 flex flex-col gap-3 rounded-xl bg-[var(--surface)] p-4 shadow-[var(--shadow-card)] ring-1 ring-[var(--separator)]/40 sm:flex-row sm:items-center sm:justify-between">
-            <div><p className="text-sm text-[var(--muted)]">Total physiquement déclaré</p><p className="font-display text-xl font-semibold tabular-nums">{formatFcfa(grandTotal)}</p></div>
-            <Button className="w-full sm:w-auto" onClick={() => setConfirm(true)}>Vérifier et enregistrer</Button>
+            <div><p className="text-sm text-[var(--muted)]">{completedSources}/{sources.length} sources comptées</p><p className="font-display text-xl font-semibold tabular-nums">{formatFcfa(grandTotal)}</p>{!allSourcesCounted ? <p className="text-xs text-[var(--destructive)]">Terminez chaque source ou confirmez explicitement qu’elle est vide.</p> : null}</div>
+            <Button className="w-full sm:w-auto" disabled={!allSourcesCounted} onClick={() => setConfirm(true)}>Vérifier et enregistrer</Button>
           </div>
           <ConfirmDialog open={confirm} onOpenChange={setConfirm} title="Confirmer la première déclaration" confirmLabel="Enregistrer définitivement" pending={pending} onConfirm={submit}>
             <p>Vous déclarez les montants réellement présents. Cette saisie sera conservée telle quelle. Un écart éventuel sera calculé ensuite par le serveur.</p>

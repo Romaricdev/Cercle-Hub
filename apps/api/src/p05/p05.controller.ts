@@ -57,6 +57,7 @@ const countSchema = z.object({
     accountId: z.uuid(),
     denominations: z.array(z.object({ valueMinor: money, quantity: z.number().int().min(0).max(100_000) }).strict()).max(20).optional(),
     declaredMinor: money.optional(),
+    confirmedEmpty: z.boolean().optional(),
     explanation: z.string().trim().max(500).optional(),
   }).strict()).min(1).max(20),
 }).strict();

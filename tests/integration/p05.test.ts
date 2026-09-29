@@ -91,6 +91,13 @@ describe("P05 caisse, dépenses et clôture aveugle", () => {
     expect(ownerView.sources.some((source) => "balanceMinor" in source)).toBe(true);
   });
 
+  it("refuse de transformer une source non comptée en déclaration à zéro", async () => {
+    await startCount(prisma, manager());
+    await expect(submitCount(prisma, manager(), firstSessionId, [{ accountId, denominations: [{ valueMinor: "10000", quantity: 0 }] }]))
+      .rejects.toMatchObject({ code: "COUNT_SOURCE_UNCONFIRMED", status: 422 });
+    expect(await prisma.cashClosure.count({ where: { sessionId: firstSessionId } })).toBe(0);
+  });
+
   it("T37 et T39 conservent la première déclaration 48 000 contre 50 000", async () => {
     await startCount(prisma, manager());
     expect(JSON.stringify(await currentCashSession(prisma, organizationId, managerId, "MANAGER"))).not.toMatch(/expectedMinor|balanceMinor/);
