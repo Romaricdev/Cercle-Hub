@@ -795,7 +795,7 @@ export async function listDiscrepancies(prisma: PrismaClient, organizationId: st
 export async function getDiscrepancy(prisma: PrismaClient, organizationId: string, id: string) {
   const row = await prisma.discrepancyCase.findFirst({
     where: { id, organizationId },
-    include: { shop: { select: { name: true } }, actions: { include: { actor: { select: { displayName: true } } }, orderBy: { createdAt: "asc" } } },
+    include: { shop: { select: { name: true } }, actions: { include: { actor: { select: { displayName: true, role: true } } }, orderBy: { createdAt: "asc" } } },
   });
   if (!row) throw new DomainError("DISCREPANCY_NOT_FOUND", "Dossier introuvable.", 404);
   const closure = row.sourceType === "cash_closures" ? await prisma.cashClosure.findUnique({ where: { id: row.sourceId }, include: { account: { select: { name: true } } } }) : null;
@@ -813,11 +813,167 @@ export async function getDiscrepancy(prisma: PrismaClient, organizationId: strin
     ownerDecision: row.ownerDecision,
     createdAt: row.createdAt.toISOString(),
     resolvedAt: row.resolvedAt?.toISOString() ?? null,
-    actions: row.actions.map((action) => ({ id: action.id, type: action.actionType, text: action.text, actor: action.actor.displayName, at: action.createdAt.toISOString() })),
+    actions: row.actions.map((action) => ({
+      id: action.id,
+      type: action.actionType,
+      text: action.text,
+      actor: action.actor.displayName,
+      actorRole: action.actor.role,
+      at: action.createdAt.toISOString(),
+    })),
   };
 }
 
+const MANAGER_VISIBLE_ACTIONS = new Set(["COMMENT", "REQUEST_INFO", "MANAGER_RESPONSE"]);
+
+async function assignedShop(prisma: PrismaClient | Tx, organizationId: string, actorId: string) {
+  const assignment = await prisma.managerAssignment.findFirst({
+    where: { userId: actorId, endedAt: null, user: { organizationId, status: "ACTIVE" } },
+    include: { shop: true },
+  });
+  if (!assignment || assignment.shop.status !== "ACTIVE") throw new DomainError("SHOP_NOT_ACTIVE", "Votre boutique doit être active.", 409);
+  return assignment.shop;
+}
+
+function managerDiscrepancyDto(row: {
+  id: string;
+  state: string;
+  shopName: string | null;
+  source: string | null;
+  declaredMinor: bigint | null;
+  originalAmountMinor: bigint;
+  businessDate: string | null;
+  countedAt: string | null;
+  initialObservation: string | null;
+  ownerRequest: string | null;
+  requestedAt: string | null;
+  createdAt: Date;
+  actions: Array<{ id: string; type: string; text: string; actor: string; actorRole: string; at: string }>;
+  attachments: Array<{ id: string; name: string; scanStatus: string }>;
+}) {
+  return {
+    id: row.id,
+    state: row.state,
+    shopName: row.shopName,
+    source: row.source,
+    businessDate: row.businessDate,
+    countedAt: row.countedAt,
+    declaredMinor: row.declaredMinor?.toString() ?? null,
+    varianceMinor: row.originalAmountMinor.toString(),
+    initialObservation: row.initialObservation,
+    ownerRequest: row.ownerRequest,
+    requestedAt: row.requestedAt,
+    createdAt: row.createdAt.toISOString(),
+    actions: row.actions,
+    attachments: row.attachments,
+  };
+}
+
+export async function listManagerDiscrepancies(prisma: PrismaClient, organizationId: string, actorId: string) {
+  const shop = await assignedShop(prisma, organizationId, actorId);
+  const rows = await prisma.discrepancyCase.findMany({
+    where: { organizationId, shopId: shop.id, state: "NEEDS_INFO" },
+    orderBy: { createdAt: "desc" },
+    take: 80,
+    include: {
+      shop: { select: { name: true } },
+      session: { select: { businessDate: true } },
+      actions: { include: { actor: { select: { displayName: true, role: true } } }, orderBy: { createdAt: "asc" } },
+    },
+  });
+  const closureIds = rows.filter((row) => row.sourceType === "cash_closures").map((row) => row.sourceId);
+  const closures = closureIds.length
+    ? await prisma.cashClosure.findMany({ where: { id: { in: closureIds } }, include: { account: { select: { name: true } } } })
+    : [];
+  const sources = new Map(closures.map((closure) => [closure.id, { name: closure.account.name, countedAt: closure.submittedAt, explanation: closure.explanation }]));
+  return rows.map((row) => {
+    const closure = sources.get(row.sourceId);
+    const request = [...row.actions].reverse().find((action) => action.actionType === "REQUEST_INFO");
+    return managerDiscrepancyDto({
+      id: row.id,
+      state: row.state,
+      shopName: row.shop?.name ?? shop.name,
+      source: closure?.name ?? null,
+      declaredMinor: row.declaredMinor,
+      originalAmountMinor: row.originalAmountMinor,
+      businessDate: row.session?.businessDate.toISOString().slice(0, 10) ?? null,
+      countedAt: closure?.countedAt.toISOString() ?? null,
+      initialObservation: closure?.explanation ?? null,
+      ownerRequest: request?.text ?? null,
+      requestedAt: request?.createdAt.toISOString() ?? row.createdAt.toISOString(),
+      createdAt: row.createdAt,
+      actions: row.actions
+        .filter((action) => MANAGER_VISIBLE_ACTIONS.has(action.actionType))
+        .map((action) => ({ id: action.id, type: action.actionType, text: action.text, actor: action.actor.displayName, actorRole: action.actor.role, at: action.createdAt.toISOString() })),
+      attachments: [],
+    });
+  });
+}
+
+export async function getManagerDiscrepancy(prisma: PrismaClient, organizationId: string, actorId: string, id: string) {
+  const shop = await assignedShop(prisma, organizationId, actorId);
+  const row = await prisma.discrepancyCase.findFirst({
+    where: { id, organizationId, shopId: shop.id, state: "NEEDS_INFO" },
+    include: {
+      shop: { select: { name: true } },
+      session: { select: { businessDate: true } },
+      actions: { include: { actor: { select: { displayName: true, role: true } } }, orderBy: { createdAt: "asc" } },
+    },
+  });
+  if (!row) throw new DomainError("DISCREPANCY_NOT_FOUND", "Dossier introuvable.", 404);
+  const closure = row.sourceType === "cash_closures"
+    ? await prisma.cashClosure.findUnique({ where: { id: row.sourceId }, include: { account: { select: { name: true } } } })
+    : null;
+  const attachments = await prisma.attachment.findMany({
+    where: { organizationId, ownerDocumentType: "discrepancy_cases", ownerDocumentId: row.id },
+    orderBy: { createdAt: "asc" },
+    select: { id: true, originalName: true, scanStatus: true },
+  });
+  const request = [...row.actions].reverse().find((action) => action.actionType === "REQUEST_INFO");
+  return managerDiscrepancyDto({
+    id: row.id,
+    state: row.state,
+    shopName: row.shop?.name ?? shop.name,
+    source: closure?.account.name ?? null,
+    declaredMinor: row.declaredMinor,
+    originalAmountMinor: row.originalAmountMinor,
+    businessDate: row.session?.businessDate.toISOString().slice(0, 10) ?? null,
+    countedAt: closure?.submittedAt.toISOString() ?? null,
+    initialObservation: closure?.explanation ?? null,
+    ownerRequest: request?.text ?? null,
+    requestedAt: request?.createdAt.toISOString() ?? row.createdAt.toISOString(),
+    createdAt: row.createdAt,
+    actions: row.actions
+      .filter((action) => MANAGER_VISIBLE_ACTIONS.has(action.actionType))
+      .map((action) => ({ id: action.id, type: action.actionType, text: action.text, actor: action.actor.displayName, actorRole: action.actor.role, at: action.createdAt.toISOString() })),
+    attachments: attachments.map((item) => ({ id: item.id, name: item.originalName, scanStatus: item.scanStatus })),
+  });
+}
+
+export async function respondToDiscrepancy(prisma: PrismaClient, context: CommandContext, id: string, input: { text: string; attachmentIds?: string[] | undefined }) {
+  if (context.actorRole !== "MANAGER") throw new DomainError("FORBIDDEN", "Seul le gérant concerné peut répondre.", 403);
+  return effect(prisma, context, { action: "respond-discrepancy", id, text: input.text, attachmentIds: input.attachmentIds ?? [] }, async (tx) => {
+    const shop = await assignedShop(tx, context.organizationId, context.actorId);
+    const locked = await tx.$queryRaw<Array<{ id: string; state: string; shop_id: string | null }>>`
+      SELECT id, state, shop_id FROM discrepancy_cases WHERE id=${id}::uuid AND organization_id=${context.organizationId}::uuid FOR UPDATE`;
+    const row = locked[0];
+    if (!row || row.shop_id !== shop.id || row.state !== "NEEDS_INFO") throw new DomainError("DISCREPANCY_NOT_FOUND", "Ce dossier n’attend plus de réponse.", 404);
+    const message = text(input.text, "La réponse", 10, 1000);
+    const action = await tx.discrepancyAction.create({ data: { caseId: id, actorId: context.actorId, actionType: "MANAGER_RESPONSE", text: message } });
+    if (input.attachmentIds?.length) {
+      await tx.attachment.updateMany({
+        where: { id: { in: input.attachmentIds }, organizationId: context.organizationId, uploadedById: context.actorId },
+        data: { ownerDocumentType: "discrepancy_cases", ownerDocumentId: id },
+      });
+    }
+    await tx.discrepancyCase.update({ where: { id }, data: { state: "OPEN" } });
+    await writeAudit(tx, { actorId: context.actorId, action: "DISCREPANCY_MANAGER_RESPONSE", entityType: "discrepancy_cases", entityId: id, requestId: context.requestId, afterJson: { actionId: action.id } });
+    return { id, state: "OPEN" as const, actionId: action.id };
+  });
+}
+
 export async function commentDiscrepancy(prisma: PrismaClient, context: CommandContext, id: string, textValue: string) {
+  if (context.actorRole !== "OWNER") throw new DomainError("FORBIDDEN", "Seule la propriétaire peut annoter ce dossier.", 403);
   return effect(prisma, context, { action: "comment-discrepancy", id, text: textValue }, async (tx) => {
     const row = await tx.discrepancyCase.findFirst({ where: { id, organizationId: context.organizationId } });
     if (!row) throw new DomainError("DISCREPANCY_NOT_FOUND", "Dossier introuvable.", 404);

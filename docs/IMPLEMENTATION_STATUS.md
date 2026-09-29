@@ -1,6 +1,6 @@
 # État d’implémentation
 
-Mise à jour : 28 septembre 2026. P00 documentaire et P01–P05 réalisées localement. P05-GATE est terminé sur preuves locales ; P06–P12 ne sont pas commencées.
+Mise à jour : 29 septembre 2026. P00 documentaire et P01–P05 réalisées localement. P05-GATE est terminé sur preuves locales ; le complément réponse gérant aux écarts et le correctif des messages de modale sont livrés. P06–P12 ne sont pas commencées.
 
 Plan actif : [phases P00 à P12](15-phases-developpement.md). Les livrables P00 sont disponibles dans [docs/p00](p00/README.md). La rédaction du backlog ne vaut pas implémentation des tâches.
 
@@ -17,7 +17,7 @@ Vérifications exécutées après ce complément : lint réussi, typecheck monor
 | P02 — Accès sécurisés et design system | RÉALISÉE LOCALEMENT ; P02-GATE TERMINÉ | Preuves dans le compte rendu P02 et la stabilisation SEC12 ci-dessous |
 | P03 — Boutiques, catalogue et initialisation | RÉALISÉE LOCALEMENT ; P03-GATE TERMINÉ | Migrations, API, écrans et recette locale décrits dans le compte rendu P03 |
 | P04 — Ventes en ligne | RÉALISÉE LOCALEMENT ; P04-GATE TERMINÉ | Vente gérant, historique et fiche propriétaire, dashboard commercial P04 et recette locale |
-| P05 — Caisse, dépenses et clôture | RÉALISÉE LOCALEMENT ; P05-GATE TERMINÉ | Sessions, dépenses, mouvements, comptage aveugle, écarts, justificatifs privés et recette locale ; P06 non commencée |
+| P05 — Caisse, dépenses et clôture | RÉALISÉE LOCALEMENT ; P05-GATE TERMINÉ | Sessions, dépenses, mouvements, comptage aveugle, écarts, réponse gérant aux demandes d’explication, justificatifs privés et recette locale ; P06 non commencée |
 | P06 — Achats et réapprovisionnement | NON COMMENCÉE | Aucun livrable applicatif ; démarrage non autorisé |
 | P07 — Crédit, retours et inventaires | NON COMMENCÉE | Aucun livrable applicatif ; démarrage non autorisé |
 | P08 — Hors connexion | NON COMMENCÉE | Aucun livrable applicatif ; démarrage non autorisé |
@@ -478,3 +478,38 @@ Vérifications exécutées : `corepack pnpm lint` code 0 ; `corepack pnpm typech
 - Fiche produit propriétaire : dernier coût d’achat, coût moyen pondéré des couches FIFO encore en stock, lots de coût restants, prix actuel, historique des prix et marge unitaire estimée pour le format de référence. Le bloc de coûts n’est pas inclus dans le DTO produit du gérant. Le coût évolue par réception ; le prix de vente reste indépendant.
 
 Vérifications exécutées : `corepack pnpm lint` code 0 ; `corepack pnpm typecheck` code 0 ; `corepack pnpm test:unit` **29/29** ; `corepack pnpm test:integration` **55/55** sur PostgreSQL réel ; `corepack pnpm build` code 0, **31 routes** ; Playwright Chromium ciblé P03/P05/UX propriétaire **3/3**, puis parcours P03 enrichi avec les assertions de coûts, prix et marge **1/1**.
+
+### Complément P05 — réponse gérant et messages de modale — 29 septembre 2026
+
+Périmètre : boucler le workflow d’écart `NEEDS_INFO` pour le gérant (consultation + réponse immuable) et corriger le placement des messages d’erreur/succès dans toutes les modales. P06–P09 non commencées.
+
+Fonctions livrées :
+
+- Routes dédiées `GET/POST /api/v1/manager/discrepancies` et `POST .../:id/respond`, protégées par `ManagerGuard`. Le gérant ne voit que les dossiers `NEEDS_INFO` de sa boutique d’affectation. Le DTO omet `expectedMinor`, `balanceMinor`, `residualAmountMinor` et `ownerDecision`.
+- Réponse gérant : texte obligatoire (10–1000), action append-only `MANAGER_RESPONSE`, justificatifs privés optionnels, passage `NEEDS_INFO` → `OPEN`, idempotence par clé, audit `DISCREPANCY_MANAGER_RESPONSE`. Aucun `UPDATE` de l’action précédente. Une nouvelle demande propriétaire crée une nouvelle action `REQUEST_INFO`.
+- Interface gérant « Demandes d’explication » : liste, fiche (contexte, observation, question, réponse, justificatif, historique), confirmation locale après envoi (le GET redevient 404 une fois le dossier rouvert).
+- Interface propriétaire : historique distinguant demande et réponse (auteur, rôle, date, type) ; le dossier revient à « À examiner » ; les décisions ACCEPT/RECLASSIFY/ADJUST restent réservées au propriétaire.
+- Modales : erreurs et confirmations liées au formulaire dans `Modal` / `ConfirmDialog` (`DialogMessage`, `role="alert"`) ; succès de page uniquement après fermeture de l’overlay (`afterDialogClose`) ; le toast P03 n’est plus élevé au-dessus de l’overlay.
+
+Décisions métier : le gérant ne liste un dossier que tant qu’une réponse est attendue ; après envoi, il ne peut plus le consulter ni le modifier. Compléter une réponse exige une nouvelle demande du propriétaire. Les montants attendus restent absents du DTO gérant, y compris après comptage.
+
+Permissions : lectures et mutations gérant bornées à l’organisation, à la boutique affectée et à l’état `NEEDS_INFO`. Le propriétaire reçoit 403 sur les routes gérant ; le gérant reçoit 403 sur `resolve`. Les actions `RESOLVE` / `ADJUST` / `RECLASSIFY` restent propriétaire.
+
+Vérifications exécutées (Node local 24.14.0, lancements avec `PNPM_IGNORE_ENGINE=1`) :
+
+- `corepack pnpm --filter @cercle/database exec prisma generate` : code 0 (Prisma Client 7.10.0).
+- `corepack pnpm db:replay-test` : base `cercle_complet_test` recréée vide.
+- `prisma migrate deploy` sur cette base vide : 10 migrations appliquées, dont `20260929120000_p05_manager_discrepancy_response`.
+- `corepack pnpm lint` : code 0.
+- `corepack pnpm typecheck` : code 0.
+- `corepack pnpm test:unit` : **33/33**.
+- `corepack pnpm test:integration` : **59/59** sur PostgreSQL réel (demande d’explication, isolation inter-boutiques, `MANAGER_RESPONSE` immuable, rejeu d’idempotence, nouvelle `REQUEST_INFO`, refus gérant de résoudre/ajuster, 403 HTTP croisés).
+- `corepack pnpm build` : code 0 ; routes gérant `/manager/discrepancies` et `/manager/discrepancies/[id]` présentes.
+- Playwright Chromium `tests/e2e/p05-cash.spec.ts` : **1/1** (clôture, erreur de motif dans la modale, réponse gérant, lecture et ACCEPT propriétaire).
+- Suite pertinente Chromium P03/P04/P05/UX/responsive : **7/7**.
+- `python scripts/check_docs.py` : OK (41 Markdown, 84 scénarios, 40 écrans).
+- `python scripts/check_design_examples.py` : OK.
+- `python scripts/check_cursor_setup.py` : OK.
+- Migration `20260929120000_p05_manager_discrepancy_response` également appliquée sur la base locale `cercle_complet`.
+
+Limites restantes : P06–P12 non commencées ; ClamAV toujours non déployé localement (circuit `UNAVAILABLE` inchangé) ; Firefox et WebKit non revendiqués ; Node local observé 24.14.0, inférieur à `>=24.21.0`. Les serveurs de développement locaux sur 4310/4311 ont été arrêtés le temps de Playwright ; ils doivent être relancés pour reprendre l’usage interactif. Le GET gérant d’un dossier déjà répondu renvoie 404 par conception.

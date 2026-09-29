@@ -11,6 +11,7 @@ import { Alert } from "../ui/alert";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { ConfirmDialog } from "../ui/confirm-dialog";
+import { afterDialogClose } from "../ui/dialog-message";
 import { EmptyState } from "../ui/empty-state";
 import { Field } from "../ui/field";
 import { Modal } from "../ui/modal";
@@ -30,13 +31,23 @@ type TransferRow = { id: string; purpose: string; state: string; reason: string;
 type Account = { id: string; name: string; type: string; shopId: string | null; shopName: string; balanceMinor?: string };
 type Shop = { id: string; name: string };
 type CaseRow = { id: string; type: string; state: string; shopName: string | null; source: string | null; originalAmountMinor: string; residualAmountMinor: string; expectedMinor: string | null; declaredMinor: string | null; createdAt: string };
-type CaseDetail = CaseRow & { sessionId: string | null; ownerDecision: string | null; resolvedAt: string | null; actions: Array<{ id: string; type: string; text: string; actor: string; at: string }> };
+type CaseDetail = CaseRow & { sessionId: string | null; ownerDecision: string | null; resolvedAt: string | null; actions: Array<{ id: string; type: string; text: string; actor: string; actorRole?: string; at: string }> };
 
 const statusTone = (status: string) => status === "CLOSED" ? "neutral" : status === "COUNTING" ? "warning" : "success";
 const expenseTone = (status: string): "neutral" | "success" | "warning" | "danger" | "info" => ({ DRAFT: "neutral", REQUESTED: "warning", AUTHORIZED: "info", POSTED: "success", IRREGULAR: "danger", REJECTED: "danger" } as const)[status] ?? "neutral";
 const expenseLabel: Record<string, string> = { DRAFT: "Brouillon", REQUESTED: "À valider", AUTHORIZED: "Autorisée", POSTED: "Décaissée", IRREGULAR: "À régulariser", REJECTED: "Refusée" };
 const purposeLabel: Record<string, string> = { REMITTANCE: "Remise", FLOAT: "Fonds de caisse", OWNER_CONTRIBUTION: "Apport", WITHDRAWAL: "Retrait" };
 const caseState: Record<string, string> = { OPEN: "À examiner", NEEDS_INFO: "Information demandée", RESOLVED: "Résolu" };
+const actionLabel: Record<string, string> = {
+  REQUEST_INFO: "Demande d’explication",
+  MANAGER_RESPONSE: "Réponse du gérant",
+  COMMENT: "Commentaire",
+  RECLASSIFY: "Reclassement",
+  ADJUST: "Ajustement lié",
+  RESOLVE: "Résolution",
+  REOPEN: "Réouverture",
+};
+const roleLabel = (role?: string) => role === "OWNER" ? "Propriétaire" : role === "MANAGER" ? "Gérant" : "Compte";
 const formatDate = (value: string) => new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(value.length === 10 ? `${value}T00:00:00Z` : value));
 const varianceClass = (value?: string | null) => value && BigInt(value) !== 0n ? "text-[var(--destructive)]" : "text-[var(--success)]";
 
@@ -149,7 +160,7 @@ export function OwnerExpensesPage() {
   return (
     <section className="space-y-6 overflow-x-clip">
       <PageHeader title="Dépenses">Validez ou refusez les demandes, puis suivez le décaissement réel. L’autorisation ne diminue pas les fonds.</PageHeader>
-      {error ? <Alert tone="error">{error}</Alert> : null}
+      {error && !selected ? <Alert tone="error">{error}</Alert> : null}
       <form className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]" onSubmit={(event) => { event.preventDefault(); void submitOwnerExpense(); }}>
         <h2 className="font-display font-semibold">Dépense d’organisation</h2>
         <p className="mt-1 text-sm text-[var(--muted)]">Cette opération enregistre puis décaisse réellement la dépense. Utilisez une source de la boutique concernée ou une source commune de l’entreprise.</p>
@@ -183,12 +194,12 @@ export function OwnerExpensesPage() {
           </li>
         ))}</ul>
       )}
-      <Modal open={Boolean(selected)} onOpenChange={(open) => { if (!open) setSelected(null); }} title="Décision sur la dépense" {...(selected ? { description: `${selected.description} · ${formatFcfa(selected.amountMinor)}` } : {})}>
+      <Modal open={Boolean(selected)} error={selected ? error : null} onOpenChange={(open) => { if (!open) { setSelected(null); setError(null); } }} title="Décision sur la dépense" {...(selected ? { description: `${selected.description} · ${formatFcfa(selected.amountMinor)}` } : {})}>
         <Field id="decide-reason" label="Motif de la décision" value={reason} onChange={(event) => setReason(event.target.value)} />
         <div className="mt-5 flex flex-wrap justify-end gap-2">
           <Button variant="ghost" onClick={() => setSelected(null)}>Fermer</Button>
-          <Button variant="danger" disabled={pending} onClick={() => { if (!selected) return; setPending(true); api(`/api/v1/expenses/${selected.id}/decide`, { method: "POST", body: JSON.stringify({ decision: "REJECT", reason }) }).then(() => { setSelected(null); return load(); }).catch((caught: RequestError) => setError(caught.message)).finally(() => setPending(false)); }}>Refuser</Button>
-          <Button disabled={pending} onClick={() => { if (!selected) return; setPending(true); api(`/api/v1/expenses/${selected.id}/decide`, { method: "POST", body: JSON.stringify({ decision: "APPROVE", reason }) }).then(() => { setSelected(null); return load(); }).catch((caught: RequestError) => setError(caught.message)).finally(() => setPending(false)); }}>Autoriser</Button>
+          <Button variant="danger" disabled={pending} onClick={() => { if (!selected) return; setPending(true); setError(null); api(`/api/v1/expenses/${selected.id}/decide`, { method: "POST", body: JSON.stringify({ decision: "REJECT", reason }) }).then(() => { setSelected(null); afterDialogClose(() => void load()); }).catch((caught: RequestError) => setError(caught.message)).finally(() => setPending(false)); }}>Refuser</Button>
+          <Button disabled={pending} onClick={() => { if (!selected) return; setPending(true); setError(null); api(`/api/v1/expenses/${selected.id}/decide`, { method: "POST", body: JSON.stringify({ decision: "APPROVE", reason }) }).then(() => { setSelected(null); afterDialogClose(() => void load()); }).catch((caught: RequestError) => setError(caught.message)).finally(() => setPending(false)); }}>Autoriser</Button>
         </div>
       </Modal>
     </section>
@@ -266,22 +277,35 @@ export function OwnerDiscrepancyDetailPage() {
   const [amount, setAmount] = useState("");
   const [pending, setPending] = useState(false);
   const [confirm, setConfirm] = useState<"ACCEPT" | "RECLASSIFY" | "ADJUST" | "REQUEST_INFO" | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const load = () => api<{ discrepancy: CaseDetail }>(`/api/v1/owner/discrepancies/${id}`).then((data) => setRow(data.discrepancy)).catch((caught: RequestError) => setError(caught.message));
   useEffect(() => { void load(); }, [id]);
   if (!row && !error) return <Skeleton className="h-[32rem]" />;
   if (!row) return <Alert tone="error">{error}</Alert>;
   const decide = () => {
     if (!confirm) return;
+    if (reason.trim().length < 5) {
+      setError("Le motif est trop court. Expliquez la décision en au moins cinq caractères.");
+      return;
+    }
     setPending(true);
+    setError(null);
     api(`/api/v1/owner/discrepancies/${id}/resolve`, { method: "POST", body: JSON.stringify({ decision: confirm, reason, amountMinor: amount || undefined }) })
-      .then(() => { setConfirm(null); return load(); })
+      .then(() => {
+        const done = confirm === "REQUEST_INFO" ? "La demande d’explication a été transmise au gérant." : "La décision a été enregistrée. Le dossier est à examiner ou résolu selon le résiduel.";
+        setConfirm(null);
+        afterDialogClose(() => setSuccess(done));
+        return load();
+      })
       .catch((caught: RequestError) => setError(caught.message))
       .finally(() => setPending(false));
   };
+  const confirmTitle = confirm === "REQUEST_INFO" ? "Demander une explication" : confirm === "ACCEPT" ? "Accepter l’écart" : confirm === "RECLASSIFY" ? "Reclasser l’écart" : "Ajuster par écriture liée";
   return (
     <section className="space-y-6 overflow-x-clip">
       <PageHeader title="Dossier d’écart" action={<Link href="/owner/discrepancies"><Button variant="secondary">Retour aux écarts</Button></Link>}>{row.shopName ?? "Organisation"} · {row.source ?? "Source non renseignée"} · ouvert le {formatDate(row.createdAt)}</PageHeader>
-      {error ? <Alert tone="error">{error}</Alert> : null}
+      {error && !confirm ? <Alert tone="error">{error}</Alert> : null}
+      {success ? <Alert tone="success">{success}</Alert> : null}
       <div className="flex flex-wrap items-center gap-3"><Badge tone={row.state === "RESOLVED" ? "success" : row.state === "NEEDS_INFO" ? "warning" : "danger"}>{caseState[row.state] ?? row.state}</Badge>{row.resolvedAt ? <span className="text-sm text-[var(--muted)]">Résolu le {formatDate(row.resolvedAt)}</span> : null}</div>
       <div className="grid gap-4 md:grid-cols-3">
         <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]"><p className="text-sm text-[var(--muted)]">Déclaré</p><p className="mt-1 font-display text-xl tabular-nums">{formatFcfa(row.declaredMinor)}</p></article>
@@ -301,10 +325,17 @@ export function OwnerDiscrepancyDetailPage() {
       </article> : <Alert tone="success">Ce dossier est résolu. Son historique reste consultable et le comptage d’origine est conservé.</Alert>}
       <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]">
         <h2 className="font-display font-semibold">Historique</h2>
-        {row.actions.length ? <ul className="mt-3 space-y-3">{row.actions.map((action) => <li key={action.id} className="rounded-lg bg-[var(--surface-subtle)] p-3 text-sm"><p className="font-medium">{action.actor} · {action.type}</p><p className="mt-1 text-[var(--muted)]">{action.text}</p><p className="mt-1 text-xs text-[var(--muted)]">{new Date(action.at).toLocaleString("fr-FR")}</p></li>)}</ul> : <p className="mt-3 text-sm text-[var(--muted)]">Aucune décision enregistrée pour le moment.</p>}
+        {row.actions.length ? <ul className="mt-3 space-y-3">{row.actions.map((action) => (
+          <li key={action.id} className={`rounded-lg p-3 text-sm ${action.type === "REQUEST_INFO" ? "bg-[color-mix(in_srgb,var(--primary)_8%,var(--surface-subtle))]" : action.type === "MANAGER_RESPONSE" ? "bg-[color-mix(in_srgb,var(--success)_10%,var(--surface-subtle))]" : "bg-[var(--surface-subtle)]"}`}>
+            <p className="font-medium">{actionLabel[action.type] ?? "Échange"} · {action.actor} · {roleLabel(action.actorRole)}</p>
+            <p className="mt-1 leading-6">{action.text}</p>
+            <p className="mt-1 text-xs text-[var(--muted)]">{new Date(action.at).toLocaleString("fr-FR")}</p>
+          </li>
+        ))}</ul> : <p className="mt-3 text-sm text-[var(--muted)]">Aucune décision enregistrée pour le moment.</p>}
       </article>
-      <ConfirmDialog open={Boolean(confirm)} onOpenChange={(open) => { if (!open) setConfirm(null); }} title="Confirmer la décision" confirmLabel="Enregistrer" pending={pending} onConfirm={decide}>
-        Cette action conserve l’historique et crée, si besoin, une écriture liée. Le comptage d’origine n’est pas réécrit.
+      <ConfirmDialog open={Boolean(confirm)} error={confirm ? error : null} onOpenChange={(open) => { if (!open) { setConfirm(null); setError(null); } }} title={confirmTitle} confirmLabel="Enregistrer" pending={pending} onConfirm={decide}>
+        <p>Cette action conserve l’historique et crée, si besoin, une écriture liée. Le comptage d’origine n’est pas réécrit.</p>
+        {reason.trim() ? <p className="mt-3 text-sm text-[var(--foreground)]">Motif : {reason}</p> : <p className="mt-3 text-sm">Indiquez un motif d’au moins cinq caractères avant d’enregistrer.</p>}
       </ConfirmDialog>
     </section>
   );

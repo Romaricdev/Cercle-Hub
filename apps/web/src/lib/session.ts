@@ -33,6 +33,7 @@ export const paths = {
   managerCashCount: "/manager/cash/count",
   managerExpenses: "/manager/expenses",
   managerFunds: "/manager/funds",
+  managerDiscrepancies: "/manager/discrepancies",
   setup: "/setup",
   managerHome: "/manager",
   managerDevice: "/manager/device",

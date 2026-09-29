@@ -84,6 +84,17 @@ export class OwnerGuard implements CanActivate {
 }
 
 @Injectable()
+export class ManagerGuard implements CanActivate {
+  canActivate(context: ExecutionContext): boolean {
+    const request = context.switchToHttp().getRequest<RequestWithActor>();
+    if (request.actor?.role !== "MANAGER") {
+      throw new ForbiddenException(apiError("FORBIDDEN", "Réservé au gérant."));
+    }
+    return true;
+  }
+}
+
+@Injectable()
 export class FreshSessionGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest<RequestWithActor>();

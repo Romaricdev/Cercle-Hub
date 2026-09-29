@@ -16,11 +16,14 @@ import {
   getCashSession,
   getDiscrepancy,
   listExpenses,
+  listManagerDiscrepancies,
+  getManagerDiscrepancy,
   openCashSession,
   payExpense,
   quoteSale,
   receiveFundTransfer,
   resolveDiscrepancy,
+  respondToDiscrepancy,
   saveOpeningDraft,
   sendFundTransfer,
   startCount,
@@ -217,5 +220,107 @@ describe("P05 caisse, dépenses et clôture aveugle", () => {
     const fakeSha = createHash("sha256").update(fake).digest("hex");
     const jpeg = await createAttachmentIntent(prisma, manager(), { documentType: "expenses", mime: "image/jpeg", size: fake.length, name: "photo.jpg", sha256: fakeSha });
     await expect(completeAttachment(prisma, manager(), jpeg.id, fake)).rejects.toThrow(/type/i);
+  });
+});
+
+describe("P05 réponse gérant à une demande d’explication", () => {
+  const prismaR = createPrismaClient(databaseUrl);
+  const organizationId = crypto.randomUUID();
+  const ownerId = crypto.randomUUID();
+  const managerId = crypto.randomUUID();
+  const otherManagerId = crypto.randomUUID();
+  const owner = (key = crypto.randomUUID()) => ({ organizationId, actorId: ownerId, actorRole: "OWNER" as const, key, requestId: key });
+  const manager = (key = crypto.randomUUID()) => ({ organizationId, actorId: managerId, actorRole: "MANAGER" as const, key, requestId: key });
+  let shopId = "";
+  let otherShopId = "";
+  let accountId = "";
+  let caseId = "";
+  let requestText = "";
+
+  beforeAll(async () => {
+    await prismaR.organization.create({ data: { id: organizationId, name: "P05 réponse gérant" } });
+    await prismaR.user.createMany({ data: [
+      { id: `auth-${ownerId}`, name: "Owner R", email: `${ownerId}@example.test`, updatedAt: new Date() },
+      { id: `auth-${managerId}`, name: "Manager R", email: `${managerId}@example.test`, updatedAt: new Date() },
+      { id: `auth-${otherManagerId}`, name: "Manager B", email: `${otherManagerId}@example.test`, updatedAt: new Date() },
+    ] });
+    await prismaR.appUser.createMany({ data: [
+      { id: ownerId, authUserId: `auth-${ownerId}`, organizationId, role: "OWNER", displayName: "Owner R", mfaRequired: true },
+      { id: managerId, authUserId: `auth-${managerId}`, organizationId, role: "MANAGER", displayName: "Manager R" },
+      { id: otherManagerId, authUserId: `auth-${otherManagerId}`, organizationId, role: "MANAGER", displayName: "Manager B" },
+    ] });
+    const shop = await createShop(prismaR, owner(), { code: "P05R", name: "Boutique réponse" });
+    shopId = shop.id;
+    const other = await createShop(prismaR, owner(), { code: "P05S", name: "Boutique voisine" });
+    otherShopId = other.id;
+    await prismaR.managerAssignment.create({ data: { shopId, userId: managerId } });
+    await prismaR.managerAssignment.create({ data: { shopId: otherShopId, userId: otherManagerId } });
+    await prismaR.device.create({ data: { organizationId, shopId, userId: managerId, publicKey: `p05r-${crypto.randomUUID()}-public-key-material`, name: "Caisse R", status: "ACTIVE" } });
+    const cash = await createPaymentSource(prismaR, owner(), { name: "Caisse R", type: "CASH", shopId });
+    accountId = (await prismaR.moneyAccount.findFirstOrThrow({ where: { paymentSourceId: cash.id } })).id;
+    await saveOpeningDraft(prismaR, owner(), shopId, { step: 11, stockLines: [], funds: [{ accountId, amountMinor: "50000" }], obligations: [] });
+    await validateOpening(prismaR, owner(), shopId);
+    const otherCash = await createPaymentSource(prismaR, owner(), { name: "Caisse voisine", type: "CASH", shopId: otherShopId });
+    const otherAccountId = (await prismaR.moneyAccount.findFirstOrThrow({ where: { paymentSourceId: otherCash.id } })).id;
+    await saveOpeningDraft(prismaR, owner(), otherShopId, { step: 11, stockLines: [], funds: [{ accountId: otherAccountId, amountMinor: "10000" }], obligations: [] });
+    await validateOpening(prismaR, owner(), otherShopId);
+    await transitionShop(prismaR, owner(), shopId, "ACTIVE", "Prête");
+    await transitionShop(prismaR, owner(), otherShopId, "ACTIVE", "Prête");
+    const sessionId = (await openCashSession(prismaR, manager())).id;
+    await startCount(prismaR, manager());
+    await submitCount(prismaR, manager(), sessionId, [{ accountId, denominations: [{ valueMinor: "10000", quantity: 4 }, { valueMinor: "1000", quantity: 8 }] }]);
+    const created = await prismaR.discrepancyCase.findFirstOrThrow({ where: { sessionId } });
+    caseId = created.id;
+    requestText = "Merci d’expliquer l’origine de cet écart de caisse.";
+    await resolveDiscrepancy(prismaR, owner(), caseId, { decision: "REQUEST_INFO", reason: requestText });
+  });
+
+  afterAll(async () => {
+    await prismaR.$disconnect();
+  });
+
+  it("n’expose pas l’attendu au gérant avant ni après le comptage", async () => {
+    const listed = await listManagerDiscrepancies(prismaR, organizationId, managerId);
+    expect(JSON.stringify(listed)).not.toMatch(/expectedMinor|balanceMinor|residualAmountMinor|ownerDecision/);
+    expect(listed.some((row) => row.id === caseId)).toBe(true);
+    const detail = await getManagerDiscrepancy(prismaR, organizationId, managerId, caseId);
+    expect(detail.declaredMinor).toBe("48000");
+    expect(detail.varianceMinor).toBe("-2000");
+    expect(detail.ownerRequest).toBe(requestText);
+    expect(detail).not.toHaveProperty("expectedMinor");
+  });
+
+  it("refuse la consultation à un gérant d’une autre boutique", async () => {
+    await expect(getManagerDiscrepancy(prismaR, organizationId, otherManagerId, caseId)).rejects.toMatchObject({ status: 404 });
+    const listed = await listManagerDiscrepancies(prismaR, organizationId, otherManagerId);
+    expect(listed.some((row) => row.id === caseId)).toBe(false);
+  });
+
+  it("enregistre une réponse immuable, repasse le dossier à OPEN et refuse la répétition", async () => {
+    const key = crypto.randomUUID();
+    const reply = "Le fonds de caisse du week-end n’avait pas été séparé du tiroir du jour.";
+    const first = await respondToDiscrepancy(prismaR, manager(key), caseId, { text: reply });
+    expect(first.state).toBe("OPEN");
+    const replay = await respondToDiscrepancy(prismaR, manager(key), caseId, { text: reply });
+    expect(replay.replayed).toBe(true);
+    const actions = await prismaR.discrepancyAction.findMany({ where: { caseId }, orderBy: { createdAt: "asc" } });
+    expect(actions.filter((action) => action.actionType === "MANAGER_RESPONSE")).toHaveLength(1);
+    expect(actions.some((action) => action.actionType === "REQUEST_INFO" && action.text === requestText)).toBe(true);
+    expect(actions.find((action) => action.actionType === "MANAGER_RESPONSE")?.text).toBe(reply);
+    await expect(prismaR.$executeRaw`UPDATE discrepancy_actions SET text='x' WHERE case_id=${caseId}::uuid`).rejects.toThrow();
+    const ownerView = await getDiscrepancy(prismaR, organizationId, caseId);
+    expect(ownerView.state).toBe("OPEN");
+    expect(ownerView.actions.some((action) => action.type === "MANAGER_RESPONSE" && action.actorRole === "MANAGER")).toBe(true);
+    expect((await listManagerDiscrepancies(prismaR, organizationId, managerId)).some((row) => row.id === caseId)).toBe(false);
+  });
+
+  it("autorise une nouvelle demande puis refuse au gérant de résoudre ou d’ajuster", async () => {
+    await resolveDiscrepancy(prismaR, owner(), caseId, { decision: "REQUEST_INFO", reason: "La réponse reste insuffisante, précisez les coupures." });
+    expect((await getDiscrepancy(prismaR, organizationId, caseId)).state).toBe("NEEDS_INFO");
+    const requests = await prismaR.discrepancyAction.count({ where: { caseId, actionType: "REQUEST_INFO" } });
+    expect(requests).toBe(2);
+    await expect(resolveDiscrepancy(prismaR, manager(), caseId, { decision: "ACCEPT", reason: "Je clôture moi-même l’écart." })).rejects.toMatchObject({ status: 403 });
+    await expect(resolveDiscrepancy(prismaR, manager(), caseId, { decision: "ADJUST", reason: "Ajustement gérant", amountMinor: "2000" })).rejects.toMatchObject({ status: 403 });
+    await expect(getManagerDiscrepancy(prismaR, organizationId, managerId, caseId)).resolves.toMatchObject({ state: "NEEDS_INFO" });
   });
 });

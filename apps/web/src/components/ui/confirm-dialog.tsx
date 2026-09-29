@@ -2,6 +2,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import type { ReactNode } from "react";
 
 import { Button } from "./button";
+import { DialogMessage } from "./dialog-message";
 
 export function ConfirmDialog({
   open,
@@ -12,6 +13,8 @@ export function ConfirmDialog({
   pending,
   onConfirm,
   tone = "primary",
+  error,
+  success,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -21,21 +24,32 @@ export function ConfirmDialog({
   pending?: boolean;
   onConfirm: () => void;
   tone?: "primary" | "danger";
+  error?: string | null;
+  success?: string | null;
 }) {
   return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange}>
+    <Dialog.Root open={open} onOpenChange={(next) => { if (!pending) onOpenChange(next); }}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-black/40" />
-        <Dialog.Content className="fixed inset-x-4 top-1/2 z-50 mx-auto w-[min(28rem,100%)] -translate-y-1/2 rounded-xl bg-[var(--surface)] p-6 shadow-[var(--shadow-float)] focus:outline-none">
-          <Dialog.Title className="font-display text-xl">{title}</Dialog.Title>
-          <div className="mt-3 text-[var(--muted)]">{children}</div>
-          <div className="mt-6 flex flex-wrap justify-end gap-2">
-            <Button variant="ghost" onClick={() => onOpenChange(false)}>
-              Annuler
-            </Button>
-            <Button variant={tone === "danger" ? "danger" : "primary"} disabled={pending} onClick={onConfirm}>
-              {pending ? "En cours…" : confirmLabel}
-            </Button>
+        <Dialog.Overlay data-slot="modal-overlay" className="fixed inset-0 z-40 bg-black/40" />
+        <Dialog.Content
+          data-slot="modal-content"
+          className="fixed inset-x-4 top-1/2 z-50 mx-auto flex max-h-[min(88vh,36rem)] w-[min(28rem,100%)] -translate-y-1/2 flex-col overflow-hidden rounded-xl bg-[var(--surface)] shadow-[var(--shadow-float)] focus:outline-none"
+        >
+          <div className="min-h-0 flex-1 overflow-y-auto p-6">
+            <Dialog.Title className="font-display text-xl">{title}</Dialog.Title>
+            <div className="mt-3 text-[var(--muted)]">{children}</div>
+          </div>
+          <div className="space-y-3 border-t border-[var(--separator)]/50 px-6 py-4">
+            {error ? <DialogMessage tone="error">{error}</DialogMessage> : null}
+            {success ? <DialogMessage tone="success">{success}</DialogMessage> : null}
+            <div className="flex flex-wrap justify-end gap-2">
+              <Button variant="ghost" disabled={pending} onClick={() => onOpenChange(false)}>
+                Annuler
+              </Button>
+              <Button variant={tone === "danger" ? "danger" : "primary"} disabled={pending} onClick={onConfirm}>
+                {pending ? "En cours…" : confirmLabel}
+              </Button>
+            </div>
           </div>
         </Dialog.Content>
       </Dialog.Portal>

@@ -1,8 +1,8 @@
 "use client";
 
-import { ArrowRight, Banknote, FileUp, LockKeyhole, Search, WalletCards } from "lucide-react";
+import { ArrowRight, Banknote, CircleAlert, FileUp, LockKeyhole, Search, WalletCards } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { api, RequestError } from "../../lib/api";
@@ -14,8 +14,10 @@ import { Button } from "../ui/button";
 import { ConfirmDialog } from "../ui/confirm-dialog";
 import { EmptyState } from "../ui/empty-state";
 import { Field } from "../ui/field";
+import { Label } from "../ui/label";
 import { PageHeader } from "../ui/page-header";
 import { Skeleton } from "../ui/skeleton";
+import { Textarea } from "../ui/textarea";
 
 type Source = { id: string; name: string; type: string; balanceMinor?: string };
 type SessionPayload = {
@@ -214,7 +216,7 @@ export function ManagerCountPage() {
       <PageHeader title="Comptage de fin de journée" action={session ? <Button variant="ghost" onClick={() => api(`/api/v1/cash-sessions/${session.id}/cancel-count`, { method: "POST", body: JSON.stringify({ reason: "Reprise des opérations" }) }).then(() => router.push(paths.managerCash)).catch((caught: RequestError) => setError(caught.message))}>Annuler le comptage</Button> : undefined}>
         {session ? `Déclarez le montant réellement présent pour ${session.shopName}, session du ${formatBusinessDate(session.businessDate)}. La première déclaration est définitive.` : "Aucune session à clôturer."}
       </PageHeader>
-      {error ? <Alert tone="error">{error}</Alert> : null}
+      {error && !confirm ? <Alert tone="error">{error}</Alert> : null}
       {!session ? <EmptyState title="Session introuvable" action={<Link href={paths.managerCash}><Button>Retour à la caisse</Button></Link>}>Ouvrez d’abord une session de caisse.</EmptyState> : (
         <>
           <Alert>Comptez tout l’argent physiquement présent dans chaque source, y compris le fonds de caisse conservé des jours précédents. Le montant attendu reste masqué pour préserver le comptage aveugle.</Alert>
@@ -244,7 +246,7 @@ export function ManagerCountPage() {
             <div><p className="text-sm text-[var(--muted)]">{completedSources}/{sources.length} sources comptées</p><p className="font-display text-xl font-semibold tabular-nums">{formatFcfa(grandTotal)}</p>{!allSourcesCounted ? <p className="text-xs text-[var(--destructive)]">Terminez chaque source ou confirmez explicitement qu’elle est vide.</p> : null}</div>
             <Button className="w-full sm:w-auto" disabled={!allSourcesCounted} onClick={() => setConfirm(true)}>Vérifier et enregistrer</Button>
           </div>
-          <ConfirmDialog open={confirm} onOpenChange={setConfirm} title="Confirmer la première déclaration" confirmLabel="Enregistrer définitivement" pending={pending} onConfirm={submit}>
+          <ConfirmDialog open={confirm} error={confirm ? error : null} onOpenChange={(open) => { setConfirm(open); if (!open) setError(null); }} title="Confirmer la première déclaration" confirmLabel="Enregistrer définitivement" pending={pending} onConfirm={submit}>
             <p>Vous déclarez les montants réellement présents. Cette saisie sera conservée telle quelle. Un écart éventuel sera calculé ensuite par le serveur.</p>
           </ConfirmDialog>
         </>
@@ -353,7 +355,7 @@ export function ManagerFundsPage() {
   return (
     <section className="space-y-6 overflow-x-clip">
       <PageHeader title="Mouvements de fonds">Une remise sort de la caisse vers le transit. La réception crédite la destination sans créer ni détruire d’argent.</PageHeader>
-      {error ? <Alert tone="error">{error}</Alert> : null}
+      {error && !receiveId ? <Alert tone="error">{error}</Alert> : null}
       {blocked ? <Alert><span className="inline-flex items-center gap-2"><LockKeyhole className="size-4" />Le comptage est en cours. Aucun fonds ne peut sortir ni être réceptionné avant sa fin.</span></Alert> : null}
       {!blocked && cash && !hasOpenSession ? <Alert>Ouvrez d’abord la caisse du jour pour effectuer un mouvement de fonds.</Alert> : null}
       {!blocked && hasOpenSession ? <form className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]" onSubmit={(event) => { event.preventDefault(); setPending(true); api<{ id: string }>("/api/v1/fund-transfers", { method: "POST", body: JSON.stringify({ ...form, purpose: "REMITTANCE" }) }).then((created) => api(`/api/v1/fund-transfers/${created.id}/send`, { method: "POST" })).then(() => { setForm({ sourceAccountId: "", destinationAccountId: "", amountMinor: "", reason: "" }); return load(); }).catch((caught: RequestError) => setError(caught.message)).finally(() => setPending(false)); }}>
@@ -378,7 +380,7 @@ export function ManagerFundsPage() {
           </li>
         ))}</ul>
       )}
-      <ConfirmDialog open={Boolean(receiveId)} onOpenChange={(open) => { if (!open) setReceiveId(null); }} title="Réception des fonds" confirmLabel="Enregistrer la réception" pending={pending} onConfirm={() => { if (!receiveId) return; setPending(true); api(`/api/v1/fund-transfers/${receiveId}/receive`, { method: "POST", body: JSON.stringify({ amountMinor: receiveAmount }) }).then(() => { setReceiveId(null); return load(); }).catch((caught: RequestError) => setError(caught.message)).finally(() => setPending(false)); }}>
+      <ConfirmDialog open={Boolean(receiveId)} error={receiveId ? error : null} onOpenChange={(open) => { if (!open) { setReceiveId(null); setError(null); } }} title="Réception des fonds" confirmLabel="Enregistrer la réception" pending={pending} onConfirm={() => { if (!receiveId) return; setPending(true); setError(null); api(`/api/v1/fund-transfers/${receiveId}/receive`, { method: "POST", body: JSON.stringify({ amountMinor: receiveAmount }) }).then(() => { setReceiveId(null); return load(); }).catch((caught: RequestError) => setError(caught.message)).finally(() => setPending(false)); }}>
         <Field id="receive-amount" label="Montant reçu (FCFA)" inputMode="numeric" value={receiveAmount} onChange={(event) => setReceiveAmount(event.target.value.replace(/\D/g, ""))} />
         <p className="mt-2 text-sm">Une réception partielle conserve le reliquat en transit.</p>
       </ConfirmDialog>
@@ -393,6 +395,189 @@ export function ManagerCashShortcuts() {
       <Link href={paths.managerExpenses} className="rounded-xl bg-[var(--surface)] p-4 shadow-[var(--shadow-card)]"><WalletCards className="size-5 text-[var(--primary)]" /><p className="mt-3 font-semibold">Dépenses</p><p className="mt-1 text-sm text-[var(--muted)]">Demander puis décaisser.</p></Link>
       <Link href={paths.managerFunds} className="rounded-xl bg-[var(--surface)] p-4 shadow-[var(--shadow-card)]"><ArrowRight className="size-5 text-[var(--primary)]" /><p className="mt-3 font-semibold">Fonds</p><p className="mt-1 text-sm text-[var(--muted)]">Remises et réceptions.</p></Link>
     </div>
+  );
+}
+
+type ManagerCase = {
+  id: string;
+  state: string;
+  shopName: string | null;
+  source: string | null;
+  declaredMinor: string | null;
+  varianceMinor: string;
+  businessDate: string | null;
+  countedAt: string | null;
+  initialObservation: string | null;
+  ownerRequest: string | null;
+  requestedAt: string | null;
+  createdAt: string;
+  actions: Array<{ id: string; type: string; text: string; actor: string; actorRole: string; at: string }>;
+  attachments: Array<{ id: string; name: string; scanStatus: string }>;
+};
+
+const actionCopy: Record<string, string> = {
+  REQUEST_INFO: "Demande du propriétaire",
+  MANAGER_RESPONSE: "Réponse du gérant",
+  COMMENT: "Commentaire",
+};
+
+function formatDateTime(value: string) {
+  return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+}
+
+export function ManagerDiscrepanciesPage() {
+  const [rows, setRows] = useState<ManagerCase[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    api<{ cases: ManagerCase[] }>("/api/v1/manager/discrepancies")
+      .then((data) => {
+        if (leakCheck(data.cases)) setError("Des montants attendus ont été refusés.");
+        setRows(data.cases);
+      })
+      .catch((caught: RequestError) => setError(caught.message));
+  }, []);
+  return (
+    <section className="space-y-6 overflow-x-clip">
+      <PageHeader title="Demandes d’explication">Répondez aux questions du propriétaire sur un écart de caisse. Votre réponse s’ajoute à l’historique et ne peut plus être modifiée.</PageHeader>
+      {error ? <Alert tone="error">{error}</Alert> : null}
+      {!rows ? <Skeleton className="h-48" /> : rows.length === 0 ? (
+        <EmptyState title="Aucune demande en attente" icon={<CircleAlert className="size-5" />}>Lorsqu’un écart nécessite votre éclairage, le dossier apparaîtra ici avec un bouton pour répondre.</EmptyState>
+      ) : (
+        <ul className="grid gap-3">
+          {rows.map((row) => (
+            <li key={row.id}>
+              <Link href={`${paths.managerDiscrepancies}/${row.id}`} className="block rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-display text-lg font-semibold">{row.shopName ?? "Votre boutique"}</p>
+                    <p className="mt-1 text-sm text-[var(--muted)]">{row.source ?? "Source de fonds"} · {row.businessDate ? formatBusinessDate(row.businessDate) : formatDateTime(row.createdAt)}</p>
+                  </div>
+                  <Badge tone="warning">Réponse attendue</Badge>
+                </div>
+                <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
+                  <div><dt className="text-[var(--muted)]">Déclaré</dt><dd className="font-semibold tabular-nums">{formatFcfa(row.declaredMinor)}</dd></div>
+                  <div><dt className="text-[var(--muted)]">Écart constaté</dt><dd className={`font-semibold tabular-nums ${varianceClass(row.varianceMinor)}`}>{formatFcfa(row.varianceMinor)}</dd></div>
+                  <div><dt className="text-[var(--muted)]">Demande</dt><dd className="font-semibold">{row.requestedAt ? formatDateTime(row.requestedAt) : "—"}</dd></div>
+                </dl>
+                <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--primary)]">Répondre <ArrowRight className="size-4" /></span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+const varianceClass = (value?: string | null) => value && BigInt(value) !== 0n ? "text-[var(--destructive)]" : "text-[var(--success)]";
+
+export function ManagerDiscrepancyDetailPage() {
+  const { id } = useParams<{ id: string }>();
+  const [row, setRow] = useState<ManagerCase | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [sent, setSent] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [text, setText] = useState("");
+  const [receipt, setReceipt] = useState<File | null>(null);
+  const load = () => api<{ discrepancy: ManagerCase }>(`/api/v1/manager/discrepancies/${id}`).then((data) => {
+    if (leakCheck(data.discrepancy)) throw new RequestError(403, "FORBIDDEN", "Données interdites.");
+    setRow(data.discrepancy);
+  }).catch((caught: RequestError) => setError(caught.message));
+  useEffect(() => { void load(); }, [id]);
+  if (!row && !error) return <Skeleton className="h-[32rem]" />;
+  if (!row) {
+    return (
+      <section className="space-y-6">
+        <PageHeader title="Demande d’explication" action={<Link href={paths.managerDiscrepancies}><Button variant="secondary">Retour à la liste</Button></Link>}>Cette demande n’est plus accessible.</PageHeader>
+        <Alert tone="error">{error}</Alert>
+      </section>
+    );
+  }
+  const submit = async () => {
+    setPending(true); setError(null);
+    try {
+      const attachmentIds: string[] = [];
+      if (receipt) {
+        const payload = await filePayload(receipt);
+        const created = await api<{ id: string }>("/api/v1/attachments", { method: "POST", body: JSON.stringify({ documentType: "discrepancy_cases", mime: receipt.type, size: receipt.size, name: receipt.name, sha256: payload.sha256 }) });
+        await api(`/api/v1/attachments/${created.id}/content`, { method: "POST", body: JSON.stringify({ base64: payload.base64 }) });
+        attachmentIds.push(created.id);
+      }
+      await api(`/api/v1/manager/discrepancies/${id}/respond`, { method: "POST", body: JSON.stringify({ text, attachmentIds }) });
+      setSent(true);
+      setRow((current) => current ? {
+        ...current,
+        state: "OPEN",
+        actions: [...current.actions, { id: "local", type: "MANAGER_RESPONSE", text, actor: "Vous", actorRole: "MANAGER", at: new Date().toISOString() }],
+      } : current);
+    } catch (caught) {
+      setError(caught instanceof RequestError ? caught.message : "La réponse n’a pas pu être envoyée.");
+    } finally {
+      setPending(false);
+    }
+  };
+  return (
+    <section className="space-y-6 overflow-x-clip">
+      <PageHeader title="Répondre à la demande" action={<Link href={paths.managerDiscrepancies}><Button variant="secondary">Retour à la liste</Button></Link>}>
+        {row.shopName} · {row.source ?? "Source de fonds"} · {row.businessDate ? formatBusinessDate(row.businessDate) : "Comptage enregistré"}
+      </PageHeader>
+      {error ? <Alert tone="error">{error}</Alert> : null}
+      {sent ? <Alert tone="success">Votre réponse a été transmise. Elle est désormais visible par le propriétaire, qui peut réexaminer le dossier.</Alert> : null}
+      <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]">
+        <h2 className="font-display font-semibold">Contexte du comptage</h2>
+        <dl className="mt-4 grid gap-4 sm:grid-cols-3">
+          <div><dt className="text-sm text-[var(--muted)]">Boutique</dt><dd className="mt-1 font-semibold">{row.shopName}</dd></div>
+          <div><dt className="text-sm text-[var(--muted)]">Source</dt><dd className="mt-1 font-semibold">{row.source ?? "Non renseignée"}</dd></div>
+          <div><dt className="text-sm text-[var(--muted)]">Date d’activité</dt><dd className="mt-1 font-semibold">{row.businessDate ? formatBusinessDate(row.businessDate) : "—"}</dd></div>
+          <div><dt className="text-sm text-[var(--muted)]">Montant déclaré</dt><dd className="mt-1 font-display text-xl tabular-nums">{formatFcfa(row.declaredMinor)}</dd></div>
+          <div><dt className="text-sm text-[var(--muted)]">Écart constaté</dt><dd className={`mt-1 font-display text-xl tabular-nums ${varianceClass(row.varianceMinor)}`}>{formatFcfa(row.varianceMinor)}</dd></div>
+        </dl>
+      </article>
+      <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]">
+        <h2 className="font-display font-semibold">Votre observation de clôture</h2>
+        <p className="mt-3 text-sm leading-6">{row.initialObservation?.trim() ? row.initialObservation : "Aucune observation n’avait été saisie au moment du comptage."}</p>
+      </article>
+      <article className="rounded-xl bg-[color-mix(in_srgb,var(--primary)_8%,var(--surface))] p-5 shadow-[var(--shadow-card)]">
+        <h2 className="font-display font-semibold">Question du propriétaire</h2>
+        <p className="mt-3 text-sm leading-6">{row.ownerRequest?.trim() ? row.ownerRequest : "Une explication est demandée pour cet écart. Précisez ce que vous avez constaté dans la caisse."}</p>
+      </article>
+      {sent ? (
+        <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]">
+          <h2 className="font-display font-semibold">Réponse transmise</h2>
+          <p className="mt-3 text-sm leading-6">{text}</p>
+          <p className="mt-3 text-sm text-[var(--muted)]">Pour ajouter un complément, le propriétaire devra vous redemander une explication. La réponse ci-dessus ne peut pas être modifiée.</p>
+        </article>
+      ) : (
+        <form className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]" onSubmit={(event) => { event.preventDefault(); void submit(); }}>
+          <h2 className="font-display font-semibold">Votre réponse</h2>
+          <p className="mt-1 text-sm text-[var(--muted)]">Expliquez clairement ce qui s’est passé. Dix caractères au minimum. Cette saisie sera conservée telle quelle.</p>
+          <div className="mt-4">
+            <Label htmlFor="manager-response">Explication</Label>
+            <Textarea id="manager-response" required minLength={10} maxLength={1000} value={text} onChange={(event) => setText(event.target.value)} placeholder="Décrivez ce que vous avez constaté dans la caisse." />
+          </div>
+          <label className="mt-4 flex cursor-pointer items-center gap-3 rounded-lg bg-[var(--surface-subtle)] p-4 text-sm font-medium">
+            <FileUp className="size-5 text-[var(--primary)]" />
+            <span>{receipt?.name ?? "Joindre un justificatif (facultatif)"}</span>
+            <input className="sr-only" type="file" accept="application/pdf,image/jpeg,image/png,image/webp" onChange={(event) => setReceipt(event.target.files?.[0] ?? null)} />
+          </label>
+          <Button type="submit" className="mt-4" disabled={pending || text.trim().length < 10}>{pending ? "Envoi…" : "Transmettre la réponse"}</Button>
+        </form>
+      )}
+      <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]">
+        <h2 className="font-display font-semibold">Historique des échanges</h2>
+        {row.actions.length === 0 ? <p className="mt-3 text-sm text-[var(--muted)]">Aucun échange n’est encore enregistré.</p> : (
+          <ol className="mt-4 space-y-3">
+            {row.actions.map((action) => (
+              <li key={action.id} className={`rounded-lg p-4 text-sm ${action.type === "REQUEST_INFO" ? "bg-[color-mix(in_srgb,var(--primary)_8%,var(--surface-subtle))]" : action.type === "MANAGER_RESPONSE" ? "bg-[color-mix(in_srgb,var(--success)_10%,var(--surface-subtle))]" : "bg-[var(--surface-subtle)]"}`}>
+                <p className="font-medium">{actionCopy[action.type] ?? "Échange"} · {action.actor} · {action.actorRole === "OWNER" ? "Propriétaire" : "Gérant"}</p>
+                <p className="mt-2 leading-6">{action.text}</p>
+                <p className="mt-2 text-xs text-[var(--muted)]">{formatDateTime(action.at)}</p>
+              </li>
+            ))}
+          </ol>
+        )}
+      </article>
+    </section>
   );
 }
 

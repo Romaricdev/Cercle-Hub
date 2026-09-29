@@ -91,7 +91,7 @@ describe("P03 boutiques, catalogue et initialisation", () => {
     expect((await prisma.moneyAccount.findUniqueOrThrow({ where: { id: accountId } })).balanceMinor).toBe(25000n);
     const journal = await prisma.journalEntry.findFirstOrThrow({ where: { referenceType: "opening_drafts" }, include: { lines: true } });
     expect(journal.lines.reduce((sum, line) => sum + line.amountMinor, 0n)).toBe(0n);
-    expect(await prisma.outboxEvent.count({ where: { topic: "business.opening_validated" } })).toBe(1);
+    expect(await prisma.outboxEvent.count({ where: { topic: "business.opening_validated", aggregateId: result.id } })).toBe(1);
   });
 
   it("corrige les fonds par un événement compensateur lié", async () => {

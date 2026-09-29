@@ -65,6 +65,7 @@ const managerLinks = [
   { href: paths.managerCash, label: "Caisse", icon: Banknote },
   { href: paths.managerExpenses, label: "Dépenses", icon: WalletCards },
   { href: paths.managerFunds, label: "Fonds", icon: WalletCards },
+  { href: paths.managerDiscrepancies, label: "Demandes d’explication", icon: CircleAlert },
   { href: paths.managerStock, label: "Stock", icon: Warehouse },
   { href: paths.managerSales, label: "Historique", icon: ReceiptText },
   { href: paths.managerDevice, label: "Mon appareil", icon: TabletSmartphone },
@@ -116,6 +117,7 @@ export function AppShell({ role, children }: { role: "OWNER" | "MANAGER"; childr
     pathname.startsWith("/owner/sales/") ? "Détail de vente" :
     pathname.startsWith("/owner/sessions/") ? "Fiche de session" :
     pathname.startsWith("/owner/discrepancies/") ? "Dossier d’écart" :
+    pathname.startsWith("/manager/discrepancies/") ? "Répondre à la demande" :
     ({
       [paths.ownerHome]: "Vue générale",
       [paths.ownerSales]: "Ventes",
@@ -143,6 +145,7 @@ export function AppShell({ role, children }: { role: "OWNER" | "MANAGER"; childr
       [paths.managerCashCount]: "Comptage",
       [paths.managerExpenses]: "Dépenses",
       [paths.managerFunds]: "Mouvements de fonds",
+      [paths.managerDiscrepancies]: "Demandes d’explication",
     } as Record<string, string>)[pathname] ?? "Vue générale";
 
   async function signOut() {

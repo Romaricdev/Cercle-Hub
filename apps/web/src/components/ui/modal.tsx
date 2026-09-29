@@ -1,12 +1,16 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import type { ReactNode } from "react";
 
+import { DialogMessage } from "./dialog-message";
+
 export function Modal({
   open,
   onOpenChange,
   title,
   description,
   children,
+  error,
+  success,
   size = "md",
 }: {
   open: boolean;
@@ -14,6 +18,8 @@ export function Modal({
   title: string;
   description?: string;
   children: ReactNode;
+  error?: string | null;
+  success?: string | null;
   size?: "sm" | "md" | "lg" | "xl";
 }) {
   const width = { sm: "max-w-md", md: "max-w-xl", lg: "max-w-3xl", xl: "max-w-5xl" }[size];
@@ -34,7 +40,11 @@ export function Modal({
             </div>
             <Dialog.Close className="grid size-9 shrink-0 place-items-center rounded-md text-xl text-[var(--muted)] transition-colors hover:bg-[var(--surface-subtle)] hover:text-[var(--foreground)]" aria-label="Fermer">×</Dialog.Close>
           </header>
-          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">{children}</div>
+          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
+            {error ? <div className="mb-4"><DialogMessage tone="error">{error}</DialogMessage></div> : null}
+            {success ? <div className="mb-4"><DialogMessage tone="success">{success}</DialogMessage></div> : null}
+            {children}
+          </div>
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

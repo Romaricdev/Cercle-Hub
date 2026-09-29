@@ -54,7 +54,7 @@ export default function OwnerDevicesPage() {
   return (
     <section className="space-y-6">
       <PageHeader title="Appareils autorisés">Contrôlez les appareils enregistrés par les gérants et leur accès à chaque boutique.</PageHeader>
-      {error ? <Alert tone="error">{error}</Alert> : null}
+      {error && !target ? <Alert tone="error">{error}</Alert> : null}
       {devices.length === 0 ? (
         <EmptyState title="Aucun appareil à examiner" icon={<MonitorSmartphone aria-hidden="true" className="size-5" />}>
           Les tablettes apparaîtront ici dès qu’un gérant enregistrera son appareil. Vous pourrez alors vérifier la boutique concernée avant de l’approuver.
@@ -87,7 +87,8 @@ export default function OwnerDevicesPage() {
       </div>
       <ConfirmDialog
         open={target?.action === "approve"}
-        onOpenChange={(open) => setTarget(open && target ? target : null)}
+        error={target?.action === "approve" ? error : null}
+        onOpenChange={(open) => { if (!open) { setTarget(null); setError(null); } }}
         title="Approuver cet appareil"
         confirmLabel="Approuver"
         pending={pending}
@@ -96,6 +97,7 @@ export default function OwnerDevicesPage() {
             return;
           }
           setPending(true);
+          setError(null);
           api(`/api/v1/devices/${target.id}/approve`, { method: "POST" })
             .then(() => reload())
             .then(() => setTarget(null))
@@ -107,7 +109,8 @@ export default function OwnerDevicesPage() {
       </ConfirmDialog>
       <ConfirmDialog
         open={target?.action === "revoke"}
-        onOpenChange={(open) => setTarget(open && target ? target : null)}
+        error={target?.action === "revoke" ? error : null}
+        onOpenChange={(open) => { if (!open) { setTarget(null); setError(null); } }}
         title="Retirer l’autorisation de cet appareil"
         confirmLabel="Retirer l’autorisation"
         tone="danger"

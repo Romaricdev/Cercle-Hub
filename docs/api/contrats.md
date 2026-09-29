@@ -206,7 +206,12 @@ Les montants restent des chaînes d’entiers mineurs. Le DTO gérant de session
 | POST `/fund-transfers/:id/receive` | `{amountMinor,comment?}` ; réception totale ou fractionnée |
 | GET `/fund-accounts` | Comptes actifs hors transit ; soldes visibles au propriétaire seulement |
 | GET `/owner/discrepancies` | Dossiers d’écart |
+| GET `/owner/discrepancies/:id` | Fiche propriétaire : attendu, déclaré, résiduel, historique avec rôle |
+| POST `/owner/discrepancies/:id/comment` | `{text}` ; commentaire propriétaire immuable |
 | POST `/owner/discrepancies/:id/resolve` | `{decision:ACCEPT\|RECLASSIFY\|ADJUST\|REQUEST_INFO,reason,amountMinor?}` ; écriture liée |
+| GET `/manager/discrepancies` | Dossiers `NEEDS_INFO` de la boutique affectée ; pas d’attendu |
+| GET `/manager/discrepancies/:id` | Fiche gérant : déclaré, écart après comptage, demande, historique filtré |
+| POST `/manager/discrepancies/:id/respond` | `{text,attachmentIds?}` ; `MANAGER_RESPONSE` immuable, état `OPEN` |
 | POST `/attachments` | Intention opaques `{documentType,mime,size,name,sha256}` |
 | POST `/attachments/:id/content` | `{base64}` ; sniff MIME, hash, scan, stockage S3 privé |
 | GET `/attachments/:id/content` | Octets si `CLEAN` ; pas d’URL publique permanente |

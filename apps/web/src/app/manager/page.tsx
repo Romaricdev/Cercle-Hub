@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, History, ShieldCheck, ShoppingCart, Store, TabletSmartphone, Banknote, WalletCards } from "lucide-react";
+import { ArrowRight, History, ShieldCheck, ShoppingCart, Store, TabletSmartphone, Banknote, WalletCards, CircleAlert } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -35,6 +35,12 @@ export default function ManagerHomePage() {
           <h2 className="mt-4 font-display text-lg font-semibold">Dépenses</h2>
           <p className="mt-1.5 text-sm leading-6 text-[var(--muted)]">Demandez, suivez l’autorisation, puis décaissiez réellement.</p>
           <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--primary)]">Créer une demande <ArrowRight aria-hidden="true" className="size-4 transition-transform group-hover:translate-x-1" /></span>
+        </Link>
+        <Link href={paths.managerDiscrepancies} className="group rounded-lg bg-[var(--surface)] p-5 shadow-[var(--shadow-card)] transition-transform duration-200 hover:-translate-y-0.5">
+          <div className="grid size-10 place-items-center rounded-lg bg-orange-500/10 text-orange-700 dark:text-orange-400"><CircleAlert aria-hidden="true" className="size-5" /></div>
+          <h2 className="mt-4 font-display text-lg font-semibold">Demandes d’explication</h2>
+          <p className="mt-1.5 text-sm leading-6 text-[var(--muted)]">Répondez aux questions du propriétaire sur un écart de caisse.</p>
+          <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--primary)]">Voir les demandes <ArrowRight aria-hidden="true" className="size-4 transition-transform group-hover:translate-x-1" /></span>
         </Link>
         <section className="rounded-lg bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]">
           <div className="grid size-10 place-items-center rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400"><Store aria-hidden="true" className="size-5" /></div>

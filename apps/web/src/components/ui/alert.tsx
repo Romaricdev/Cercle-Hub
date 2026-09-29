@@ -9,7 +9,7 @@ export function Alert({ children, tone = "info" }: { children: ReactNode; tone?:
     success: "bg-[color-mix(in_oklab,var(--success)_12%,var(--surface))] text-[var(--foreground)]",
   };
   return (
-    <div role="alert" className={cn("ui-surface-enter rounded-lg px-4 py-3 text-sm leading-6 shadow-[var(--shadow-card)]", colors[tone])}>
+    <div role="alert" aria-live={tone === "error" ? "assertive" : "polite"} className={cn("ui-surface-enter rounded-lg px-4 py-3 text-sm leading-6 shadow-[var(--shadow-card)]", colors[tone])}>
       {children}
     </div>
   );

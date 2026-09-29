@@ -16,14 +16,17 @@ import {
   getCashSession,
   getDiscrepancy,
   getExpense,
+  getManagerDiscrepancy,
   listCashSessions,
   listDiscrepancies,
   listExpenses,
   listFundAccounts,
   listFundTransfers,
+  listManagerDiscrepancies,
   payExpense,
   receiveFundTransfer,
   resolveDiscrepancy,
+  respondToDiscrepancy,
   sendFundTransfer,
   startCount,
   submitCount,
@@ -33,7 +36,7 @@ import { createStorageClient, putPrivateObject, readPrivateObject } from "@cercl
 import type { FastifyReply } from "fastify";
 import { z } from "zod";
 
-import { AuthenticatedGuard, FreshSessionGuard, OwnerGuard, OwnerMfaGuard, requireActor, type Actor } from "../auth/guards.js";
+import { AuthenticatedGuard, FreshSessionGuard, ManagerGuard, OwnerGuard, OwnerMfaGuard, requireActor, type Actor } from "../auth/guards.js";
 import type { ApiEnv } from "../env.js";
 import { DomainHttpError } from "../http/domain-http.js";
 import { API_ENV, PRISMA } from "../tokens.js";
@@ -75,6 +78,10 @@ const resolveSchema = z.object({
   decision: z.enum(["ACCEPT", "RECLASSIFY", "ADJUST", "REQUEST_INFO"]),
   reason: z.string().trim().min(5).max(500),
   amountMinor: money.optional(),
+}).strict();
+const respondSchema = z.object({
+  text: z.string().trim().min(10).max(1000),
+  attachmentIds: z.array(z.uuid()).max(8).optional(),
 }).strict();
 const attachmentIntentSchema = z.object({
   documentType: z.enum(["expenses", "fund_transfers", "discrepancy_cases"]),
@@ -256,6 +263,33 @@ export class P05Controller {
     try {
       const actor = requireActor(request);
       return { protocolVersion: PROTOCOL_VERSION, discrepancy: await getDiscrepancy(this.prisma, actor.organizationId, z.uuid().parse(id)) };
+    } catch (error) { throw DomainHttpError.from(error); }
+  }
+
+  @Get("manager/discrepancies")
+  @UseGuards(ManagerGuard)
+  async managerDiscrepancies(@Req() request: RequestWithActor) {
+    try {
+      const actor = requireActor(request);
+      return { protocolVersion: PROTOCOL_VERSION, cases: await listManagerDiscrepancies(this.prisma, actor.organizationId, actor.id) };
+    } catch (error) { throw DomainHttpError.from(error); }
+  }
+
+  @Get("manager/discrepancies/:id")
+  @UseGuards(ManagerGuard)
+  async managerDiscrepancy(@Req() request: RequestWithActor, @Param("id") id: string) {
+    try {
+      const actor = requireActor(request);
+      return { protocolVersion: PROTOCOL_VERSION, discrepancy: await getManagerDiscrepancy(this.prisma, actor.organizationId, actor.id, z.uuid().parse(id)) };
+    } catch (error) { throw DomainHttpError.from(error); }
+  }
+
+  @Post("manager/discrepancies/:id/respond") @HttpCode(200)
+  @UseGuards(ManagerGuard)
+  async managerRespond(@Req() request: RequestWithActor, @Param("id") id: string, @Headers("idempotency-key") key: string | undefined, @Body() body: unknown) {
+    try {
+      const input = respondSchema.parse(body);
+      return { protocolVersion: PROTOCOL_VERSION, ...(await respondToDiscrepancy(this.prisma, this.context(request, key), z.uuid().parse(id), input)) };
     } catch (error) { throw DomainHttpError.from(error); }
   }
 

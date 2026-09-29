@@ -3,7 +3,7 @@ import type { PrismaClient } from "@cercle/database";
 
 import { AccessController } from "./access/access.controller.js";
 import type { Auth } from "./auth/auth.js";
-import { AuthenticatedGuard, FreshSessionGuard, OwnerGuard, OwnerMfaGuard } from "./auth/guards.js";
+import { AuthenticatedGuard, FreshSessionGuard, ManagerGuard, OwnerGuard, OwnerMfaGuard } from "./auth/guards.js";
 import type { ApiEnv } from "./env.js";
 import { HealthController } from "./health/health.controller.js";
 import { HealthService } from "./health/health.service.js";
@@ -27,6 +27,7 @@ export class AppModule {
         AuthenticatedGuard,
         OwnerMfaGuard,
         OwnerGuard,
+        ManagerGuard,
         FreshSessionGuard,
       ],
     };

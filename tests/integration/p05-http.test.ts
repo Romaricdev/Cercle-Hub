@@ -109,9 +109,12 @@ describe("API P05 permissions et validation", () => {
     return { origin, cookie: cookieJar(cookie, response.headers["set-cookie"]), "x-csrf-token": token, "idempotency-key": crypto.randomUUID(), "content-type": "application/json" };
   }
 
-  it("répond 401 sans session, 403 au gérant sur les dossiers propriétaire, 404 hors organisation et 422 sur un montant invalide", async () => {
+  it("répond 401 sans session, 403 au gérant sur les dossiers propriétaire, 403 au propriétaire sur les routes gérant, 404 hors organisation et 422 sur un montant invalide", async () => {
     expect((await inject({ method: "GET", url: "/api/v1/cash-sessions/current", headers: { origin } })).statusCode).toBe(401);
     expect((await inject({ method: "GET", url: "/api/v1/owner/discrepancies", headers: { origin, cookie: managerCookie } })).statusCode).toBe(403);
+    expect((await inject({ method: "GET", url: "/api/v1/manager/discrepancies", headers: { origin, cookie: ownerCookie } })).statusCode).toBe(403);
+    expect((await inject({ method: "POST", url: `/api/v1/manager/discrepancies/${crypto.randomUUID()}/respond`, headers: { origin, cookie: ownerCookie, "content-type": "application/json", "idempotency-key": crypto.randomUUID() }, payload: { text: "Réponse trop courte du propriétaire." } })).statusCode).toBe(403);
+    expect((await inject({ method: "POST", url: `/api/v1/owner/discrepancies/${crypto.randomUUID()}/resolve`, headers: await csrf(managerCookie), payload: { decision: "ACCEPT", reason: "Tentative gérant de résoudre." } })).statusCode).toBe(403);
     expect((await inject({ method: "GET", url: `/api/v1/owner/cash-sessions/${crypto.randomUUID()}`, headers: { origin, cookie: ownerCookie } })).statusCode).toBe(404);
     expect((await inject({ method: "GET", url: `/api/v1/owner/cash-sessions?shopId=${foreignShopId}`, headers: { origin, cookie: ownerCookie } })).statusCode).toBe(404);
     const headers = await csrf(managerCookie);
