@@ -99,9 +99,17 @@ test("P03 configure puis active une boutique sans donnée commerciale fictive", 
   await expect(page.getByText("Riz local", { exact: true })).toBeVisible();
   await expect(page.getByText("8", { exact: true })).toBeVisible();
 
+  await page.goto("/owner/products");
+  await page.locator("li").filter({ hasText: "Riz local" }).getByRole("button", { name: "Voir la fiche" }).click();
+  await expect(page.getByRole("heading", { name: "Coûts d’achat et prix de vente" })).toBeVisible();
+  await expect(page.getByText("9 000 FCFA", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("15 000 FCFA", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("Marge unitaire estimée : 6 000 FCFA", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Fermer" }).click();
+
   for (const viewport of [{ width: 320, height: 700 }, { width: 768, height: 1024 }, { width: 1024, height: 768 }, { width: 1440, height: 900 }]) {
     await page.setViewportSize(viewport);
-    await expect(page.getByRole("heading", { name: "Stock de l’entreprise", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Catalogue", exact: true })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
   }
   await page.getByRole("button", { name: "Sombre" }).click();

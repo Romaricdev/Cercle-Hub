@@ -600,6 +600,7 @@ export async function listFundAccounts(prisma: PrismaClient, organizationId: str
     id: row.id,
     name: row.name,
     type: row.paymentSource.type,
+    shopId: row.shopId,
     shopName: row.shop?.name ?? "Organisation",
     ...(role === "OWNER" ? { balanceMinor: row.balanceMinor.toString() } : {}),
   }));
@@ -774,11 +775,15 @@ export async function listDiscrepancies(prisma: PrismaClient, organizationId: st
     take: 80,
     include: { shop: { select: { name: true } } },
   });
+  const closureIds = rows.filter((row) => row.sourceType === "cash_closures").map((row) => row.sourceId);
+  const closures = closureIds.length ? await prisma.cashClosure.findMany({ where: { id: { in: closureIds } }, include: { account: { select: { name: true } } } }) : [];
+  const sources = new Map(closures.map((closure) => [closure.id, closure.account.name]));
   return rows.map((row) => ({
     id: row.id,
     type: row.type,
     state: row.state,
     shopName: row.shop?.name ?? null,
+    source: sources.get(row.sourceId) ?? null,
     originalAmountMinor: row.originalAmountMinor.toString(),
     residualAmountMinor: row.residualAmountMinor.toString(),
     expectedMinor: row.expectedMinor?.toString() ?? null,
@@ -793,11 +798,13 @@ export async function getDiscrepancy(prisma: PrismaClient, organizationId: strin
     include: { shop: { select: { name: true } }, actions: { include: { actor: { select: { displayName: true } } }, orderBy: { createdAt: "asc" } } },
   });
   if (!row) throw new DomainError("DISCREPANCY_NOT_FOUND", "Dossier introuvable.", 404);
+  const closure = row.sourceType === "cash_closures" ? await prisma.cashClosure.findUnique({ where: { id: row.sourceId }, include: { account: { select: { name: true } } } }) : null;
   return {
     id: row.id,
     type: row.type,
     state: row.state,
     shopName: row.shop?.name ?? null,
+    source: closure?.account.name ?? null,
     sessionId: row.sessionId,
     expectedMinor: row.expectedMinor?.toString() ?? null,
     declaredMinor: row.declaredMinor?.toString() ?? null,

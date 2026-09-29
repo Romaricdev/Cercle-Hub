@@ -469,3 +469,12 @@ Limites inchangées : ClamAV local reste indisponible et tout fichier demeure no
 Une source dont tous les champs sont laissés vides reste désormais « Non comptée ». La clôture est bloquée tant que chaque source n’a pas un montant physique positif ou une confirmation explicite « source vide ». La même règle est contrôlée par l’API avec `COUNT_SOURCE_UNCONFIRMED`, afin qu’un autre client ne puisse pas transformer silencieusement un fonds de caisse existant en déclaration à zéro. L’aide rappelle de compter l’intégralité des fonds présents, y compris le fonds conservé des jours précédents ; le montant attendu reste absent du DTO gérant avant la déclaration.
 
 Vérifications exécutées : `corepack pnpm lint` code 0 ; `corepack pnpm typecheck` code 0 ; `corepack pnpm test:unit` **29/29** ; test d’intégration P05 ciblé **12/12**, dont le nouveau refus d’une source non comptée ; `corepack pnpm build` code 0, **31 routes** ; parcours Playwright P05 Chromium **1/1**.
+
+### Raffinement propriétaire P05 et fiche produit — 29 septembre 2026
+
+- Sessions et écarts : dates lisibles, statuts, différences mises en évidence, détail déclaré/attendu par source, états vides explicites, navigation vers les dossiers et historique horodaté. Les anciens écarts restent immuables et se résolvent par décision ou écriture liée.
+- Mouvements de fonds : type d’opération, comptes de départ et destinataire, montant FCFA, justification et état de transit sont explicités.
+- Dépenses propriétaire : boutique, source compatible identifiée par son rattachement, catégorie, montant FCFA et motif sont exigés avant le décaissement réel. Le propriétaire peut joindre un PDF ou une image via le stockage privé contrôlé ; à défaut, une justification d’absence est obligatoire et auditée.
+- Fiche produit propriétaire : dernier coût d’achat, coût moyen pondéré des couches FIFO encore en stock, lots de coût restants, prix actuel, historique des prix et marge unitaire estimée pour le format de référence. Le bloc de coûts n’est pas inclus dans le DTO produit du gérant. Le coût évolue par réception ; le prix de vente reste indépendant.
+
+Vérifications exécutées : `corepack pnpm lint` code 0 ; `corepack pnpm typecheck` code 0 ; `corepack pnpm test:unit` **29/29** ; `corepack pnpm test:integration` **55/55** sur PostgreSQL réel ; `corepack pnpm build` code 0, **31 routes** ; Playwright Chromium ciblé P03/P05/UX propriétaire **3/3**, puis parcours P03 enrichi avec les assertions de coûts, prix et marge **1/1**.

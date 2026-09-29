@@ -202,7 +202,7 @@ export class P03Controller {
   async products(@Req() request: RequestWithActor, @Query("shopId") requested?: string) {
     const actor = requireActor(request);
     const shopId = await this.scope(actor, requested ? z.uuid().parse(requested) : undefined);
-    return { protocolVersion: PROTOCOL_VERSION, products: await listProducts(this.prisma, actor.organizationId, shopId) };
+    return { protocolVersion: PROTOCOL_VERSION, products: await listProducts(this.prisma, actor.organizationId, shopId, actor.role === "OWNER") };
   }
 
   @Post("products")
@@ -217,7 +217,7 @@ export class P03Controller {
   async product(@Req() request: RequestWithActor, @Param("id") id: string) {
     const actor = requireActor(request);
     const shopId = await this.scope(actor);
-    const product = (await listProducts(this.prisma, actor.organizationId, shopId)).find((row) => row.id === z.uuid().parse(id));
+    const product = (await listProducts(this.prisma, actor.organizationId, shopId, actor.role === "OWNER")).find((row) => row.id === z.uuid().parse(id));
     if (!product) throw new DomainError("PRODUCT_NOT_FOUND", "Produit introuvable.", 404);
     return { protocolVersion: PROTOCOL_VERSION, product };
   }

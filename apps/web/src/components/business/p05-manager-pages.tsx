@@ -27,7 +27,7 @@ type SessionPayload = {
 type SessionRow = { id: string; status: string; shopName: string; managerName: string; businessDate: string; openedAt: string; closedAt: string | null; varianceMinor?: string; declaredMinor?: string; expectedMinor?: string };
 type ExpenseRow = { id: string; shopName: string; managerName: string; category: string; description: string; amountMinor: string; status: string; source: string; createdAt: string };
 type TransferRow = { id: string; purpose: string; state: string; reason: string; shopName: string | null; source: string; destination: string; amountSentMinor: string; amountReceivedMinor: string; remainingMinor: string; createdAt: string; receipts: Array<{ id: string; amountMinor: string; receivedAt: string }> };
-type Account = { id: string; name: string; type: string; shopName: string; balanceMinor?: string };
+type Account = { id: string; name: string; type: string; shopId: string | null; shopName: string; balanceMinor?: string };
 
 const expenseLabels: Record<string, string> = { RENT: "Loyer", UTILITIES: "Charges", TRANSPORT: "Transport", SUPPLIES: "Fournitures", OTHER: "Autre" };
 const expenseStatus: Record<string, { label: string; tone: "neutral" | "success" | "warning" | "danger" | "info" }> = {

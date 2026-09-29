@@ -211,11 +211,14 @@ export async function transitionShop(
   });
 }
 
-export async function listProducts(prisma: PrismaClient, organizationId: string, shopId?: string) {
+export async function listProducts(prisma: PrismaClient, organizationId: string, shopId?: string, includeCosts = false) {
   const products = await prisma.product.findMany({
     where: { organizationId, ...(shopId ? { shops: { some: { shopId, active: true } } } : {}) },
     include: {
-      variants: { include: { units: { include: { prices: { orderBy: { validFrom: "desc" } } } } } },
+      variants: { include: {
+        units: { include: { prices: { orderBy: { validFrom: "desc" } } } },
+        costLayers: { where: { remainingQuantity: { gt: 0 } }, include: { location: { select: { name: true } } }, orderBy: { receivedAt: "desc" } },
+      } },
       shops: true,
     },
     orderBy: { name: "asc" },
@@ -224,14 +227,27 @@ export async function listProducts(prisma: PrismaClient, organizationId: string,
     ...product,
     hasImage: Boolean(imageKey),
     imageUrl: imageKey ? `/api/v1/products/${product.id}/image` : null,
-    variants: product.variants.map((variant) => ({
+    variants: product.variants.map((variant) => {
+      const layers = variant.costLayers;
+      const costQuantity = layers.reduce((sum, layer) => sum + BigInt(layer.remainingQuantity.toFixed(6).replace(".", "")), 0n);
+      const costValue = layers.reduce((sum, layer) => sum + BigInt(layer.remainingQuantity.toFixed(6).replace(".", "")) * layer.unitCostMinor, 0n);
+      return {
       ...variant,
+      costLayers: undefined,
+      ...(includeCosts ? {
+        costs: {
+          lastUnitCostMinor: layers[0]?.unitCostMinor.toString() ?? null,
+          weightedAverageUnitCostMinor: costQuantity > 0n ? ((costValue + costQuantity / 2n) / costQuantity).toString() : null,
+          layers: layers.map((layer) => ({ id: layer.id, originType: layer.originType, remainingQuantity: layer.remainingQuantity.toString(), unitCostMinor: layer.unitCostMinor.toString(), receivedAt: layer.receivedAt.toISOString(), location: layer.location.name })),
+        },
+      } : {}),
       units: variant.units.map((unit) => ({
         ...unit,
         factor: unit.factor.toString(),
         prices: unit.prices.map((price) => ({ ...price, amountMinor: price.amountMinor.toString() })),
       })),
-    })),
+      };
+    }),
   }));
 }
 
