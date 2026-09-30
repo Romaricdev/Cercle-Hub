@@ -1,6 +1,6 @@
 "use client";
 
-import { ClipboardList, Package, Plus, Search, Truck, Warehouse } from "lucide-react";
+import { ArrowRight, ClipboardList, Mail, MapPin, Package, Phone, Plus, Search, Trash2, Truck, Warehouse } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -41,7 +41,7 @@ type Catalog = {
   products: Array<{ id: string; name: string; variants: Array<{ id: string; name: string; units: Array<{ id: string; name: string }> }> }>;
 };
 type PurchaseRow = { id: string; reference: string; supplierName: string; shopName: string | null; status: string; receivedStatus: string; paymentStatus: string; goodsMinor?: string; paidMinor?: string; createdAt: string };
-type SupplierRow = { id: string; name: string; phone: string | null; status: string; tradeName: string | null };
+type SupplierRow = { id: string; name: string; phone: string | null; email?: string | null; contactName?: string | null; paymentTerms?: string | null; status: string; tradeName: string | null };
 type ShipmentRow = {
   id: string;
   status: string;
@@ -64,6 +64,23 @@ type ShipmentRow = {
 
 function formatWhen(value: string) {
   return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+}
+
+function scaledQuantity(value: string) {
+  const match = value.trim().match(/^(\d+)(?:\.(\d{0,6}))?$/);
+  if (!match) return 0n;
+  return BigInt(match[1]!) * 1_000_000n + BigInt((match[2] ?? "").padEnd(6, "0"));
+}
+
+function lineAmount(unitPriceMinor: string, quantity: string) {
+  const scaled = scaledQuantity(quantity);
+  return (BigInt(unitPriceMinor || "0") * scaled + 500_000n) / 1_000_000n;
+}
+
+function displayScaledQuantity(value: bigint) {
+  const whole = value / 1_000_000n;
+  const fraction = (value % 1_000_000n).toString().padStart(6, "0").replace(/0+$/, "");
+  return fraction ? `${whole}.${fraction}` : whole.toString();
 }
 
 export function OwnerRequestsPage() {
@@ -194,7 +211,15 @@ export function OwnerPurchaseNewPage() {
     const unit = variant.units.find((item) => item.id === unitId);
     setLines((current) => [...current, { variantId, unitId, quantity, unitPriceMinor: unitPrice, label: `${product?.name} · ${variant.name} · ${quantity} ${unit?.name ?? ""}`, dests: catalog?.locations[0] ? [{ locationId: catalog.locations[0].id, quantity }] : [] }]);
   }
-  const goods = lines.reduce((sum, line) => sum + BigInt(line.unitPriceMinor || "0") * BigInt(line.quantity.split(".")[0] || "0"), 0n);
+  const goods = lines.reduce((sum, line) => sum + lineAmount(line.unitPriceMinor, line.quantity), 0n);
+  const feeTotal = BigInt(fee || "0") + BigInt(transport || "0");
+  const acquisitionTotal = goods + feeTotal;
+  const paidNow = BigInt(payNow || "0");
+  const dueAfterPayment = acquisitionTotal > paidNow ? acquisitionTotal - paidNow : 0n;
+  const selectedAccount = catalog?.accounts.find((account) => account.id === accountId);
+  const balanceAfterPayment = selectedAccount?.balanceMinor ? BigInt(selectedAccount.balanceMinor) - paidNow : null;
+  const allocationsValid = lines.length > 0 && lines.every((line) => line.dests.length > 0 && line.dests.reduce((sum, destinationRow) => sum + scaledQuantity(destinationRow.quantity), 0n) === scaledQuantity(line.quantity) && scaledQuantity(line.quantity) > 0n);
+  const paymentValid = paidNow <= acquisitionTotal && (!payNow || Boolean(accountId)) && (balanceAfterPayment === null || balanceAfterPayment >= 0n);
   async function submit() {
     setPending(true); setError(null);
     try {
@@ -220,12 +245,11 @@ export function OwnerPurchaseNewPage() {
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="space-y-6">
           <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]">
-            <h2 className="font-display font-semibold">Fournisseur</h2>
-            <div className="mt-4"><Label htmlFor="supplier">Fournisseur</Label><select id="supplier" value={supplierId} onChange={(event) => setSupplierId(event.target.value)} className="h-10 w-full rounded-md bg-[var(--surface-subtle)] px-3 text-sm"><option value="">Choisir</option>{catalog?.suppliers.map((supplier) => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}</select></div>
-            <p className="mt-2 text-sm"><Link className="text-[var(--primary)]" href={paths.ownerSuppliers}>Gérer les fournisseurs</Link></p>
+            <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="font-display font-semibold">Fournisseur</h2><p className="mt-1 text-sm text-[var(--muted)]">Sélectionnez l’entreprise qui facture cet achat.</p></div><Link className="text-sm font-semibold text-[var(--primary)]" href={paths.ownerSuppliers}>Gérer les fournisseurs</Link></div>
+            <div className="mt-4"><Label htmlFor="supplier">Entreprise fournisseur</Label><select id="supplier" aria-label="Fournisseur" value={supplierId} onChange={(event) => setSupplierId(event.target.value)} className="h-10 w-full rounded-md bg-[var(--surface-subtle)] px-3 text-sm"><option value="">Choisir un fournisseur</option>{catalog?.suppliers.map((supplier) => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}</select></div>
           </article>
           <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]">
-            <h2 className="font-display font-semibold">Lignes</h2>
+            <h2 className="font-display font-semibold">Produits et répartition</h2><p className="mt-1 text-sm text-[var(--muted)]">Chaque quantité achetée doit être intégralement affectée à un ou plusieurs lieux.</p>
             <div className="mt-4 grid gap-3 md:grid-cols-2">
               <div><Label htmlFor="product">Produit</Label><select id="product" value={productId} onChange={(event) => { setProductId(event.target.value); setVariantId(""); setUnitId(""); }} className="h-10 w-full rounded-md bg-[var(--surface-subtle)] px-3 text-sm"><option value="">Choisir</option>{catalog?.products.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></div>
               <div><Label htmlFor="variant">Variante</Label><select id="variant" value={variantId} onChange={(event) => setVariantId(event.target.value)} className="h-10 w-full rounded-md bg-[var(--surface-subtle)] px-3 text-sm"><option value="">Choisir</option>{product?.variants.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></div>
@@ -233,35 +257,40 @@ export function OwnerPurchaseNewPage() {
               <Field id="qty" label="Quantité" value={quantity} onChange={(event) => setQuantity(event.target.value)} />
               <Field id="price" label="Prix d’achat unitaire" inputMode="numeric" value={unitPrice} onChange={(event) => setUnitPrice(event.target.value.replace(/\D/g, ""))} />
             </div>
-            <Button className="mt-4" variant="secondary" onClick={addLine}><Plus className="size-4" />Ajouter</Button>
+            <Button className="mt-4" variant="secondary" disabled={!variant || !unitId || !unitPrice || !quantity} onClick={addLine}><Plus className="size-4" />Ajouter la ligne</Button>
             <ul className="mt-4 space-y-3">{lines.map((line, index) => (
               <li key={`${line.variantId}-${index}`} className="rounded-lg bg-[var(--surface-subtle)] p-3">
-                <p className="text-sm font-medium">{line.label} · {line.quantity} × {formatFcfa(line.unitPriceMinor)}</p>
+                <div className="flex items-start justify-between gap-3"><div><p className="text-sm font-semibold">{line.label}</p><p className="mt-1 text-xs text-[var(--muted)]">{line.quantity} × {formatFcfa(line.unitPriceMinor)} · Sous-total {formatFcfa(lineAmount(line.unitPriceMinor, line.quantity).toString())}</p></div><Button variant="ghost" className="h-8 px-2 text-[var(--destructive)]" aria-label={`Supprimer ${line.label}`} onClick={() => setLines((current) => current.filter((_, currentIndex) => currentIndex !== index))}><Trash2 className="size-4" /></Button></div>
+                <div className="mt-3 grid grid-cols-[minmax(0,1fr)_7rem_2.5rem] gap-2 px-1 text-xs font-medium text-[var(--muted)]"><span>Lieu destinataire</span><span>Quantité</span><span className="sr-only">Action</span></div>
                 {line.dests.map((dest, destIndex) => (
-                  <div key={destIndex} className="mt-2 grid gap-2 sm:grid-cols-2">
+                  <div key={destIndex} className="mt-2 grid grid-cols-[minmax(0,1fr)_7rem_2.5rem] gap-2">
                     <select aria-label="Destination" value={dest.locationId} onChange={(event) => setLines((current) => current.map((item, currentIndex) => currentIndex === index ? { ...item, dests: item.dests.map((row, rowIndex) => rowIndex === destIndex ? { ...row, locationId: event.target.value } : row) } : item))} className="h-10 rounded-md bg-[var(--surface)] px-3 text-sm">{catalog?.locations.map((location) => <option key={location.id} value={location.id}>{location.name} · {location.shopName}</option>)}</select>
                     <input value={dest.quantity} onChange={(event) => setLines((current) => current.map((item, currentIndex) => currentIndex === index ? { ...item, dests: item.dests.map((row, rowIndex) => rowIndex === destIndex ? { ...row, quantity: event.target.value } : row) } : item))} className="h-10 rounded-md bg-[var(--surface)] px-3 text-sm" aria-label="Quantité destinée" />
+                    <Button variant="ghost" className="h-10 px-2" aria-label="Retirer cette destination" disabled={line.dests.length === 1} onClick={() => setLines((current) => current.map((item, currentIndex) => currentIndex === index ? { ...item, dests: item.dests.filter((_, rowIndex) => rowIndex !== destIndex) } : item))}><Trash2 className="size-4" /></Button>
                   </div>
                 ))}
-                <Button variant="ghost" className="mt-2" onClick={() => setLines((current) => current.map((item, currentIndex) => currentIndex === index ? { ...item, dests: [...item.dests, { locationId: catalog?.locations[0]?.id ?? "", quantity: "1" }] } : item))}>Ajouter une destination</Button>
+                <div className="mt-2 flex flex-wrap items-center justify-between gap-2"><Button variant="ghost" onClick={() => setLines((current) => current.map((item, currentIndex) => currentIndex === index ? { ...item, dests: [...item.dests, { locationId: catalog?.locations.find((location) => !item.dests.some((row) => row.locationId === location.id))?.id ?? "", quantity: "0" }] } : item))}><Plus className="size-4" />Ajouter une destination</Button><span className={`text-xs font-medium ${line.dests.reduce((sum, row) => sum + scaledQuantity(row.quantity), 0n) === scaledQuantity(line.quantity) ? "text-[var(--success)]" : "text-[var(--destructive)]"}`}>Réparti : {displayScaledQuantity(line.dests.reduce((sum, row) => sum + scaledQuantity(row.quantity), 0n))} sur {line.quantity}</span></div>
               </li>
             ))}</ul>
           </article>
           <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]">
-            <h2 className="font-display font-semibold">Frais et fonds</h2>
+            <h2 className="font-display font-semibold">Frais et paiement initial</h2><p className="mt-1 text-sm text-[var(--muted)]">Le paiement peut être partiel. Le solde restant sera conservé comme montant dû au fournisseur.</p>
             <div className="mt-4 grid gap-3 md:grid-cols-2">
               <Field id="fee" label="Frais fournisseur" inputMode="numeric" value={fee} onChange={(event) => setFee(event.target.value.replace(/\D/g, ""))} />
               <Field id="transport" label="Transport externe" inputMode="numeric" value={transport} onChange={(event) => setTransport(event.target.value.replace(/\D/g, ""))} />
-              <div className="md:col-span-2"><Label htmlFor="account">Source</Label><select id="account" value={accountId} onChange={(event) => setAccountId(event.target.value)} className="h-10 w-full rounded-md bg-[var(--surface-subtle)] px-3 text-sm"><option value="">Choisir</option>{catalog?.accounts.map((account) => <option key={account.id} value={account.id}>{account.name}{account.balanceMinor ? ` · ${formatFcfa(account.balanceMinor)}` : ""}</option>)}</select></div>
-              <Field id="pay" label="Paiement fournisseur maintenant" inputMode="numeric" value={payNow} onChange={(event) => setPayNow(event.target.value.replace(/\D/g, ""))} />
+              <div className="md:col-span-2"><Label htmlFor="account">Source de paiement</Label><select id="account" value={accountId} onChange={(event) => setAccountId(event.target.value)} className="h-10 w-full rounded-md bg-[var(--surface-subtle)] px-3 text-sm"><option value="">Aucun paiement maintenant</option>{catalog?.accounts.map((account) => <option key={account.id} value={account.id}>{account.name}{account.balanceMinor ? ` · solde ${formatFcfa(account.balanceMinor)}` : ""}</option>)}</select></div>
+              <Field id="pay" label="Montant payé maintenant (FCFA)" inputMode="numeric" value={payNow} onChange={(event) => setPayNow(event.target.value.replace(/\D/g, ""))} />
+              <div className="rounded-lg bg-[var(--surface-subtle)] p-3 text-sm"><p className="text-[var(--muted)]">Solde prévisionnel de la source</p><p className={`mt-1 font-semibold tabular-nums ${balanceAfterPayment !== null && balanceAfterPayment < 0n ? "text-[var(--destructive)]" : ""}`}>{balanceAfterPayment === null ? "Sélectionnez une source" : formatFcfa(balanceAfterPayment.toString())}</p></div>
             </div>
           </article>
         </div>
         <aside className="h-fit rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)] xl:sticky xl:top-4">
-          <h2 className="font-display font-semibold">Synthèse</h2>
-          <p className="mt-2 text-sm">Marchandises {formatFcfa(goods.toString())}</p>
-          <p className="mt-1 text-sm">Stock valorisé {formatFcfa((goods + BigInt(fee || "0") + BigInt(transport || "0")).toString())}</p>
-          <Button className="mt-4 w-full" disabled={pending || !supplierId || lines.length === 0} onClick={() => void submit()}>{pending ? "Enregistrement…" : "Enregistrer l’achat"}</Button>
+          <h2 className="font-display font-semibold">Synthèse de l’achat</h2>
+          <dl className="mt-4 space-y-2 text-sm"><div className="flex justify-between gap-4"><dt className="text-[var(--muted)]">Marchandises</dt><dd className="tabular-nums font-medium">{formatFcfa(goods.toString())}</dd></div><div className="flex justify-between gap-4"><dt className="text-[var(--muted)]">Frais d’acquisition</dt><dd className="tabular-nums font-medium">{formatFcfa(feeTotal.toString())}</dd></div><div className="flex justify-between gap-4 border-t border-[var(--separator)]/60 pt-2"><dt>Coût d’acquisition prévu</dt><dd className="tabular-nums font-semibold">{formatFcfa(acquisitionTotal.toString())}</dd></div><div className="flex justify-between gap-4"><dt className="text-[var(--muted)]">Payé maintenant</dt><dd className="tabular-nums font-medium">{formatFcfa(paidNow.toString())}</dd></div><div className="flex justify-between gap-4"><dt className="text-[var(--muted)]">Reste fournisseur</dt><dd className="tabular-nums font-semibold">{formatFcfa(dueAfterPayment.toString())}</dd></div></dl>
+          {!allocationsValid && lines.length > 0 ? <Alert tone="warning" className="mt-4">Répartissez exactement toute la quantité de chaque ligne avant l’enregistrement.</Alert> : null}
+          {!paymentValid ? <Alert tone="error" className="mt-4">Le paiement dépasse le total ou le solde disponible de la source.</Alert> : null}
+          <Button className="mt-4 w-full" disabled={pending || !supplierId || !allocationsValid || !paymentValid} onClick={() => void submit()}>{pending ? "Enregistrement…" : "Enregistrer l’achat"}</Button>
+          <p className="mt-3 text-xs leading-5 text-[var(--muted)]">Le stock ne sera valorisé qu’après validation de la réception physique.</p>
         </aside>
       </div>
     </section>
@@ -332,9 +361,9 @@ export function OwnerSuppliersPage() {
     <section className="space-y-6 overflow-x-clip">
       <PageHeader title="Fournisseurs" action={<Button onClick={() => { setModalError(null); setOpen(true); }}>Nouveau fournisseur</Button>}>Désactivez plutôt que supprimer un fournisseur déjà utilisé.</PageHeader>
       {error ? <Alert tone="error">{error}</Alert> : null}
-      <label className="relative block max-w-md"><Search className="absolute left-3 top-3 size-4 text-[var(--muted)]" /><span className="sr-only">Rechercher</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Nom" className="h-11 w-full rounded-lg bg-[var(--surface)] pl-10 pr-4 text-sm shadow-[var(--shadow-card)] outline-none focus:ring-2 focus:ring-[var(--focus)]" /></label>
+      <label className="relative block max-w-xl"><Search className="absolute left-3 top-3 size-4 text-[var(--muted)]" /><span className="sr-only">Rechercher</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Nom, contact ou téléphone" className="h-11 w-full rounded-lg bg-[var(--surface)] pl-10 pr-4 text-sm shadow-[var(--shadow-card)] outline-none focus:ring-2 focus:ring-[var(--focus)]" /></label>
       {filtered.length === 0 ? <EmptyState title="Aucun fournisseur" icon={<Warehouse className="size-5" />}>Créez la fiche avant le premier achat, ou pendant l’enregistrement.</EmptyState> : (
-        <ul className="grid gap-3 md:grid-cols-2">{filtered.map((row) => <li key={row.id}><Link href={`${paths.ownerSuppliers}/${row.id}`} className="block rounded-xl bg-[var(--surface)] p-4 shadow-[var(--shadow-card)]"><p className="font-semibold">{row.name}</p><p className="text-sm text-[var(--muted)]">{row.phone ?? "Sans téléphone"}</p><Badge tone={row.status === "ACTIVE" ? "success" : "neutral"}>{row.status === "ACTIVE" ? "Actif" : "Inactif"}</Badge></Link></li>)}</ul>
+        <><ul className="grid gap-3 lg:hidden">{filtered.map((row) => <li key={row.id}><Link href={`${paths.ownerSuppliers}/${row.id}`} className="block rounded-xl bg-[var(--surface)] p-4 shadow-[var(--shadow-card)]"><div className="flex items-start justify-between gap-3"><div><p className="font-semibold">{row.name}</p><p className="mt-1 text-sm text-[var(--muted)]">{row.tradeName || row.contactName || "Coordonnées à compléter"}</p></div><Badge tone={row.status === "ACTIVE" ? "success" : "neutral"}>{row.status === "ACTIVE" ? "Actif" : "Inactif"}</Badge></div><p className="mt-3 text-sm">{row.phone ?? row.email ?? "Aucun contact renseigné"}</p></Link></li>)}</ul><div className="hidden overflow-x-auto rounded-xl bg-[var(--surface)] shadow-[var(--shadow-card)] lg:block"><table className="w-full text-sm"><thead className="text-left text-[var(--muted)]"><tr><th className="px-5 py-3 font-medium">Fournisseur</th><th className="px-5 py-3 font-medium">Contact principal</th><th className="px-5 py-3 font-medium">Coordonnées</th><th className="px-5 py-3 font-medium">Conditions</th><th className="px-5 py-3 font-medium">État</th><th className="px-5 py-3"><span className="sr-only">Ouvrir</span></th></tr></thead><tbody>{filtered.map((row) => <tr key={row.id} className="border-t border-[var(--separator)]/50"><td className="px-5 py-4"><Link className="font-semibold text-[var(--primary)]" href={`${paths.ownerSuppliers}/${row.id}`}>{row.name}</Link>{row.tradeName ? <p className="mt-1 text-xs text-[var(--muted)]">{row.tradeName}</p> : null}</td><td className="px-5 py-4">{row.contactName ?? "—"}</td><td className="px-5 py-4"><p>{row.phone ?? "—"}</p>{row.email ? <p className="text-xs text-[var(--muted)]">{row.email}</p> : null}</td><td className="px-5 py-4">{row.paymentTerms ?? "—"}</td><td className="px-5 py-4"><Badge tone={row.status === "ACTIVE" ? "success" : "neutral"}>{row.status === "ACTIVE" ? "Actif" : "Inactif"}</Badge></td><td className="px-5 py-4 text-right"><Link aria-label={`Voir ${row.name}`} href={`${paths.ownerSuppliers}/${row.id}`}><ArrowRight className="inline size-4" /></Link></td></tr>)}</tbody></table></div></>
       )}
       <ConfirmDialog open={open} onOpenChange={(next) => { setOpen(next); if (!next) setModalError(null); }} title="Nouveau fournisseur" confirmLabel="Créer" pending={pending} error={modalError} onConfirm={() => { setPending(true); api<{ id: string }>("/api/v1/suppliers", { method: "POST", body: JSON.stringify({ name, phone: phone || undefined }) }).then((created) => { setOpen(false); router.push(`${paths.ownerSuppliers}/${created.id}`); }).catch((caught: RequestError) => setModalError(caught.message)).finally(() => setPending(false)); }}>
         <div className="grid gap-3"><Field id="sup-name" label="Raison sociale" value={name} onChange={(event) => setName(event.target.value)} /><Field id="sup-phone" label="Téléphone" value={phone} onChange={(event) => setPhone(event.target.value)} /></div>
@@ -371,17 +400,10 @@ export function OwnerSupplierDetailPage() {
   if (!data) return <Alert tone="error">{error}</Alert>;
   return (
     <section className="space-y-6">
-      <PageHeader title={data.supplier.name} action={<Button variant="secondary" onClick={() => { setModalError(null); setOpen(true); }}>Modifier</Button>}>{data.supplier.phone ?? "Sans téléphone"}</PageHeader>
-      <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]">
-        <p className="text-sm">Nom commercial {data.supplier.tradeName ?? "—"}</p>
-        <p className="mt-1 text-sm">Contact {data.supplier.contactName ?? "—"}</p>
-        <p className="mt-1 text-sm">E-mail {data.supplier.email ?? "—"}</p>
-        <p className="mt-1 text-sm">Identifiant fiscal {data.supplier.taxId ?? "—"}</p>
-        <p className="mt-1 text-sm">Conditions {data.supplier.paymentTerms ?? "—"}</p>
-        <p className="mt-1 text-sm">{data.supplier.address ?? "Adresse non renseignée"}</p>
-      </article>
-      <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]"><h2 className="font-display font-semibold">Achats</h2>{data.purchases.length === 0 ? <p className="mt-3 text-sm text-[var(--muted)]">Aucun achat associé.</p> : <ul className="mt-3">{data.purchases.map((purchase) => <li key={purchase.id} className="flex justify-between py-2 text-sm"><Link className="text-[var(--primary)]" href={`${paths.ownerPurchases}/${purchase.id}`}>{purchase.reference}</Link><span>{purchase.goodsMinor ? formatFcfa(purchase.goodsMinor) : ""}</span></li>)}</ul>}</article>
-      <ConfirmDialog open={open} onOpenChange={(next) => { setOpen(next); if (!next) setModalError(null); }} title="Modifier le fournisseur" confirmLabel="Enregistrer" pending={pending} error={modalError} onConfirm={() => {
+      <PageHeader title={data.supplier.name} action={<Button variant="secondary" onClick={() => { setModalError(null); setOpen(true); }}>Modifier la fiche</Button>}><span className="inline-flex items-center gap-2"><Badge tone={data.supplier.status === "ACTIVE" ? "success" : "neutral"}>{data.supplier.status === "ACTIVE" ? "Actif" : "Inactif"}</Badge>{data.supplier.tradeName ? ` · ${data.supplier.tradeName}` : ""}</span></PageHeader>
+      <div className="grid gap-4 lg:grid-cols-2"><article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]"><h2 className="font-display font-semibold">Coordonnées</h2><dl className="mt-4 space-y-4 text-sm"><div className="flex gap-3"><Phone className="mt-0.5 size-4 text-[var(--muted)]" /><div><dt className="text-[var(--muted)]">Téléphone</dt><dd className="mt-0.5 font-medium">{data.supplier.phone ?? "Non renseigné"}</dd></div></div><div className="flex gap-3"><Mail className="mt-0.5 size-4 text-[var(--muted)]" /><div><dt className="text-[var(--muted)]">E-mail</dt><dd className="mt-0.5 font-medium">{data.supplier.email ?? "Non renseigné"}</dd></div></div><div className="flex gap-3"><MapPin className="mt-0.5 size-4 text-[var(--muted)]" /><div><dt className="text-[var(--muted)]">Adresse</dt><dd className="mt-0.5 font-medium">{data.supplier.address ?? "Non renseignée"}</dd></div></div></dl></article><article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]"><h2 className="font-display font-semibold">Informations commerciales</h2><dl className="mt-4 grid gap-4 text-sm sm:grid-cols-2"><div><dt className="text-[var(--muted)]">Contact principal</dt><dd className="mt-1 font-medium">{data.supplier.contactName ?? "Non renseigné"}</dd></div><div><dt className="text-[var(--muted)]">Identifiant fiscal</dt><dd className="mt-1 font-medium">{data.supplier.taxId ?? "Non renseigné"}</dd></div><div><dt className="text-[var(--muted)]">Conditions de paiement</dt><dd className="mt-1 font-medium">{data.supplier.paymentTerms ?? "Non renseignées"}</dd></div><div><dt className="text-[var(--muted)]">Délai habituel</dt><dd className="mt-1 font-medium">{data.supplier.leadTimeDays ? `${data.supplier.leadTimeDays} jours` : "Non renseigné"}</dd></div></dl>{data.supplier.notes ? <div className="mt-4 rounded-lg bg-[var(--surface-subtle)] p-3 text-sm"><p className="text-[var(--muted)]">Notes internes</p><p className="mt-1 whitespace-pre-wrap">{data.supplier.notes}</p></div> : null}</article></div>
+      <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]"><div className="flex items-center justify-between gap-3"><div><h2 className="font-display font-semibold">Historique des achats</h2><p className="mt-1 text-sm text-[var(--muted)]">{data.purchases.length} achat{data.purchases.length > 1 ? "s" : ""} associé{data.purchases.length > 1 ? "s" : ""}</p></div><Link href={paths.ownerPurchaseNew}><Button variant="secondary">Nouvel achat</Button></Link></div>{data.purchases.length === 0 ? <div className="mt-4"><EmptyState title="Aucun achat associé">Le premier achat effectué auprès de ce fournisseur apparaîtra ici.</EmptyState></div> : <ul className="mt-4 divide-y divide-[var(--separator)]/60">{data.purchases.map((purchase) => <li key={purchase.id} className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm"><div><Link className="font-semibold text-[var(--primary)]" href={`${paths.ownerPurchases}/${purchase.id}`}>{purchase.reference}</Link><p className="mt-1 text-xs text-[var(--muted)]">{formatWhen(purchase.createdAt)}</p></div><span className="tabular-nums font-semibold">{purchase.goodsMinor ? formatFcfa(purchase.goodsMinor) : "—"}</span></li>)}</ul>}</article>
+      <ConfirmDialog size="lg" open={open} onOpenChange={(next) => { setOpen(next); if (!next) setModalError(null); }} title="Modifier le fournisseur" confirmLabel="Enregistrer" pending={pending} error={modalError} onConfirm={() => {
         setPending(true);
         api(`/api/v1/suppliers/${params.id}`, { method: "PATCH", body: JSON.stringify({
           name: form.name,
@@ -396,17 +418,7 @@ export function OwnerSupplierDetailPage() {
           notes: form.notes || undefined,
         }) }).then(() => { setOpen(false); void load(); }).catch((caught: RequestError) => setModalError(caught.message)).finally(() => setPending(false));
       }}>
-        <div className="grid gap-3">
-          <Field id="edit-name" label="Raison sociale" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} />
-          <Field id="edit-trade" label="Nom commercial" value={form.tradeName} onChange={(event) => setForm((current) => ({ ...current, tradeName: event.target.value }))} />
-          <Field id="edit-phone" label="Téléphone" value={form.phone} onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))} />
-          <Field id="edit-email" label="E-mail" value={form.email} onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))} />
-          <Field id="edit-tax" label="Identifiant fiscal" value={form.taxId} onChange={(event) => setForm((current) => ({ ...current, taxId: event.target.value }))} />
-          <Field id="edit-contact" label="Contact principal" value={form.contactName} onChange={(event) => setForm((current) => ({ ...current, contactName: event.target.value }))} />
-          <Field id="edit-terms" label="Conditions de paiement" value={form.paymentTerms} onChange={(event) => setForm((current) => ({ ...current, paymentTerms: event.target.value }))} />
-          <Field id="edit-lead" label="Délai habituel (jours)" inputMode="numeric" value={form.leadTimeDays} onChange={(event) => setForm((current) => ({ ...current, leadTimeDays: event.target.value.replace(/\D/g, "") }))} />
-          <div><Label htmlFor="edit-notes">Notes internes</Label><Textarea id="edit-notes" value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} /></div>
-        </div>
+        <div className="space-y-5"><section><h3 className="mb-3 text-sm font-semibold text-[var(--foreground)]">Identité</h3><div className="grid gap-3 sm:grid-cols-2"><Field id="edit-name" label="Raison sociale" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} /><Field id="edit-trade" label="Nom commercial (facultatif)" value={form.tradeName} onChange={(event) => setForm((current) => ({ ...current, tradeName: event.target.value }))} /><Field id="edit-tax" label="Identifiant fiscal (facultatif)" value={form.taxId} onChange={(event) => setForm((current) => ({ ...current, taxId: event.target.value }))} /></div></section><section className="border-t border-[var(--separator)]/60 pt-5"><h3 className="mb-3 text-sm font-semibold text-[var(--foreground)]">Coordonnées</h3><div className="grid gap-3 sm:grid-cols-2"><Field id="edit-contact" label="Contact principal (facultatif)" value={form.contactName} onChange={(event) => setForm((current) => ({ ...current, contactName: event.target.value }))} /><Field id="edit-phone" label="Téléphone (facultatif)" value={form.phone} onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))} /><Field id="edit-email" label="E-mail (facultatif)" value={form.email} onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))} /><Field id="edit-address" label="Adresse (facultative)" value={form.address} onChange={(event) => setForm((current) => ({ ...current, address: event.target.value }))} /></div></section><section className="border-t border-[var(--separator)]/60 pt-5"><h3 className="mb-3 text-sm font-semibold text-[var(--foreground)]">Conditions commerciales</h3><div className="grid gap-3 sm:grid-cols-2"><Field id="edit-terms" label="Conditions de paiement (facultatif)" value={form.paymentTerms} onChange={(event) => setForm((current) => ({ ...current, paymentTerms: event.target.value }))} /><Field id="edit-lead" label="Délai habituel en jours (facultatif)" inputMode="numeric" value={form.leadTimeDays} onChange={(event) => setForm((current) => ({ ...current, leadTimeDays: event.target.value.replace(/\D/g, "") }))} /><div className="sm:col-span-2"><Label htmlFor="edit-notes">Notes internes (facultatif)</Label><Textarea id="edit-notes" rows={4} value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} /></div></div></section></div>
       </ConfirmDialog>
     </section>
   );
@@ -440,6 +452,10 @@ export function OwnerTransferNewPage() {
   const [quantity, setQuantity] = useState("1");
   const [pending, setPending] = useState(false);
   useEffect(() => { api<Catalog>("/api/v1/replenishment/context").then(setCatalog).catch((caught: RequestError) => setError(caught.message)); }, []);
+  const sourceLocation = catalog?.locations.find((location) => location.id === source);
+  const destinationLocation = catalog?.locations.find((location) => location.id === destination);
+  const selectedVariant = catalog?.products.flatMap((product) => product.variants.map((variant) => ({ ...variant, productName: product.name }))).find((variant) => variant.id === variantId);
+  const transferValid = Boolean(source && destination && source !== destination && variantId && scaledQuantity(quantity) > 0n);
   async function submit() {
     setPending(true); setError(null);
     try {
@@ -450,15 +466,9 @@ export function OwnerTransferNewPage() {
   if (!catalog && !error) return <Skeleton className="h-80" />;
   return (
     <section className="space-y-6">
-      <PageHeader title="Nouveau transfert">Le stock d’origine n’est débité qu’à l’expédition réelle.</PageHeader>
+      <PageHeader title="Préparer un transfert">Créez le document de transfert, puis expédiez-le après contrôle. Le stock d’origine n’est débité qu’à l’expédition réelle.</PageHeader>
       {error ? <Alert tone="error">{error}</Alert> : null}
-      <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)] space-y-3">
-        <div><Label htmlFor="src">Origine</Label><select id="src" value={source} onChange={(event) => setSource(event.target.value)} className="h-10 w-full rounded-md bg-[var(--surface-subtle)] px-3 text-sm"><option value="">Choisir</option>{catalog?.locations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}</select></div>
-        <div><Label htmlFor="dst">Destination</Label><select id="dst" value={destination} onChange={(event) => setDestination(event.target.value)} className="h-10 w-full rounded-md bg-[var(--surface-subtle)] px-3 text-sm"><option value="">Choisir</option>{catalog?.locations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}</select></div>
-        <div><Label htmlFor="var">Variante</Label><select id="var" value={variantId} onChange={(event) => setVariantId(event.target.value)} className="h-10 w-full rounded-md bg-[var(--surface-subtle)] px-3 text-sm"><option value="">Choisir</option>{catalog?.products.flatMap((product) => product.variants.map((variant) => <option key={variant.id} value={variant.id}>{product.name} · {variant.name}</option>))}</select></div>
-        <Field id="tq" label="Quantité" value={quantity} onChange={(event) => setQuantity(event.target.value)} />
-        <Button disabled={pending || !source || !destination || !variantId} onClick={() => void submit()}>Créer le transfert</Button>
-      </article>
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]"><div className="space-y-6"><article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]"><h2 className="font-display font-semibold">Itinéraire</h2><p className="mt-1 text-sm text-[var(--muted)]">L’origine et la destination doivent être deux lieux distincts.</p><div className="mt-4 grid gap-4 md:grid-cols-2"><div><Label htmlFor="src">Lieu d’origine</Label><select id="src" value={source} onChange={(event) => { setSource(event.target.value); if (destination === event.target.value) setDestination(""); }} className="h-10 w-full rounded-md bg-[var(--surface-subtle)] px-3 text-sm"><option value="">Choisir le lieu d’origine</option>{catalog?.locations.map((location) => <option key={location.id} value={location.id}>{location.name} · {location.shopName}</option>)}</select></div><div><Label htmlFor="dst">Lieu destinataire</Label><select id="dst" value={destination} onChange={(event) => setDestination(event.target.value)} className="h-10 w-full rounded-md bg-[var(--surface-subtle)] px-3 text-sm"><option value="">Choisir la destination</option>{catalog?.locations.filter((location) => location.id !== source).map((location) => <option key={location.id} value={location.id}>{location.name} · {location.shopName}</option>)}</select></div></div></article><article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]"><h2 className="font-display font-semibold">Produit transféré</h2><p className="mt-1 text-sm text-[var(--muted)]">La disponibilité réelle sera contrôlée par le serveur au moment de l’expédition.</p><div className="mt-4 grid gap-4 md:grid-cols-[minmax(0,1fr)_12rem]"><div><Label htmlFor="var">Produit et variante</Label><select id="var" value={variantId} onChange={(event) => setVariantId(event.target.value)} className="h-10 w-full rounded-md bg-[var(--surface-subtle)] px-3 text-sm"><option value="">Choisir un produit</option>{catalog?.products.flatMap((product) => product.variants.map((variant) => <option key={variant.id} value={variant.id}>{product.name} · {variant.name}</option>))}</select></div><Field id="tq" label="Quantité à préparer" inputMode="numeric" value={quantity} onChange={(event) => setQuantity(event.target.value.replace(/[^\d.]/g, ""))} /></div></article></div><aside className="h-fit rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)] xl:sticky xl:top-4"><h2 className="font-display font-semibold">Synthèse du transfert</h2><dl className="mt-4 space-y-3 text-sm"><div><dt className="text-[var(--muted)]">Origine</dt><dd className="mt-1 font-medium">{sourceLocation ? `${sourceLocation.name} · ${sourceLocation.shopName}` : "À sélectionner"}</dd></div><div><dt className="text-[var(--muted)]">Destination</dt><dd className="mt-1 font-medium">{destinationLocation ? `${destinationLocation.name} · ${destinationLocation.shopName}` : "À sélectionner"}</dd></div><div className="border-t border-[var(--separator)]/60 pt-3"><dt className="text-[var(--muted)]">Produit</dt><dd className="mt-1 font-medium">{selectedVariant ? `${selectedVariant.productName} · ${selectedVariant.name}` : "À sélectionner"}</dd></div><div><dt className="text-[var(--muted)]">Quantité</dt><dd className="mt-1 font-semibold tabular-nums">{quantity || "0"}</dd></div></dl><Button className="mt-5 w-full" disabled={pending || !transferValid} onClick={() => void submit()}>{pending ? "Création…" : "Préparer le transfert"}</Button><p className="mt-3 text-xs leading-5 text-[var(--muted)]">Cette action prépare le document. Elle ne débite pas encore le stock ; l’expédition reste une confirmation séparée.</p></aside></div>
     </section>
   );
 }

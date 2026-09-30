@@ -563,3 +563,12 @@ Vérifications exécutées (Node local 24.14.0, lancements avec `PNPM_IGNORE_ENG
 - `python scripts/check_p00.py` : OK (72 tâches, 170 références).
 
 Limites restantes : P07–P12 non commencées ; interface avancée de dette fournisseur, retours et inventaires reportés ; ClamAV local toujours absent (`UNAVAILABLE`, pas de faux `CLEAN`) ; Firefox et WebKit non exécutés ; `POST /purchases/declare-irregular` et destinations après posting restent hors lot. Aucune validation pilote. Non poussé.
+
+### Raffinement UI/UX P06 — 30 septembre 2026
+
+- Fournisseurs : liste adaptative (tableau sur ordinateur, cartes sur écran étroit), coordonnées et conditions lisibles, fiche structurée en coordonnées/informations commerciales/historique, états vides utiles et formulaire d’édition large regroupé par sections.
+- Nouvel achat : libellés clarifiés, suppression des lignes et destinations, contrôle visible de la répartition exacte, calcul monétaire sans flottant pour les quantités décimales, solde prévisionnel de la source et synthèse distinguant marchandises, frais, coût d’acquisition prévu, paiement immédiat et reste fournisseur. La valorisation du stock est explicitement différée jusqu’à la réception.
+- Nouveau transfert : itinéraire et produit séparés, origine/destination distinctes, synthèse latérale et distinction explicite entre préparation du document et expédition réelle.
+- Le composant partagé `ConfirmDialog` accepte une largeur adaptée aux formulaires structurés sans modifier le placement local des erreurs et confirmations.
+
+Vérifications exécutées : `corepack pnpm lint` code 0 ; `corepack pnpm typecheck` code 0 ; `corepack pnpm test:unit` **39/39** ; `corepack pnpm build` code 0, **44 routes**. Le lancement Playwright P06 a été refusé avant exécution car les ports locaux 4310/4311 étaient déjà occupés ; aucun résultat E2E supplémentaire n’est revendiqué pour ce raffinement.

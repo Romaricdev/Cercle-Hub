@@ -15,6 +15,7 @@ export function ConfirmDialog({
   tone = "primary",
   error,
   success,
+  size = "sm",
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -26,14 +27,16 @@ export function ConfirmDialog({
   tone?: "primary" | "danger";
   error?: string | null;
   success?: string | null;
+  size?: "sm" | "md" | "lg";
 }) {
+  const width = { sm: "max-w-md", md: "max-w-xl", lg: "max-w-3xl" }[size];
   return (
     <Dialog.Root open={open} onOpenChange={(next) => { if (!pending) onOpenChange(next); }}>
       <Dialog.Portal>
         <Dialog.Overlay data-slot="modal-overlay" className="fixed inset-0 z-40 bg-black/40" />
         <Dialog.Content
           data-slot="modal-content"
-          className="fixed inset-x-4 top-1/2 z-50 mx-auto flex max-h-[min(88vh,36rem)] w-[min(28rem,100%)] -translate-y-1/2 flex-col overflow-hidden rounded-xl bg-[var(--surface)] shadow-[var(--shadow-float)] focus:outline-none"
+          className={`fixed inset-x-3 top-1/2 z-50 mx-auto flex max-h-[min(90vh,48rem)] w-auto -translate-y-1/2 flex-col overflow-hidden rounded-xl bg-[var(--surface)] shadow-[var(--shadow-float)] focus:outline-none sm:inset-x-6 ${width}`}
         >
           <div className="min-h-0 flex-1 overflow-y-auto p-6">
             <Dialog.Title className="font-display text-xl">{title}</Dialog.Title>
