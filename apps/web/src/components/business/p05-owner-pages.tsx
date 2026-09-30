@@ -31,7 +31,7 @@ type TransferRow = { id: string; purpose: string; state: string; reason: string;
 type Account = { id: string; name: string; type: string; shopId: string | null; shopName: string; balanceMinor?: string };
 type Shop = { id: string; name: string };
 type CaseRow = { id: string; type: string; state: string; shopName: string | null; source: string | null; originalAmountMinor: string; residualAmountMinor: string; expectedMinor: string | null; declaredMinor: string | null; createdAt: string };
-type CaseDetail = CaseRow & { sessionId: string | null; ownerDecision: string | null; resolvedAt: string | null; actions: Array<{ id: string; type: string; text: string; actor: string; actorRole?: string; at: string }> };
+type CaseDetail = CaseRow & { sessionId: string | null; ownerDecision: string | null; resolvedAt: string | null; physicalAdjustment: { available: boolean; sessionId: string | null; sessionStatus: string | null; businessDate: string | null; message: string }; actions: Array<{ id: string; type: string; text: string; actor: string; actorRole?: string; at: string }> };
 
 const statusTone = (status: string) => status === "CLOSED" ? "neutral" : status === "COUNTING" ? "warning" : "success";
 const expenseTone = (status: string): "neutral" | "success" | "warning" | "danger" | "info" => ({ DRAFT: "neutral", REQUESTED: "warning", AUTHORIZED: "info", POSTED: "success", IRREGULAR: "danger", REJECTED: "danger" } as const)[status] ?? "neutral";
@@ -288,6 +288,14 @@ export function OwnerDiscrepancyDetailPage() {
       setError("Le motif est trop court. Expliquez la décision en au moins cinq caractères.");
       return;
     }
+    if ((confirm === "RECLASSIFY" || confirm === "ADJUST") && !amount) {
+      setError("Indiquez le montant à traiter avant d’enregistrer cette décision.");
+      return;
+    }
+    if (confirm === "ADJUST" && !row.physicalAdjustment.available) {
+      setError(row.physicalAdjustment.message);
+      return;
+    }
     setPending(true);
     setError(null);
     api(`/api/v1/owner/discrepancies/${id}/resolve`, { method: "POST", body: JSON.stringify({ decision: confirm, reason, amountMinor: amount || undefined }) })
@@ -313,15 +321,16 @@ export function OwnerDiscrepancyDetailPage() {
         <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]"><p className="text-sm text-[var(--muted)]">Reste à traiter</p><p className={`mt-1 font-display text-xl tabular-nums ${varianceClass(row.residualAmountMinor)}`}>{formatFcfa(row.residualAmountMinor)}</p></article>
       </div>
       {row.state !== "RESOLVED" ? <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]">
-        <h2 className="font-display font-semibold">Décisions</h2>
-        <Field id="case-reason" label="Motif" value={reason} onChange={(event) => setReason(event.target.value)} />
-        <Field id="case-amount" label="Montant à reclasser ou ajuster (FCFA)" inputMode="numeric" value={amount} onChange={(event) => setAmount(event.target.value.replace(/\D/g, ""))} />
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Button variant="secondary" onClick={() => setConfirm("ACCEPT")}>Accepter l’écart</Button>
-          <Button variant="secondary" onClick={() => setConfirm("RECLASSIFY")}>Reclasser</Button>
-          <Button variant="secondary" onClick={() => setConfirm("ADJUST")}>Ajuster (écriture liée)</Button>
-          <Button variant="ghost" onClick={() => setConfirm("REQUEST_INFO")}>Demander une explication</Button>
+        <h2 className="font-display font-semibold">Choisir le traitement de l’écart</h2>
+        <p className="mt-1 text-sm text-[var(--muted)]">Le traitement dépend de ce qui s’est réellement passé. Aucune décision ne réécrit le comptage d’origine.</p>
+        <div className="mt-5 grid gap-3 lg:grid-cols-3">
+          <div className="rounded-lg bg-[var(--surface-subtle)] p-4"><h3 className="font-semibold">Écart confirmé</h3><p className="mt-1 min-h-10 text-sm text-[var(--muted)]">Assumer l’écart tel qu’il a été constaté, sans mouvement supplémentaire.</p><Button className="mt-4 w-full" variant="secondary" onClick={() => setConfirm("ACCEPT")}>Accepter l’écart</Button></div>
+          <div className="rounded-lg bg-[var(--surface-subtle)] p-4"><h3 className="font-semibold">Fait oublié identifié</h3><p className="mt-1 min-h-10 text-sm text-[var(--muted)]">Régulariser comptablement, par exemple une dépense oubliée, sans modifier la caisse.</p><Button className="mt-4 w-full" variant="secondary" onClick={() => setConfirm("RECLASSIFY")}>Reclasser sans mouvement</Button></div>
+          <div className="rounded-lg bg-[var(--surface-subtle)] p-4"><div className="flex items-start justify-between gap-2"><h3 className="font-semibold">Montant physique retrouvé</h3><Badge tone={row.physicalAdjustment.available ? "success" : "warning"}>{row.physicalAdjustment.available ? "Session ouverte" : "Indisponible"}</Badge></div><p className="mt-1 min-h-10 text-sm text-[var(--muted)]">Corriger réellement le solde de la caisse dans une session active.</p><Button className="mt-4 w-full" variant="secondary" disabled={!row.physicalAdjustment.available} onClick={() => setConfirm("ADJUST")}>Ajuster la caisse</Button></div>
         </div>
+        <Alert tone={row.physicalAdjustment.available ? "success" : "warning"} className="mt-4">{row.physicalAdjustment.message}{!row.physicalAdjustment.available ? <> <Link className="font-semibold underline" href="/owner/sessions">Consulter les sessions</Link></> : null}</Alert>
+        <div className="mt-5 grid gap-4 md:grid-cols-2"><Field id="case-reason" label="Motif de la décision" value={reason} onChange={(event) => setReason(event.target.value)} /><Field id="case-amount" label="Montant à reclasser ou ajuster (FCFA)" inputMode="numeric" value={amount} onChange={(event) => setAmount(event.target.value.replace(/\D/g, ""))} /></div>
+        <Button className="mt-4" variant="ghost" onClick={() => setConfirm("REQUEST_INFO")}>Demander une explication au gérant</Button>
       </article> : <Alert tone="success">Ce dossier est résolu. Son historique reste consultable et le comptage d’origine est conservé.</Alert>}
       <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]">
         <h2 className="font-display font-semibold">Historique</h2>
@@ -334,7 +343,8 @@ export function OwnerDiscrepancyDetailPage() {
         ))}</ul> : <p className="mt-3 text-sm text-[var(--muted)]">Aucune décision enregistrée pour le moment.</p>}
       </article>
       <ConfirmDialog open={Boolean(confirm)} error={confirm ? error : null} onOpenChange={(open) => { if (!open) { setConfirm(null); setError(null); } }} title={confirmTitle} confirmLabel="Enregistrer" pending={pending} onConfirm={decide}>
-        <p>Cette action conserve l’historique et crée, si besoin, une écriture liée. Le comptage d’origine n’est pas réécrit.</p>
+        <p>{confirm === "RECLASSIFY" ? "Cette régularisation comptable réduit l’écart sans modifier le solde physique de la caisse." : confirm === "ADJUST" ? `Cette correction modifiera réellement le solde dans la session ouverte${row.physicalAdjustment.businessDate ? ` du ${formatDate(row.physicalAdjustment.businessDate)}` : ""}.` : "Cette action conserve l’historique. Le comptage d’origine n’est pas réécrit."}</p>
+        {(confirm === "RECLASSIFY" || confirm === "ADJUST") && amount ? <p className="mt-3 text-sm text-[var(--foreground)]">Montant traité : {formatFcfa(amount)}</p> : null}
         {reason.trim() ? <p className="mt-3 text-sm text-[var(--foreground)]">Motif : {reason}</p> : <p className="mt-3 text-sm">Indiquez un motif d’au moins cinq caractères avant d’enregistrer.</p>}
       </ConfirmDialog>
     </section>

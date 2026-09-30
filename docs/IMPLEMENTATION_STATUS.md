@@ -479,6 +479,12 @@ Vérifications exécutées : `corepack pnpm lint` code 0 ; `corepack pnpm typech
 
 Vérifications exécutées : `corepack pnpm lint` code 0 ; `corepack pnpm typecheck` code 0 ; `corepack pnpm test:unit` **29/29** ; `corepack pnpm test:integration` **55/55** sur PostgreSQL réel ; `corepack pnpm build` code 0, **31 routes** ; Playwright Chromium ciblé P03/P05/UX propriétaire **3/3**, puis parcours P03 enrichi avec les assertions de coûts, prix et marge **1/1**.
 
+### Clarification des décisions sur écart — 29 septembre 2026
+
+La fiche propriétaire distingue désormais trois traitements avant confirmation : accepter un écart confirmé sans nouveau mouvement, reclasser un fait oublié par une écriture comptable sans modifier la caisse, ou ajuster physiquement le solde dans une session active. L’API expose au propriétaire la disponibilité de l’ajustement physique, l’état et la date de la session concernée. Le bouton d’ajustement est désactivé avant ouverture de la modale lorsqu’aucune session n’est ouverte ou lorsqu’un comptage est en cours ; la fiche indique alors que le gérant doit ouvrir la session suivante. La règle RM de rattachement de toute correction physique à une session active reste inchangée.
+
+Vérifications exécutées : `corepack pnpm lint` code 0 ; `corepack pnpm typecheck` code 0 ; `corepack pnpm test:unit` **33/33** ; intégration P05 ciblée **16/16** sur PostgreSQL réel, avec disponibilité refusée hors session et autorisée dans une session ouverte ; `corepack pnpm build` code 0, **32 routes**.
+
 ### Complément P05 — réponse gérant et messages de modale — 29 septembre 2026
 
 Périmètre : boucler le workflow d’écart `NEEDS_INFO` pour le gérant (consultation + réponse immuable) et corriger le placement des messages d’erreur/succès dans toutes les modales. P06–P09 non commencées.

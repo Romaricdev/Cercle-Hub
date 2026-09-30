@@ -799,6 +799,11 @@ export async function getDiscrepancy(prisma: PrismaClient, organizationId: strin
   });
   if (!row) throw new DomainError("DISCREPANCY_NOT_FOUND", "Dossier introuvable.", 404);
   const closure = row.sourceType === "cash_closures" ? await prisma.cashClosure.findUnique({ where: { id: row.sourceId }, include: { account: { select: { name: true } } } }) : null;
+  const activeSession = row.shopId ? await prisma.cashSession.findFirst({
+    where: { organizationId, shopId: row.shopId, status: { in: ["OPEN", "COUNTING"] } },
+    orderBy: { openedAt: "desc" },
+    select: { id: true, status: true, businessDate: true },
+  }) : null;
   return {
     id: row.id,
     type: row.type,
@@ -813,6 +818,17 @@ export async function getDiscrepancy(prisma: PrismaClient, organizationId: strin
     ownerDecision: row.ownerDecision,
     createdAt: row.createdAt.toISOString(),
     resolvedAt: row.resolvedAt?.toISOString() ?? null,
+    physicalAdjustment: {
+      available: activeSession?.status === "OPEN",
+      sessionId: activeSession?.id ?? null,
+      sessionStatus: activeSession?.status ?? null,
+      businessDate: activeSession?.businessDate.toISOString().slice(0, 10) ?? null,
+      message: activeSession?.status === "OPEN"
+        ? "Une session est ouverte : la correction physique peut y être enregistrée."
+        : activeSession?.status === "COUNTING"
+          ? "Le comptage de la session en cours doit être enregistré ou annulé avant une correction physique."
+          : "Le gérant doit ouvrir la session suivante avant toute correction physique de la caisse.",
+    },
     actions: row.actions.map((action) => ({
       id: action.id,
       type: action.actionType,

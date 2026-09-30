@@ -122,6 +122,7 @@ describe("P05 caisse, dépenses et clôture aveugle", () => {
   it("T40 reclassifie l’écart sans nouvelle sortie de caisse", async () => {
     const cash = (await prisma.moneyAccount.findUniqueOrThrow({ where: { id: accountId } })).balanceMinor;
     const discrepancy = await prisma.discrepancyCase.findFirstOrThrow({ where: { sessionId: firstSessionId } });
+    expect((await getDiscrepancy(prisma, organizationId, discrepancy.id)).physicalAdjustment).toMatchObject({ available: false, sessionId: null, sessionStatus: null });
     await resolveDiscrepancy(prisma, owner(), discrepancy.id, { decision: "RECLASSIFY", reason: "Dépense oubliée identifiée après clôture.", amountMinor: "2000" });
     expect((await prisma.moneyAccount.findUniqueOrThrow({ where: { id: accountId } })).balanceMinor).toBe(cash);
     expect((await getDiscrepancy(prisma, organizationId, discrepancy.id)).residualAmountMinor).toBe("0");
@@ -137,6 +138,7 @@ describe("P05 caisse, dépenses et clôture aveugle", () => {
         expectedMinor: 50000n, declaredMinor: 48000n, originalAmountMinor: -2000n, residualAmountMinor: -2000n, state: "OPEN",
       },
     })).id;
+    expect((await getDiscrepancy(prisma, organizationId, caseId)).physicalAdjustment).toMatchObject({ available: true, sessionId: next.id, sessionStatus: "OPEN" });
     await resolveDiscrepancy(prisma, owner(), caseId, { decision: "ADJUST", reason: "Billets retrouvés au coffre après ouverture.", amountMinor: "2000" });
     expect((await prisma.moneyAccount.findUniqueOrThrow({ where: { id: accountId } })).balanceMinor).toBe(50000n);
     expect(original.declaredMinor).toBe(48000n);
