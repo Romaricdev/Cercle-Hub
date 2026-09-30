@@ -445,7 +445,11 @@ export function OwnerTransfersPage() {
     if (status) params.set("status", status);
     if (movementType) params.set("movementType", movementType);
     setError(null);
-    api<{ items: ShipmentRow[]; total: number; page: number; pageSize: number; totalPages: number; statusCounts: Record<string, number> }>(`/api/v1/shipments?${params.toString()}`).then(setData).catch((caught: RequestError) => setError(caught.message));
+    api<{ items?: ShipmentRow[]; shipments?: ShipmentRow[]; total?: number; page?: number; pageSize?: number; totalPages?: number; statusCounts?: Record<string, number> }>(`/api/v1/shipments?${params.toString()}`).then((payload) => {
+      const items = payload.items ?? payload.shipments ?? [];
+      const statusCounts = payload.statusCounts ?? items.reduce<Record<string, number>>((counts, item) => ({ ...counts, [item.status]: (counts[item.status] ?? 0) + 1 }), {});
+      setData({ items, total: payload.total ?? items.length, page: payload.page ?? 1, pageSize: payload.pageSize ?? items.length, totalPages: payload.totalPages ?? (items.length ? 1 : 0), statusCounts });
+    }).catch((caught: RequestError) => setError(caught.message));
   }, [movementType, page, query, status]);
   if (!data && !error) return <Skeleton className="h-80" />;
   const rows = data?.items ?? [];
