@@ -91,6 +91,7 @@ export {
   listPurchases,
   listRequests,
   listShipments,
+  listShipmentPage,
   listSuppliers,
   patchRequest,
   payPurchase,

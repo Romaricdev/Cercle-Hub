@@ -48,6 +48,7 @@ type ShipmentRow = {
   sourceName: string;
   destinationName: string;
   purchaseReference?: string | null;
+  movementType?: "PURCHASE" | "TRANSFER";
   createdAt: string;
   capabilities: { canDispatch: boolean; canApprove?: boolean; canReceive?: boolean };
   lines: Array<{ id?: string; variantId?: string; productName: string; remainingQty: string; dispatchedQty: string; receivedQty?: string }>;
@@ -81,6 +82,11 @@ function displayScaledQuantity(value: bigint) {
   const whole = value / 1_000_000n;
   const fraction = (value % 1_000_000n).toString().padStart(6, "0").replace(/0+$/, "");
   return fraction ? `${whole}.${fraction}` : whole.toString();
+}
+
+function quantityNumber(value: string) {
+  const parsed = Number(value || "0");
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 export function OwnerRequestsPage() {
@@ -426,19 +432,37 @@ export function OwnerSupplierDetailPage() {
 }
 
 export function OwnerTransfersPage() {
-  const [rows, setRows] = useState<ShipmentRow[] | null>(null);
+  const [data, setData] = useState<{ items: ShipmentRow[]; total: number; page: number; pageSize: number; totalPages: number; statusCounts: Record<string, number> } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [draftQuery, setDraftQuery] = useState("");
+  const [query, setQuery] = useState("");
+  const [status, setStatus] = useState("");
+  const [movementType, setMovementType] = useState("");
+  const [page, setPage] = useState(1);
   useEffect(() => {
-    api<{ shipments: ShipmentRow[] }>("/api/v1/shipments").then((payload) => setRows(payload.shipments)).catch((caught: RequestError) => setError(caught.message));
-  }, []);
-  if (!rows && !error) return <Skeleton className="h-80" />;
+    const params = new URLSearchParams({ page: page.toString(), pageSize: "20" });
+    if (query) params.set("query", query);
+    if (status) params.set("status", status);
+    if (movementType) params.set("movementType", movementType);
+    setError(null);
+    api<{ items: ShipmentRow[]; total: number; page: number; pageSize: number; totalPages: number; statusCounts: Record<string, number> }>(`/api/v1/shipments?${params.toString()}`).then(setData).catch((caught: RequestError) => setError(caught.message));
+  }, [movementType, page, query, status]);
+  if (!data && !error) return <Skeleton className="h-80" />;
+  const rows = data?.items ?? [];
+  const activeCount = Object.entries(data?.statusCounts ?? {}).filter(([key]) => ["DRAFT", "SUBMITTED", "APPROVED", "DISPATCHED", "PARTIAL", "DISPUTED"].includes(key)).reduce((sum, [, count]) => sum + count, 0);
+  const transitCount = (data?.statusCounts.DISPATCHED ?? 0) + (data?.statusCounts.PARTIAL ?? 0);
+  const issueCount = data?.statusCounts.DISPUTED ?? 0;
+  function resetFilters() {
+    setDraftQuery(""); setQuery(""); setStatus(""); setMovementType(""); setPage(1);
+  }
   return (
     <section className="space-y-6 overflow-x-clip">
-      <PageHeader title="Expéditions et transferts" action={<Link href={paths.ownerTransferNew}><Button>Nouveau transfert</Button></Link>}>Le transit n’est pas vendable. Les coûts suivent les quantités sans duplication.</PageHeader>
+      <PageHeader title="Registre des transferts" action={<Link href={paths.ownerTransferNew}><Button>Nouveau transfert</Button></Link>}>Consultez tous les transferts internes et toutes les livraisons d’achat, de leur préparation jusqu’à leur réception.</PageHeader>
       {error ? <Alert tone="error">{error}</Alert> : null}
-      {(rows ?? []).length === 0 ? <EmptyState title="Aucune expédition" icon={<Truck className="size-5" />}>Les livraisons d’achat et les transferts internes seront listés ici.</EmptyState> : (
-        <ul className="grid gap-3">{(rows ?? []).map((row) => <li key={row.id}><Link href={`${paths.ownerTransfers}/${row.id}`} className="group block rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)] transition hover:-translate-y-0.5 hover:shadow-lg"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="font-semibold">{row.sourceName} <ArrowRight className="mx-1 inline size-4" /> {row.destinationName}</p><p className="mt-1 text-sm text-[var(--muted)]">{row.purchaseReference ?? "Transfert interne"} · {row.lines.length} produit{row.lines.length > 1 ? "s" : ""} · {formatWhen(row.createdAt)}</p></div><div className="flex items-center gap-3"><Badge tone={shipmentStatus[row.status]?.tone ?? "neutral"}>{shipmentStatus[row.status]?.label ?? row.status}</Badge><ArrowRight className="size-4 text-[var(--muted)] transition group-hover:translate-x-1" /></div></div></Link></li>)}</ul>
-      )}
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><article className="rounded-xl bg-[var(--surface)] p-4 shadow-[var(--shadow-card)]"><p className="text-sm text-[var(--muted)]">Mouvements trouvés</p><p className="mt-1 text-2xl font-semibold tabular-nums">{data?.total ?? 0}</p></article><article className="rounded-xl bg-[var(--surface)] p-4 shadow-[var(--shadow-card)]"><p className="text-sm text-[var(--muted)]">Dossiers actifs</p><p className="mt-1 text-2xl font-semibold tabular-nums">{activeCount}</p></article><article className="rounded-xl bg-[var(--surface)] p-4 shadow-[var(--shadow-card)]"><p className="text-sm text-[var(--muted)]">En transit ou partiels</p><p className="mt-1 text-2xl font-semibold tabular-nums">{transitCount}</p></article><article className="rounded-xl bg-[var(--surface)] p-4 shadow-[var(--shadow-card)]"><p className="text-sm text-[var(--muted)]">Litiges</p><p className={`mt-1 text-2xl font-semibold tabular-nums ${issueCount ? "text-[var(--destructive)]" : ""}`}>{issueCount}</p></article></div>
+      <form className="rounded-xl bg-[var(--surface)] p-4 shadow-[var(--shadow-card)]" onSubmit={(event) => { event.preventDefault(); setPage(1); setQuery(draftQuery.trim()); }}><div className="grid gap-3 lg:grid-cols-[minmax(16rem,1fr)_14rem_15rem_auto]"><label className="relative block"><Search className="absolute left-3 top-3 size-4 text-[var(--muted)]" /><span className="sr-only">Rechercher</span><input value={draftQuery} onChange={(event) => setDraftQuery(event.target.value)} placeholder="Origine, destination, produit ou référence" className="h-11 w-full rounded-lg bg-[var(--surface-subtle)] pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-[var(--focus)]" /></label><label><span className="sr-only">Type de mouvement</span><select value={movementType} onChange={(event) => { setMovementType(event.target.value); setPage(1); }} className="h-11 w-full rounded-lg bg-[var(--surface-subtle)] px-3 text-sm"><option value="">Tous les types</option><option value="TRANSFER">Transferts internes</option><option value="PURCHASE">Livraisons d’achat</option></select></label><label><span className="sr-only">Statut</span><select value={status} onChange={(event) => { setStatus(event.target.value); setPage(1); }} className="h-11 w-full rounded-lg bg-[var(--surface-subtle)] px-3 text-sm"><option value="">Tous les statuts</option>{Object.entries(shipmentStatus).map(([value, item]) => <option key={value} value={value}>{item.label}</option>)}</select></label><Button type="submit">Rechercher</Button></div>{(query || status || movementType) ? <button type="button" onClick={resetFilters} className="mt-3 text-sm font-medium text-[var(--primary)]">Réinitialiser les filtres</button> : null}</form>
+      {rows.length === 0 ? <EmptyState title={(query || status || movementType) ? "Aucun mouvement trouvé" : "Aucune expédition"} icon={<Truck className="size-5" />}>{(query || status || movementType) ? "Modifiez les filtres pour retrouver un mouvement." : "Les livraisons d’achat et les transferts internes seront listés ici."}</EmptyState> : <><ul className="grid gap-3 lg:hidden">{rows.map((row) => <li key={row.id}><Link href={`${paths.ownerTransfers}/${row.id}`} className="group block rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]"><div className="flex items-start justify-between gap-3"><Badge>{row.movementType === "PURCHASE" ? "Livraison d’achat" : "Transfert interne"}</Badge><Badge tone={shipmentStatus[row.status]?.tone ?? "neutral"}>{shipmentStatus[row.status]?.label ?? row.status}</Badge></div><p className="mt-4 font-semibold">{row.sourceName} <ArrowRight className="mx-1 inline size-4" /> {row.destinationName}</p><p className="mt-2 text-sm text-[var(--muted)]">{row.purchaseReference ?? `${row.lines.length} produit${row.lines.length > 1 ? "s" : ""}`} · {formatWhen(row.createdAt)}</p><p className="mt-3 text-sm font-medium">Reliquat : {row.lines.reduce((sum, line) => sum + quantityNumber(line.remainingQty), 0)}</p></Link></li>)}</ul><div className="hidden overflow-x-auto rounded-xl bg-[var(--surface)] shadow-[var(--shadow-card)] lg:block"><table className="w-full text-sm"><thead className="text-left text-[var(--muted)]"><tr><th className="px-5 py-3 font-medium">Type</th><th className="px-5 py-3 font-medium">Trajet</th><th className="px-5 py-3 font-medium">Référence / contenu</th><th className="px-5 py-3 font-medium">Statut</th><th className="px-5 py-3 text-right font-medium">Reliquat</th><th className="px-5 py-3 font-medium">Création</th><th className="px-5 py-3"><span className="sr-only">Ouvrir</span></th></tr></thead><tbody>{rows.map((row) => <tr key={row.id} className="border-t border-[var(--separator)]/50"><td className="px-5 py-4"><Badge>{row.movementType === "PURCHASE" ? "Livraison d’achat" : "Transfert interne"}</Badge></td><td className="px-5 py-4 font-medium">{row.sourceName} <ArrowRight className="mx-1 inline size-4" /> {row.destinationName}</td><td className="px-5 py-4">{row.purchaseReference ?? `${row.lines.length} produit${row.lines.length > 1 ? "s" : ""}`}</td><td className="px-5 py-4"><Badge tone={shipmentStatus[row.status]?.tone ?? "neutral"}>{shipmentStatus[row.status]?.label ?? row.status}</Badge></td><td className="px-5 py-4 text-right font-semibold tabular-nums">{row.lines.reduce((sum, line) => sum + quantityNumber(line.remainingQty), 0)}</td><td className="px-5 py-4 whitespace-nowrap">{formatWhen(row.createdAt)}</td><td className="px-5 py-4 text-right"><Link aria-label={`Consulter le mouvement vers ${row.destinationName}`} className="inline-flex items-center gap-1 font-medium text-[var(--primary)]" href={`${paths.ownerTransfers}/${row.id}`}>Voir <ArrowRight className="size-4" /></Link></td></tr>)}</tbody></table></div></>}
+      {(data?.totalPages ?? 0) > 1 ? <nav className="flex flex-wrap items-center justify-between gap-3" aria-label="Pagination des transferts"><p className="text-sm text-[var(--muted)]">Page {data?.page} sur {data?.totalPages} · {data?.total} mouvement{data?.total === 1 ? "" : "s"}</p><div className="flex gap-2"><Button variant="secondary" disabled={page <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))}>Précédente</Button><Button variant="secondary" disabled={page >= (data?.totalPages ?? 1)} onClick={() => setPage((current) => current + 1)}>Suivante</Button></div></nav> : null}
     </section>
   );
 }

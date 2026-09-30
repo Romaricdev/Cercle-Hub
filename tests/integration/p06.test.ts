@@ -15,6 +15,7 @@ import {
   getAttachmentForDownload,
   getPurchase,
   getRequest,
+  listShipmentPage,
   openCashSession,
   postPurchase,
   postReceipt,
@@ -401,5 +402,18 @@ describe("P06 réapprovisionnement, achats et transferts", () => {
       _sum: { remainingValueMinor: true },
     });
     expect(valueAfter._sum.remainingValueMinor).toBe(valueBefore._sum.remainingValueMinor);
+  });
+
+  it("pagine et filtre le registre propriétaire sans exposer une autre organisation", async () => {
+    const transfers = await listShipmentPage(prisma, organizationId, ownerId, "OWNER", { page: 1, pageSize: 5, movementType: "TRANSFER" });
+    expect(transfers.items.length).toBeGreaterThan(0);
+    expect(transfers.items.length).toBeLessThanOrEqual(5);
+    expect(transfers.items.every((item) => item.movementType === "TRANSFER")).toBe(true);
+    expect(transfers.totalPages).toBe(Math.ceil(transfers.total / 5));
+    expect(Object.values(transfers.statusCounts).reduce((sum, count) => sum + count, 0)).toBeGreaterThanOrEqual(transfers.total);
+
+    const foreign = await listShipmentPage(prisma, otherOrg, otherOwnerId, "OWNER", { page: 1, pageSize: 20 });
+    expect(foreign.items).toHaveLength(0);
+    expect(foreign.total).toBe(0);
   });
 });

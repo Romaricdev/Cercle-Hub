@@ -582,3 +582,14 @@ Vérifications exécutées : `corepack pnpm lint` code 0 ; `corepack pnpm typech
 - Aucun droit métier, DTO sensible, mouvement de stock ou comportement transactionnel n’a été élargi par cette passe d’interface.
 
 Vérifications exécutées après la passe complète : `corepack pnpm lint` code 0 ; `corepack pnpm typecheck` code 0 ; `corepack pnpm test` **39/39** ; `corepack pnpm build` code 0, **44 routes**. Playwright n’a pas été relancé car les ports 4310 et 4311 restent occupés par des processus externes à cette passe ; ils n’ont pas été interrompus.
+
+### Registre propriétaire des transferts — 30 septembre 2026
+
+- `/owner/transfers` devient le registre de tous les mouvements de l’organisation : transferts internes et livraisons issues d’achats sont identifiés séparément, avec trajet, référence ou contenu, statut, reliquat et date de création.
+- La recherche couvre origine, destination, produit et référence d’achat. Les filtres de type et de statut sont appliqués côté serveur avant pagination.
+- Quatre indicateurs donnent le nombre de résultats, les dossiers actifs, les mouvements en transit ou partiellement reçus et les litiges. Les compteurs de statut respectent la recherche et le type sélectionné.
+- L’API expose une pagination bornée (5 à 100 lignes par page), un total et le nombre de pages. La liste n’est donc plus limitée silencieusement aux 100 mouvements les plus récents.
+- L’interface reste adaptée aux petits écrans avec des cartes, puis passe à un tableau de pilotage à partir du format ordinateur. Chaque ligne mène à la fiche d’expédition existante.
+- L’accès reste limité à l’organisation du propriétaire ; aucune permission d’approbation, d’expédition ou de réception n’a été élargie.
+
+Vérifications exécutées : `corepack pnpm lint` code 0 ; `corepack pnpm typecheck` code 0 ; `corepack pnpm test` **39/39** ; intégration PostgreSQL ciblée `tests/integration/p06.test.ts` **13/13**, incluant pagination, filtre de type et isolation inter-organisation ; `corepack pnpm build` code 0, **44 routes**.

@@ -19,6 +19,7 @@ import {
   listPurchases,
   listRequests,
   listShipments,
+  listShipmentPage,
   listSuppliers,
   patchRequest,
   payPurchase,
@@ -341,9 +342,16 @@ export class P06Controller {
   }
 
   @Get("shipments")
-  async shipments(@Req() request: RequestWithActor, @Query("kind") kind?: string) {
+  async shipments(@Req() request: RequestWithActor, @Query("kind") kind?: string, @Query("page") page?: string, @Query("pageSize") pageSize?: string, @Query("status") status?: string, @Query("movementType") movementType?: string, @Query("query") query?: string) {
     try {
       const actor = requireActor(request);
+      if (page || pageSize || status || movementType || query) {
+        const parsedPage = z.coerce.number().int().min(1).default(1).parse(page);
+        const parsedPageSize = z.coerce.number().int().min(5).max(100).default(20).parse(pageSize);
+        const parsedStatus = status ? z.enum(["DRAFT", "SUBMITTED", "APPROVED", "DISPATCHED", "PARTIAL", "RECEIVED", "DISPUTED", "REJECTED", "CLOSED"]).parse(status) : undefined;
+        const parsedMovementType = movementType ? z.enum(["PURCHASE", "TRANSFER"]).parse(movementType) : undefined;
+        return { protocolVersion: PROTOCOL_VERSION, ...(await listShipmentPage(this.prisma, actor.organizationId, actor.id, actor.role, { page: parsedPage, pageSize: parsedPageSize, ...(parsedStatus ? { status: parsedStatus } : {}), ...(parsedMovementType ? { movementType: parsedMovementType } : {}), ...(query ? { query } : {}) })) };
+      }
       const parsed = kind === "in" || kind === "out" || kind === "all" ? kind : "all";
       return { protocolVersion: PROTOCOL_VERSION, shipments: await listShipments(this.prisma, actor.organizationId, actor.id, actor.role, parsed) };
     } catch (error) { throw DomainHttpError.from(error); }

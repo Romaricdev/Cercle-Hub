@@ -1,4 +1,4 @@
-import type { PrismaClient } from "@cercle/database";
+import type { Prisma, PrismaClient } from "@cercle/database";
 
 import { writeAudit } from "./audit.js";
 import { DomainError } from "./errors.js";
@@ -1522,6 +1522,76 @@ export async function listShipments(prisma: PrismaClient, organizationId: string
       canReceive: ["DISPATCHED", "PARTIAL", "DISPUTED"].includes(row.status) && (role === "OWNER" || row.destinationLocation.shopId === shopId),
     },
   }));
+}
+
+export async function listShipmentPage(
+  prisma: PrismaClient,
+  organizationId: string,
+  actorId: string,
+  role: string,
+  input: { page: number; pageSize: number; status?: string; movementType?: "PURCHASE" | "TRANSFER"; query?: string },
+) {
+  const shopId = role === "MANAGER" ? (await prisma.managerAssignment.findFirst({ where: { userId: actorId, endedAt: null } }))?.shopId : undefined;
+  if (role === "MANAGER" && !shopId) return { items: [], total: 0, page: input.page, pageSize: input.pageSize, totalPages: 0 };
+  const query = input.query?.trim();
+  const baseWhere: Prisma.ShipmentWhereInput = {
+    organizationId,
+    ...(shopId ? { OR: [{ destinationLocation: { shopId } }, { sourceLocation: { shopId } }] } : {}),
+    ...(input.movementType === "PURCHASE" ? { purchaseId: { not: null } } : input.movementType === "TRANSFER" ? { purchaseId: null } : {}),
+    ...(query ? {
+      AND: [{ OR: [
+        { sourceLocation: { name: { contains: query, mode: "insensitive" } } },
+        { destinationLocation: { name: { contains: query, mode: "insensitive" } } },
+        { purchase: { reference: { contains: query, mode: "insensitive" } } },
+        { lines: { some: { variant: { product: { name: { contains: query, mode: "insensitive" } } } } } },
+      ] }],
+    } : {}),
+  };
+  const where: Prisma.ShipmentWhereInput = { ...baseWhere, ...(input.status ? { status: input.status as never } : {}) };
+  const [rows, total, grouped] = await prisma.$transaction([
+    prisma.shipment.findMany({
+      where,
+      include: { sourceLocation: true, destinationLocation: true, lines: { include: { variant: { include: { product: true } } } }, purchase: { select: { reference: true } } },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      skip: (input.page - 1) * input.pageSize,
+      take: input.pageSize,
+    }),
+    prisma.shipment.count({ where }),
+    prisma.shipment.groupBy({ by: ["status"], where: baseWhere, _count: { _all: true } }),
+  ]);
+  return {
+    items: rows.map((row) => ({
+      id: row.id,
+      status: row.status,
+      sourceName: row.sourceLocation?.name ?? "Fournisseur",
+      destinationName: row.destinationLocation.name,
+      purchaseReference: row.purchase?.reference ?? null,
+      movementType: row.purchaseId ? "PURCHASE" as const : "TRANSFER" as const,
+      createdAt: row.createdAt.toISOString(),
+      remaining: row.lines.some((line) => toScaled(line.dispatchedQty.toString()) > toScaled(line.receivedQty.toString())),
+      lines: row.lines.map((line) => ({
+        id: line.id,
+        variantId: line.variantId,
+        productName: line.variant.product.name,
+        variantName: line.variant.name,
+        requestedQty: line.requestedQty.toString(),
+        dispatchedQty: line.dispatchedQty.toString(),
+        receivedQty: line.receivedQty.toString(),
+        remainingQty: decimal(toScaled(line.dispatchedQty.toString()) - toScaled(line.receivedQty.toString())),
+      })),
+      capabilities: {
+        canSubmit: role === "MANAGER" && row.status === "DRAFT" && row.sourceLocation?.shopId === shopId,
+        canApprove: role === "OWNER" && ["DRAFT", "SUBMITTED"].includes(row.status),
+        canDispatch: row.status === "APPROVED" && (role === "OWNER" || row.sourceLocation?.shopId === shopId),
+        canReceive: ["DISPATCHED", "PARTIAL", "DISPUTED"].includes(row.status) && (role === "OWNER" || row.destinationLocation.shopId === shopId),
+      },
+    })),
+    total,
+    page: input.page,
+    pageSize: input.pageSize,
+    totalPages: total === 0 ? 0 : Math.ceil(total / input.pageSize),
+    statusCounts: Object.fromEntries(grouped.map((item) => [item.status, item._count._all])),
+  };
 }
 
 export async function getShipment(prisma: PrismaClient, organizationId: string, actorId: string, role: string, id: string) {
