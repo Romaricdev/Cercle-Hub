@@ -572,3 +572,13 @@ Limites restantes : P07–P12 non commencées ; interface avancée de dette four
 - Le composant partagé `ConfirmDialog` accepte une largeur adaptée aux formulaires structurés sans modifier le placement local des erreurs et confirmations.
 
 Vérifications exécutées : `corepack pnpm lint` code 0 ; `corepack pnpm typecheck` code 0 ; `corepack pnpm test:unit` **39/39** ; `corepack pnpm build` code 0, **44 routes**. Le lancement Playwright P06 a été refusé avant exécution car les ports locaux 4310/4311 étaient déjà occupés ; aucun résultat E2E supplémentaire n’est revendiqué pour ce raffinement.
+
+### Passe complète des écrans P06 — 30 septembre 2026
+
+- Gérant : demandes, achat autorisé, achats, fiche d’achat, réceptions, comptage d’une réception, expéditions et fiche d’expédition ont été remis au même niveau de hiérarchie, de lisibilité et de responsive que les écrans validés précédemment.
+- L’achat autorisé calcule désormais les sous-totaux des quantités décimales sur des entiers mis à l’échelle, présente les trois étapes du parcours et bloque l’enregistrement tant que les prix ou le fournisseur sont incomplets.
+- La réception distingue attendu, accepté, endommagé et surplus, explique l’effet d’une livraison terminée et conserve la saisie ligne par ligne. Les listes d’achats, de réceptions et d’expéditions donnent désormais le contexte, l’état, la date et un accès explicite au détail.
+- Propriétaire : les dossiers de demande, fiches d’achat, listes et fiches de transfert exposent les montants, progressions, reliquats et historiques dans des sections cohérentes, utilisables sur téléphone, tablette et ordinateur.
+- Aucun droit métier, DTO sensible, mouvement de stock ou comportement transactionnel n’a été élargi par cette passe d’interface.
+
+Vérifications exécutées après la passe complète : `corepack pnpm lint` code 0 ; `corepack pnpm typecheck` code 0 ; `corepack pnpm test` **39/39** ; `corepack pnpm build` code 0, **44 routes**. Playwright n’a pas été relancé car les ports 4310 et 4311 restent occupés par des processus externes à cette passe ; ils n’ont pas été interrompus.

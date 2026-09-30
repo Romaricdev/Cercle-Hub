@@ -1,6 +1,6 @@
 "use client";
 
-import { ClipboardList, PackageCheck, Plus, Search, Truck } from "lucide-react";
+import { ArrowRight, ClipboardList, PackageCheck, Plus, Search, Trash2, Truck } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -65,6 +65,20 @@ type ShipmentRow = {
 
 function formatWhen(value: string) {
   return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+}
+
+function scaledQuantity(value: string) {
+  const [whole = "0", fraction = ""] = value.trim().split(".");
+  return BigInt(`${whole || "0"}${fraction.padEnd(6, "0").slice(0, 6)}`);
+}
+
+function lineAmount(unitPriceMinor: string, quantity: string) {
+  return BigInt(unitPriceMinor || "0") * scaledQuantity(quantity || "0") / 1_000_000n;
+}
+
+function quantityNumber(value: string) {
+  const parsed = Number(value || "0");
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 export function ManagerRequestsPage() {
@@ -176,7 +190,7 @@ export function ManagerRequestFormPage() {
               <Field id="qty" label="Quantité" value={quantity} onChange={(event) => setQuantity(event.target.value)} />
             </div>
             <Button className="mt-4" variant="secondary" onClick={addLine} disabled={!unitId}><Plus className="size-4" />Ajouter la ligne</Button>
-            <ul className="mt-4 divide-y divide-[var(--separator)]/60">{lines.map((line, index) => <li key={`${line.variantId}-${index}`} className="flex items-center justify-between gap-3 py-3 text-sm"><span>{line.label}</span><Button variant="ghost" onClick={() => setLines(lines.filter((_, current) => current !== index))}>Retirer</Button></li>)}</ul>
+            <ul className="mt-4 divide-y divide-[var(--separator)]/60">{lines.map((line, index) => <li key={`${line.variantId}-${index}`} className="flex items-center justify-between gap-3 py-3 text-sm"><span>{line.label}</span><Button aria-label={`Retirer ${line.label}`} variant="ghost" onClick={() => setLines(lines.filter((_, current) => current !== index))}><Trash2 className="size-4" />Retirer</Button></li>)}</ul>
             {lines.length === 0 ? <p className="mt-3 text-sm text-[var(--muted)]">Ajoutez au moins un produit avant d’enregistrer.</p> : null}
           </article>
         </div>
@@ -270,7 +284,9 @@ export function ManagerPurchaseNewPage() {
     }).catch((caught: RequestError) => setError(caught.message));
   }, [requestId]);
   const lines = request?.lines ?? [];
-  const total = lines.reduce((sum, line) => sum + BigInt(prices[line.id] || "0") * BigInt(line.quantityBase.split(".")[0] || "0"), 0n);
+  const total = lines.reduce((sum, line) => sum + lineAmount(prices[line.id] || "0", line.quantityBase), 0n);
+  const allPricesEntered = lines.length > 0 && lines.every((line) => BigInt(prices[line.id] || "0") > 0n);
+  const selectedAccount = catalog?.accounts.find((account) => account.id === accountId);
   async function ensureSupplier() {
     if (supplierId) return supplierId;
     if (!newSupplier.trim()) throw new RequestError(422, "INVALID_INPUT", "Indiquez un fournisseur.");
@@ -305,34 +321,36 @@ export function ManagerPurchaseNewPage() {
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
           <div className="space-y-6">
             <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]">
-              <h2 className="font-display font-semibold">Fournisseur</h2>
+              <h2 className="font-display font-semibold">1. Fournisseur</h2>
+              <p className="mt-1 text-sm text-[var(--muted)]">Sélectionnez une entreprise connue ou créez sa fiche minimale.</p>
               <div className="mt-4 grid gap-3">
                 <div><Label htmlFor="supplier">Fournisseur connu</Label><select id="supplier" value={supplierId} onChange={(event) => setSupplierId(event.target.value)} className="h-10 w-full rounded-md bg-[var(--surface-subtle)] px-3 text-sm"><option value="">Nouveau</option>{catalog?.suppliers.map((supplier) => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}</select></div>
                 {!supplierId ? <Field id="new-supplier" label="Nom du fournisseur" value={newSupplier} onChange={(event) => setNewSupplier(event.target.value)} /> : null}
               </div>
             </article>
             <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]">
-              <h2 className="font-display font-semibold">Lignes autorisées</h2>
+              <h2 className="font-display font-semibold">2. Prix réellement négociés</h2>
+              <p className="mt-1 text-sm text-[var(--muted)]">Les quantités proviennent de l’accord et ne peuvent pas être élargies ici.</p>
               <ul className="mt-4 space-y-3">{lines.map((line) => (
-                <li key={line.id} className="grid gap-2 rounded-lg bg-[var(--surface-subtle)] p-3 sm:grid-cols-[1fr_8rem]">
-                  <p className="text-sm">{line.productName} · {line.variantName}<span className="block text-[var(--muted)]">{line.quantityBase} {line.unitName}</span></p>
-                  <Field id={`price-${line.id}`} label="Prix unitaire" inputMode="numeric" value={prices[line.id] ?? ""} onChange={(event) => setPrices((current) => ({ ...current, [line.id]: event.target.value.replace(/\D/g, "") }))} />
+                <li key={line.id} className="grid gap-3 rounded-lg bg-[var(--surface-subtle)] p-4 sm:grid-cols-[minmax(0,1fr)_10rem] sm:items-end">
+                  <div><p className="font-medium">{line.productName} · {line.variantName}</p><p className="mt-1 text-sm text-[var(--muted)]">Quantité autorisée : {line.quantityBase} {line.unitName}</p><p className="mt-2 text-sm font-semibold tabular-nums">Sous-total : {formatFcfa(lineAmount(prices[line.id] || "0", line.quantityBase).toString())}</p></div>
+                  <Field id={`price-${line.id}`} label="Prix unitaire (FCFA)" inputMode="numeric" value={prices[line.id] ?? ""} onChange={(event) => setPrices((current) => ({ ...current, [line.id]: event.target.value.replace(/\D/g, "") }))} />
                 </li>
               ))}</ul>
             </article>
             <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]">
-              <h2 className="font-display font-semibold">Paiement et réception</h2>
+              <h2 className="font-display font-semibold">3. Paiement et réception</h2>
               <div className="mt-4 grid gap-3">
                 <div><Label htmlFor="account">Source de fonds</Label><select id="account" value={accountId} onChange={(event) => setAccountId(event.target.value)} className="h-10 w-full rounded-md bg-[var(--surface-subtle)] px-3 text-sm"><option value="">Payer plus tard</option>{catalog?.accounts.map((account) => <option key={account.id} value={account.id}>{account.name}</option>)}</select></div>
-                <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={receiveNow} onChange={(event) => setReceiveNow(event.target.checked)} />Réception immédiate des quantités achetées</label>
+                <label className="flex items-start gap-3 rounded-lg bg-[var(--surface-subtle)] p-4 text-sm"><input className="mt-1" type="checkbox" checked={receiveNow} onChange={(event) => setReceiveNow(event.target.checked)} /><span><strong className="block">Marchandise déjà arrivée et contrôlée</strong><span className="mt-1 block text-[var(--muted)]">Le stock augmentera immédiatement. Décochez si une réception physique doit encore être confirmée.</span></span></label>
               </div>
             </article>
           </div>
           <aside className="h-fit rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)] xl:sticky xl:top-4">
             <h2 className="font-display font-semibold">Synthèse</h2>
-            <p className="mt-2 text-sm">Marchandises {formatFcfa(total.toString())}</p>
-            <p className="mt-1 text-sm text-[var(--muted)]">Budget restant {formatFcfa(request.approval?.remainingBudgetMinor)}</p>
-            <Button className="mt-4 w-full" disabled={pending} onClick={() => void submit()}>{pending ? "Enregistrement…" : receiveNow ? "Acheter et recevoir" : "Enregistrer l’achat"}</Button>
+            <dl className="mt-4 space-y-3 text-sm"><div className="flex justify-between gap-3"><dt>Marchandises</dt><dd className="font-semibold tabular-nums">{formatFcfa(total.toString())}</dd></div><div className="flex justify-between gap-3"><dt>Budget disponible</dt><dd className="tabular-nums">{formatFcfa(request.approval?.remainingBudgetMinor)}</dd></div><div className="flex justify-between gap-3"><dt>Paiement</dt><dd className="text-right">{selectedAccount?.name ?? "À payer plus tard"}</dd></div></dl>
+            {!allPricesEntered ? <Alert className="mt-4" tone="warning">Renseignez un prix positif pour chaque ligne.</Alert> : null}
+            <Button className="mt-4 w-full" disabled={pending || !allPricesEntered || (!supplierId && !newSupplier.trim())} onClick={() => void submit()}>{pending ? "Enregistrement…" : receiveNow ? "Acheter et recevoir" : "Enregistrer l’achat"}</Button>
           </aside>
         </div>
       )}
@@ -354,7 +372,7 @@ export function ManagerReceiptsPage() {
       {error ? <Alert tone="error">{error}</Alert> : null}
       {expected.length === 0 ? <EmptyState title="Aucune réception en attente" icon={<PackageCheck className="size-5" />}>Les livraisons destinées à votre boutique apparaîtront ici.</EmptyState> : (
         <ul className="grid gap-3">{expected.map((row) => (
-          <li key={row.id}><Link href={`${paths.managerReceipts}/${row.id}`} className="block rounded-xl bg-[var(--surface)] p-4 shadow-[var(--shadow-card)]"><div className="flex flex-wrap items-center justify-between gap-2"><p className="font-semibold">{row.sourceName} → {row.destinationName}</p><Badge tone={shipmentStatus[row.status]?.tone ?? "neutral"}>{shipmentStatus[row.status]?.label ?? row.status}</Badge></div><p className="mt-2 text-sm text-[var(--muted)]">{row.purchaseReference ?? "Transfert interne"}</p></Link></li>
+          <li key={row.id}><Link href={`${paths.managerReceipts}/${row.id}`} className="group block rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)] transition hover:-translate-y-0.5 hover:shadow-lg"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="font-semibold">{row.sourceName} <ArrowRight className="mx-1 inline size-4" /> {row.destinationName}</p><p className="mt-1 text-sm text-[var(--muted)]">{row.purchaseReference ?? "Transfert interne"} · {row.lines.length} produit{row.lines.length > 1 ? "s" : ""}</p></div><div className="flex items-center gap-3"><Badge tone={shipmentStatus[row.status]?.tone ?? "neutral"}>{shipmentStatus[row.status]?.label ?? row.status}</Badge><ArrowRight className="size-4 text-[var(--muted)] transition group-hover:translate-x-1" /></div></div></Link></li>
         ))}</ul>
       )}
     </section>
@@ -377,6 +395,7 @@ export function ManagerReceiptDetailPage() {
     }).catch((caught: RequestError) => setError(caught.message));
   }, [params.id]);
   const summary = useMemo(() => data?.lines.map((line) => ({ ...line, ...(lines[line.id] ?? { accepted: "0", damaged: "0", surplus: "0" }) })) ?? [], [data, lines]);
+  const totals = useMemo(() => summary.reduce((result, line) => ({ expected: result.expected + quantityNumber(line.remainingQty), accepted: result.accepted + quantityNumber(line.accepted), damaged: result.damaged + quantityNumber(line.damaged), surplus: result.surplus + quantityNumber(line.surplus) }), { expected: 0, accepted: 0, damaged: 0, surplus: 0 }), [summary]);
   async function submit() {
     setPending(true); setError(null);
     try {
@@ -389,13 +408,13 @@ export function ManagerReceiptDetailPage() {
   if (!data) return <Alert tone="error">{error}</Alert>;
   return (
     <section className="space-y-6 overflow-x-clip">
-      <PageHeader title="Confirmer la réception">{data.sourceName} → {data.destinationName}</PageHeader>
+      <PageHeader title="Confirmer la réception">{data.sourceName} <ArrowRight className="mx-1 inline size-4" /> {data.destinationName}</PageHeader>
       {error && !confirm ? <Alert tone="error">{error}</Alert> : null}
       <Alert>Indiquez les quantités réellement constatées. Il n’existe pas d’action qui marque tout comme reçu sans contrôle.</Alert>
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{[["Attendu", totals.expected], ["Accepté", totals.accepted], ["Endommagé", totals.damaged], ["Surplus", totals.surplus]].map(([label, value]) => <article key={label} className="rounded-xl bg-[var(--surface)] p-4 shadow-[var(--shadow-card)]"><p className="text-sm text-[var(--muted)]">{label}</p><p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p></article>)}</div>
       <ul className="grid gap-3">{data.lines.map((line) => (
         <li key={line.id} className="rounded-xl bg-[var(--surface)] p-4 shadow-[var(--shadow-card)]">
-          <p className="font-semibold">{line.productName} · {line.variantName}</p>
-          <p className="mt-1 text-sm text-[var(--muted)]">Attendu restant {line.remainingQty}</p>
+          <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="font-semibold">{line.productName} · {line.variantName}</p><p className="mt-1 text-sm text-[var(--muted)]">Comptez cette ligne séparément.</p></div><Badge>Attendu : {line.remainingQty}</Badge></div>
           <div className="mt-3 grid gap-3 sm:grid-cols-3">
             <Field id={`${line.id}-ok`} label="Accepté vendable" value={lines[line.id]?.accepted ?? ""} onChange={(event) => setLines((current) => ({ ...current, [line.id]: { ...current[line.id]!, accepted: event.target.value, damaged: current[line.id]?.damaged ?? "0", surplus: current[line.id]?.surplus ?? "0" } }))} />
             <Field id={`${line.id}-dmg`} label="Endommagé" value={lines[line.id]?.damaged ?? "0"} onChange={(event) => setLines((current) => ({ ...current, [line.id]: { ...current[line.id]!, accepted: current[line.id]?.accepted ?? "", damaged: event.target.value, surplus: current[line.id]?.surplus ?? "0" } }))} />
@@ -409,8 +428,8 @@ export function ManagerReceiptDetailPage() {
           </div>
         </li>
       ))}</ul>
-      <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={complete} onChange={(event) => setComplete(event.target.checked)} />Livraison annoncée terminée (ouvre un litige s’il reste un manquant)</label>
-      <Button disabled={!data.capabilities.canReceive} onClick={() => { setError(null); setConfirm(true); }}>Vérifier cette réception</Button>
+      <label className="flex items-start gap-3 rounded-xl bg-[var(--surface)] p-4 text-sm shadow-[var(--shadow-card)]"><input className="mt-1" type="checkbox" checked={complete} onChange={(event) => setComplete(event.target.checked)} /><span><strong className="block">Le fournisseur confirme que cette livraison est terminée</strong><span className="mt-1 block text-[var(--muted)]">S’il reste un manquant, le système ouvrira le dossier correspondant. Laissez décoché lorsqu’un reliquat doit encore arriver.</span></span></label>
+      <div className="flex justify-end"><Button disabled={!data.capabilities.canReceive} onClick={() => { setError(null); setConfirm(true); }}>Vérifier cette réception</Button></div>
       <ConfirmDialog open={confirm} error={confirm ? error : null} onOpenChange={(open) => { setConfirm(open); if (!open) setError(null); }} title="Confirmer les quantités reçues" confirmLabel="Enregistrer la réception" pending={pending} onConfirm={() => void submit()}>
         <ul className="space-y-2 text-sm">{summary.map((line) => <li key={line.id}>{line.productName} : accepté {line.accepted || "0"}, endommagé {line.damaged || "0"}, surplus {line.surplus || "0"}</li>)}</ul>
       </ConfirmDialog>
@@ -429,12 +448,11 @@ export function ManagerTransferDetailPage() {
   if (!data) return <Alert tone="error">{error}</Alert>;
   return (
     <section className="space-y-6">
-      <PageHeader title="Expédition boutique">{data.sourceName} → {data.destinationName}</PageHeader>
+      <PageHeader title="Expédition boutique">{data.sourceName} <ArrowRight className="mx-1 inline size-4" /> {data.destinationName}</PageHeader>
       {error ? <Alert tone="error">{error}</Alert> : null}
-      <Badge tone={shipmentStatus[data.status]?.tone ?? "neutral"}>{shipmentStatus[data.status]?.label ?? data.status}</Badge>
-      <ul className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]">{data.lines.map((line) => <li key={line.id} className="flex justify-between py-2 text-sm"><span>{line.productName}</span><span>{line.dispatchedQty} envoyés · {line.remainingQty} restants</span></li>)}</ul>
-      {data.capabilities.canSubmit ? <Button disabled={pending} onClick={() => { setPending(true); api(`/api/v1/shipments/${data.id}/submit`, { method: "POST" }).then(() => load()).catch((caught: RequestError) => setError(caught.message)).finally(() => setPending(false)); }}>Soumettre au propriétaire</Button> : null}
-      {data.capabilities.canDispatch ? <Button disabled={pending} onClick={() => { setPending(true); api(`/api/v1/shipments/${data.id}/dispatch`, { method: "POST" }).then(() => load()).catch((caught: RequestError) => setError(caught.message)).finally(() => setPending(false)); }}>Confirmer l’expédition réelle</Button> : null}
+      <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]"><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-sm text-[var(--muted)]">État de l’expédition</p><div className="mt-2"><Badge tone={shipmentStatus[data.status]?.tone ?? "neutral"}>{shipmentStatus[data.status]?.label ?? data.status}</Badge></div></div><p className="text-sm text-[var(--muted)]">Créée le {formatWhen(data.createdAt)}</p></div></article>
+      <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]"><h2 className="font-display font-semibold">Produits à expédier</h2><ul className="mt-3 divide-y divide-[var(--separator)]/60">{data.lines.map((line) => <li key={line.id} className="grid gap-2 py-4 text-sm sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"><div><p className="font-medium">{line.productName}</p><p className="text-[var(--muted)]">{line.variantName}</p></div><div className="flex gap-4 tabular-nums"><span>{line.dispatchedQty} envoyé</span><strong>{line.remainingQty} restant</strong></div></li>)}</ul></article>
+      {(data.capabilities.canSubmit || data.capabilities.canDispatch) ? <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]"><h2 className="font-display font-semibold">Prochaine action</h2><p className="mt-1 text-sm text-[var(--muted)]">{data.capabilities.canDispatch ? "Confirmez uniquement après la sortie physique de la marchandise. Le stock sera débité à ce moment." : "Soumettez la préparation au propriétaire avant toute sortie physique."}</p><div className="mt-4">{data.capabilities.canSubmit ? <Button disabled={pending} onClick={() => { setPending(true); api(`/api/v1/shipments/${data.id}/submit`, { method: "POST" }).then(() => load()).catch((caught: RequestError) => setError(caught.message)).finally(() => setPending(false)); }}>Soumettre au propriétaire</Button> : null}{data.capabilities.canDispatch ? <Button disabled={pending} onClick={() => { setPending(true); api(`/api/v1/shipments/${data.id}/dispatch`, { method: "POST" }).then(() => load()).catch((caught: RequestError) => setError(caught.message)).finally(() => setPending(false)); }}>Confirmer la sortie physique</Button> : null}</div></article> : null}
     </section>
   );
 }
@@ -442,18 +460,21 @@ export function ManagerTransferDetailPage() {
 export function ManagerPurchasesPage() {
   const [rows, setRows] = useState<Array<{ id: string; reference: string; supplierName: string; receivedStatus: string; paymentStatus: string; createdAt: string }> | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
   useEffect(() => {
     api<{ purchases: NonNullable<typeof rows> }>("/api/v1/purchases").then((payload) => setRows(payload.purchases)).catch((caught: RequestError) => setError(caught.message));
   }, []);
   if (!rows && !error) return <Skeleton className="h-80" />;
+  const filtered = (rows ?? []).filter((row) => `${row.reference} ${row.supplierName}`.toLowerCase().includes(query.toLowerCase()));
   return (
     <section className="space-y-6 overflow-x-clip">
       <PageHeader title="Achats de la boutique">Suivez les achats autorisés et les livraisons destinées à votre boutique. Les coûts d’achat restent réservés au propriétaire.</PageHeader>
       {error ? <Alert tone="error">{error}</Alert> : null}
-      {(rows ?? []).length === 0 ? <EmptyState title="Aucun achat" icon={<PackageCheck className="size-5" />}>Les achats autorisés pour cette boutique apparaîtront ici.</EmptyState> : (
-        <ul className="grid gap-3">{(rows ?? []).map((row) => (
-          <li key={row.id}><Link href={`${paths.managerPurchases}/${row.id}`} className="block rounded-xl bg-[var(--surface)] p-4 shadow-[var(--shadow-card)]"><div className="flex flex-wrap items-center justify-between gap-2"><p className="font-semibold">{row.reference}</p><Badge>{receivedStatusLabel(row.receivedStatus)}</Badge></div><p className="mt-2 text-sm text-[var(--muted)]">{row.supplierName}</p></Link></li>
-        ))}</ul>
+      {(rows ?? []).length > 0 ? <label className="relative block max-w-md"><Search className="absolute left-3 top-3 size-4 text-[var(--muted)]" /><span className="sr-only">Rechercher un achat</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Référence ou fournisseur" className="h-11 w-full rounded-lg bg-[var(--surface)] pl-10 pr-4 text-sm shadow-[var(--shadow-card)] outline-none focus:ring-2 focus:ring-[var(--focus)]" /></label> : null}
+      {filtered.length === 0 ? <EmptyState title={rows?.length ? "Aucun résultat" : "Aucun achat"} icon={<PackageCheck className="size-5" />}>{rows?.length ? "Modifiez votre recherche pour retrouver un achat." : "Les achats autorisés pour cette boutique apparaîtront ici."}</EmptyState> : (
+        <><ul className="grid gap-3 lg:hidden">{filtered.map((row) => (
+          <li key={row.id}><Link href={`${paths.managerPurchases}/${row.id}`} className="group block rounded-xl bg-[var(--surface)] p-4 shadow-[var(--shadow-card)]"><div className="flex flex-wrap items-center justify-between gap-2"><p className="font-semibold">{row.reference}</p><Badge>{receivedStatusLabel(row.receivedStatus)}</Badge></div><p className="mt-2 text-sm text-[var(--muted)]">{row.supplierName} · {formatWhen(row.createdAt)}</p></Link></li>
+        ))}</ul><div className="hidden overflow-x-auto rounded-xl bg-[var(--surface)] shadow-[var(--shadow-card)] lg:block"><table className="w-full text-sm"><thead className="text-left text-[var(--muted)]"><tr><th className="px-5 py-3 font-medium">Référence</th><th className="px-5 py-3 font-medium">Fournisseur</th><th className="px-5 py-3 font-medium">Réception</th><th className="px-5 py-3 font-medium">Date</th><th className="px-5 py-3"><span className="sr-only">Ouvrir</span></th></tr></thead><tbody>{filtered.map((row) => <tr key={row.id} className="border-t border-[var(--separator)]/50"><td className="px-5 py-4 font-medium">{row.reference}</td><td className="px-5 py-4">{row.supplierName}</td><td className="px-5 py-4"><Badge>{receivedStatusLabel(row.receivedStatus)}</Badge></td><td className="px-5 py-4">{formatWhen(row.createdAt)}</td><td className="px-5 py-4 text-right"><Link className="inline-flex items-center gap-2 font-medium text-[var(--primary)]" href={`${paths.managerPurchases}/${row.id}`}>Consulter <ArrowRight className="size-4" /></Link></td></tr>)}</tbody></table></div></>
       )}
     </section>
   );
@@ -471,8 +492,8 @@ export function ManagerPurchaseDetailPage() {
   return (
     <section className="space-y-6">
       <PageHeader title={`Achat ${data.reference}`}>{data.supplier.name}</PageHeader>
-      <div className="flex gap-2"><Badge>{receivedStatusLabel(data.receivedStatus)}</Badge><Badge>{paymentStatusLabel(data.paymentStatus)}</Badge></div>
-      <ul className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]">{data.shipments.map((shipment) => <li key={shipment.id} className="flex justify-between py-2 text-sm"><Link className="text-[var(--primary)]" href={`${paths.managerReceipts}/${shipment.id}`}>{shipment.destinationName}</Link><Badge tone={shipmentStatus[shipment.status]?.tone ?? "neutral"}>{shipmentStatus[shipment.status]?.label ?? shipment.status}</Badge></li>)}</ul>
+      <div className="grid gap-3 sm:grid-cols-2"><article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]"><p className="text-sm text-[var(--muted)]">Réception</p><div className="mt-2"><Badge>{receivedStatusLabel(data.receivedStatus)}</Badge></div></article><article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]"><p className="text-sm text-[var(--muted)]">Paiement fournisseur</p><div className="mt-2"><Badge>{paymentStatusLabel(data.paymentStatus)}</Badge></div><p className="mt-2 text-xs text-[var(--muted)]">Le détail financier reste réservé au propriétaire.</p></article></div>
+      <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]"><h2 className="font-display font-semibold">Livraisons vers la boutique</h2>{data.shipments.length === 0 ? <p className="mt-3 text-sm text-[var(--muted)]">Aucune livraison n’est encore planifiée.</p> : <ul className="mt-3 divide-y divide-[var(--separator)]/60">{data.shipments.map((shipment) => <li key={shipment.id} className="flex flex-wrap items-center justify-between gap-3 py-4 text-sm"><div><p className="font-medium">{shipment.destinationName}</p><Link className="mt-1 inline-flex items-center gap-1 text-[var(--primary)]" href={`${paths.managerReceipts}/${shipment.id}`}>Voir la réception <ArrowRight className="size-4" /></Link></div><Badge tone={shipmentStatus[shipment.status]?.tone ?? "neutral"}>{shipmentStatus[shipment.status]?.label ?? shipment.status}</Badge></li>)}</ul>}</article>
     </section>
   );
 }
@@ -496,7 +517,7 @@ export function ManagerTransfersPage() {
       <PageHeader title="Expéditions">Suivez les envois depuis votre boutique.</PageHeader>
       {error ? <Alert tone="error">{error}</Alert> : null}
       {(rows ?? []).length === 0 ? <EmptyState title="Aucune expédition" icon={<Truck className="size-5" />}>Les transferts à envoyer apparaîtront ici.</EmptyState> : (
-        <ul className="grid gap-3">{(rows ?? []).map((row) => <li key={row.id}><Link href={`${paths.managerTransfers}/${row.id}`} className="block rounded-xl bg-[var(--surface)] p-4 shadow-[var(--shadow-card)]"><p className="font-semibold">{row.destinationName}</p><div className="mt-2"><Badge tone={shipmentStatus[row.status]?.tone ?? "neutral"}>{shipmentStatus[row.status]?.label ?? row.status}</Badge></div></Link></li>)}</ul>
+        <ul className="grid gap-3">{(rows ?? []).map((row) => <li key={row.id}><Link href={`${paths.managerTransfers}/${row.id}`} className="group block rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)] transition hover:-translate-y-0.5 hover:shadow-lg"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="font-semibold">{row.sourceName} <ArrowRight className="mx-1 inline size-4" /> {row.destinationName}</p><p className="mt-1 text-sm text-[var(--muted)]">{row.lines.length} produit{row.lines.length > 1 ? "s" : ""} · {formatWhen(row.createdAt)}</p></div><div className="flex items-center gap-3"><Badge tone={shipmentStatus[row.status]?.tone ?? "neutral"}>{shipmentStatus[row.status]?.label ?? row.status}</Badge><ArrowRight className="size-4 text-[var(--muted)] transition group-hover:translate-x-1" /></div></div></Link></li>)}</ul>
       )}
     </section>
   );
