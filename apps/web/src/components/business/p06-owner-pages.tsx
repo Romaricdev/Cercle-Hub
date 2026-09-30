@@ -450,8 +450,8 @@ export function OwnerTransfersPage() {
   if (!data && !error) return <Skeleton className="h-80" />;
   const rows = data?.items ?? [];
   const activeCount = Object.entries(data?.statusCounts ?? {}).filter(([key]) => ["DRAFT", "SUBMITTED", "APPROVED", "DISPATCHED", "PARTIAL", "DISPUTED"].includes(key)).reduce((sum, [, count]) => sum + count, 0);
-  const transitCount = (data?.statusCounts.DISPATCHED ?? 0) + (data?.statusCounts.PARTIAL ?? 0);
-  const issueCount = data?.statusCounts.DISPUTED ?? 0;
+  const transitCount = (data?.statusCounts?.DISPATCHED ?? 0) + (data?.statusCounts?.PARTIAL ?? 0);
+  const issueCount = data?.statusCounts?.DISPUTED ?? 0;
   function resetFilters() {
     setDraftQuery(""); setQuery(""); setStatus(""); setMovementType(""); setPage(1);
   }
