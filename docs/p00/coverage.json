@@ -107,8 +107,11 @@
       "P06-E10"
     ],
     "consolidationPhase": "P06",
-    "status": "NON_TESTE",
-    "evidence": []
+    "status": "TESTE",
+    "evidence": [
+      "tests/integration/p06.test.ts",
+      "tests/e2e/p06-replenishment.spec.ts"
+    ]
   },
   {
     "reference": "E11",
@@ -116,8 +119,11 @@
       "P06-E11"
     ],
     "consolidationPhase": "P06",
-    "status": "NON_TESTE",
-    "evidence": []
+    "status": "TESTE",
+    "evidence": [
+      "tests/integration/p06.test.ts",
+      "tests/e2e/p06-replenishment.spec.ts"
+    ]
   },
   {
     "reference": "E12",
@@ -125,8 +131,11 @@
       "P06-E12"
     ],
     "consolidationPhase": "P06",
-    "status": "NON_TESTE",
-    "evidence": []
+    "status": "TESTE",
+    "evidence": [
+      "tests/integration/p06.test.ts",
+      "tests/e2e/p06-replenishment.spec.ts"
+    ]
   },
   {
     "reference": "E13",
@@ -134,8 +143,11 @@
       "P06-E13"
     ],
     "consolidationPhase": "P06",
-    "status": "NON_TESTE",
-    "evidence": []
+    "status": "TESTE",
+    "evidence": [
+      "tests/integration/p06.test.ts",
+      "tests/e2e/p06-replenishment.spec.ts"
+    ]
   },
   {
     "reference": "E14",
@@ -184,8 +196,11 @@
       "P06-E18"
     ],
     "consolidationPhase": "P06",
-    "status": "NON_TESTE",
-    "evidence": []
+    "status": "TESTE",
+    "evidence": [
+      "tests/integration/p06.test.ts",
+      "tests/e2e/p06-replenishment.spec.ts"
+    ]
   },
   {
     "reference": "E19",
@@ -193,8 +208,11 @@
       "P06-E19"
     ],
     "consolidationPhase": "P06",
-    "status": "NON_TESTE",
-    "evidence": []
+    "status": "TESTE",
+    "evidence": [
+      "tests/integration/p06.test.ts",
+      "tests/e2e/p06-replenishment.spec.ts"
+    ]
   },
   {
     "reference": "E20",
@@ -202,8 +220,11 @@
       "P06-E20"
     ],
     "consolidationPhase": "P06",
-    "status": "NON_TESTE",
-    "evidence": []
+    "status": "TESTE",
+    "evidence": [
+      "tests/integration/p06.test.ts",
+      "tests/e2e/p06-replenishment.spec.ts"
+    ]
   },
   {
     "reference": "E21",
@@ -302,8 +323,11 @@
       "P06-E29"
     ],
     "consolidationPhase": "P06",
-    "status": "NON_TESTE",
-    "evidence": []
+    "status": "TESTE",
+    "evidence": [
+      "tests/integration/p06.test.ts",
+      "tests/e2e/p06-replenishment.spec.ts"
+    ]
   },
   {
     "reference": "E30",
@@ -490,8 +514,11 @@
       "P07-01"
     ],
     "consolidationPhase": "P07",
-    "status": "NON_TESTE",
-    "evidence": []
+    "status": "PARTIEL",
+    "evidence": [
+      "tests/integration/p06.test.ts",
+      "tests/e2e/p06-replenishment.spec.ts"
+    ]
   },
   {
     "reference": "S05",
@@ -524,8 +551,11 @@
       "P06-E19"
     ],
     "consolidationPhase": "P06",
-    "status": "NON_TESTE",
-    "evidence": []
+    "status": "TESTE",
+    "evidence": [
+      "tests/integration/p06.test.ts",
+      "tests/e2e/p06-replenishment.spec.ts"
+    ]
   },
   {
     "reference": "S08",
@@ -539,8 +569,11 @@
       "P07-02"
     ],
     "consolidationPhase": "P07",
-    "status": "NON_TESTE",
-    "evidence": []
+    "status": "PARTIEL",
+    "evidence": [
+      "tests/integration/p06.test.ts",
+      "tests/e2e/p06-replenishment.spec.ts"
+    ]
   },
   {
     "reference": "S09",
@@ -926,8 +959,11 @@
       "P06-E18"
     ],
     "consolidationPhase": "P06",
-    "status": "NON_TESTE",
-    "evidence": []
+    "status": "TESTE",
+    "evidence": [
+      "tests/integration/p06.test.ts",
+      "tests/e2e/p06-replenishment.spec.ts"
+    ]
   },
   {
     "reference": "T28",
@@ -938,8 +974,11 @@
       "P06-E18"
     ],
     "consolidationPhase": "P06",
-    "status": "NON_TESTE",
-    "evidence": []
+    "status": "TESTE",
+    "evidence": [
+      "tests/integration/p06.test.ts",
+      "tests/e2e/p06-replenishment.spec.ts"
+    ]
   },
   {
     "reference": "T29",
@@ -977,8 +1016,11 @@
       "P06-E20"
     ],
     "consolidationPhase": "P06",
-    "status": "NON_TESTE",
-    "evidence": []
+    "status": "TESTE",
+    "evidence": [
+      "tests/integration/p06.test.ts",
+      "tests/e2e/p06-replenishment.spec.ts"
+    ]
   },
   {
     "reference": "T32",
@@ -988,8 +1030,11 @@
       "P06-E29"
     ],
     "consolidationPhase": "P06",
-    "status": "NON_TESTE",
-    "evidence": []
+    "status": "TESTE",
+    "evidence": [
+      "tests/integration/p06.test.ts",
+      "tests/e2e/p06-replenishment.spec.ts"
+    ]
   },
   {
     "reference": "T33",
@@ -997,8 +1042,11 @@
       "P06-E13"
     ],
     "consolidationPhase": "P06",
-    "status": "NON_TESTE",
-    "evidence": []
+    "status": "TESTE",
+    "evidence": [
+      "tests/integration/p06.test.ts",
+      "tests/e2e/p06-replenishment.spec.ts"
+    ]
   },
   {
     "reference": "T34",
@@ -1300,8 +1348,11 @@
       "P09-E27"
     ],
     "consolidationPhase": "P09",
-    "status": "NON_TESTE",
-    "evidence": []
+    "status": "PARTIEL",
+    "evidence": [
+      "tests/integration/p06.test.ts",
+      "tests/e2e/p06-replenishment.spec.ts"
+    ]
   },
   {
     "reference": "T61",
@@ -1398,8 +1449,11 @@
       "P06-E19"
     ],
     "consolidationPhase": "P06",
-    "status": "NON_TESTE",
-    "evidence": []
+    "status": "TESTE",
+    "evidence": [
+      "tests/integration/p06.test.ts",
+      "tests/e2e/p06-replenishment.spec.ts"
+    ]
   },
   {
     "reference": "T69",
@@ -1408,8 +1462,11 @@
       "P06-E19"
     ],
     "consolidationPhase": "P06",
-    "status": "NON_TESTE",
-    "evidence": []
+    "status": "TESTE",
+    "evidence": [
+      "tests/integration/p06.test.ts",
+      "tests/e2e/p06-replenishment.spec.ts"
+    ]
   },
   {
     "reference": "T70",
@@ -1430,8 +1487,11 @@
       "P06-E29"
     ],
     "consolidationPhase": "P06",
-    "status": "NON_TESTE",
-    "evidence": []
+    "status": "TESTE",
+    "evidence": [
+      "tests/integration/p06.test.ts",
+      "tests/e2e/p06-replenishment.spec.ts"
+    ]
   },
   {
     "reference": "T72",
@@ -1441,8 +1501,11 @@
       "P06-E18"
     ],
     "consolidationPhase": "P06",
-    "status": "NON_TESTE",
-    "evidence": []
+    "status": "TESTE",
+    "evidence": [
+      "tests/integration/p06.test.ts",
+      "tests/e2e/p06-replenishment.spec.ts"
+    ]
   },
   {
     "reference": "T73",
@@ -1451,8 +1514,11 @@
       "P06-01"
     ],
     "consolidationPhase": "P06",
-    "status": "NON_TESTE",
-    "evidence": []
+    "status": "TESTE",
+    "evidence": [
+      "tests/integration/p06.test.ts",
+      "tests/e2e/p06-replenishment.spec.ts"
+    ]
   },
   {
     "reference": "T74",

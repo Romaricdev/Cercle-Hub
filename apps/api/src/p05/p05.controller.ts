@@ -84,7 +84,7 @@ const respondSchema = z.object({
   attachmentIds: z.array(z.uuid()).max(8).optional(),
 }).strict();
 const attachmentIntentSchema = z.object({
-  documentType: z.enum(["expenses", "fund_transfers", "discrepancy_cases"]),
+  documentType: z.enum(["expenses", "fund_transfers", "discrepancy_cases", "purchase_requests", "purchases", "purchase_payments", "shipments", "goods_receipts"]),
   mime: z.enum(["application/pdf", "image/jpeg", "image/png", "image/webp"]),
   size: z.number().int().min(32).max(5_000_000),
   name: z.string().trim().min(2).max(180),

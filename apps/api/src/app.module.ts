@@ -11,6 +11,7 @@ import { SessionController } from "./session/session.controller.js";
 import { P03Controller } from "./p03/p03.controller.js";
 import { P04Controller } from "./p04/p04.controller.js";
 import { P05Controller } from "./p05/p05.controller.js";
+import { P06Controller } from "./p06/p06.controller.js";
 import { API_ENV, AUTH, PRISMA } from "./tokens.js";
 
 @Module({})
@@ -18,7 +19,7 @@ export class AppModule {
   static register(prisma: PrismaClient, auth: Auth, env: ApiEnv): DynamicModule {
     return {
       module: AppModule,
-      controllers: [HealthController, SessionController, AccessController, P03Controller, P04Controller, P05Controller],
+      controllers: [HealthController, SessionController, AccessController, P03Controller, P04Controller, P05Controller, P06Controller],
       providers: [
         { provide: PRISMA, useValue: prisma },
         { provide: AUTH, useValue: auth },

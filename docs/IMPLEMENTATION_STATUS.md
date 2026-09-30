@@ -1,6 +1,6 @@
 # État d’implémentation
 
-Mise à jour : 29 septembre 2026. P00 documentaire et P01–P05 réalisées localement. P05-GATE est terminé sur preuves locales ; le complément réponse gérant aux écarts et le correctif des messages de modale sont livrés. P06–P12 ne sont pas commencées.
+Mise à jour : 30 septembre 2026. P00 documentaire et P01–P06 réalisées localement. P06-GATE est terminé sur preuves locales. P07–P12 ne sont pas commencées.
 
 Plan actif : [phases P00 à P12](15-phases-developpement.md). Les livrables P00 sont disponibles dans [docs/p00](p00/README.md). La rédaction du backlog ne vaut pas implémentation des tâches.
 
@@ -17,8 +17,8 @@ Vérifications exécutées après ce complément : lint réussi, typecheck monor
 | P02 — Accès sécurisés et design system | RÉALISÉE LOCALEMENT ; P02-GATE TERMINÉ | Preuves dans le compte rendu P02 et la stabilisation SEC12 ci-dessous |
 | P03 — Boutiques, catalogue et initialisation | RÉALISÉE LOCALEMENT ; P03-GATE TERMINÉ | Migrations, API, écrans et recette locale décrits dans le compte rendu P03 |
 | P04 — Ventes en ligne | RÉALISÉE LOCALEMENT ; P04-GATE TERMINÉ | Vente gérant, historique et fiche propriétaire, dashboard commercial P04 et recette locale |
-| P05 — Caisse, dépenses et clôture | RÉALISÉE LOCALEMENT ; P05-GATE TERMINÉ | Sessions, dépenses, mouvements, comptage aveugle, écarts, réponse gérant aux demandes d’explication, justificatifs privés et recette locale ; P06 non commencée |
-| P06 — Achats et réapprovisionnement | NON COMMENCÉE | Aucun livrable applicatif ; démarrage non autorisé |
+| P05 — Caisse, dépenses et clôture | RÉALISÉE LOCALEMENT ; P05-GATE TERMINÉ | Sessions, dépenses, mouvements, comptage aveugle, écarts, réponse gérant aux demandes d’explication, justificatifs privés et recette locale |
+| P06 — Achats et réapprovisionnement | RÉALISÉE LOCALEMENT ; P06-GATE TERMINÉ | Demandes versionnées, fournisseurs, deux circuits d’achat, paiements, transit, réceptions, valorisation et recette locale ; P07 non commencée |
 | P07 — Crédit, retours et inventaires | NON COMMENCÉE | Aucun livrable applicatif ; démarrage non autorisé |
 | P08 — Hors connexion | NON COMMENCÉE | Aucun livrable applicatif ; démarrage non autorisé |
 | P09 — Supervision et rapports | NON COMMENCÉE | Aucun livrable applicatif ; démarrage non autorisé |
@@ -518,4 +518,48 @@ Vérifications exécutées (Node local 24.14.0, lancements avec `PNPM_IGNORE_ENG
 - `python scripts/check_cursor_setup.py` : OK.
 - Migration `20260929120000_p05_manager_discrepancy_response` également appliquée sur la base locale `cercle_complet`.
 
-Limites restantes : P06–P12 non commencées ; ClamAV toujours non déployé localement (circuit `UNAVAILABLE` inchangé) ; Firefox et WebKit non revendiqués ; Node local observé 24.14.0, inférieur à `>=24.21.0`. Les serveurs de développement locaux sur 4310/4311 ont été arrêtés le temps de Playwright ; ils doivent être relancés pour reprendre l’usage interactif. Le GET gérant d’un dossier déjà répondu renvoie 404 par conception.
+Limites restantes : P07–P12 non commencées ; ClamAV toujours non déployé localement (circuit `UNAVAILABLE` inchangé) ; Firefox et WebKit non revendiqués ; Node local observé 24.14.0, inférieur à `>=24.21.0`. Les serveurs de développement locaux sur 4310/4311 ont été arrêtés le temps de Playwright ; ils doivent être relancés pour reprendre l’usage interactif. Le GET gérant d’un dossier déjà répondu renvoie 404 par conception.
+
+## Compte rendu P06 — 30 septembre 2026
+
+Périmètre demandé : P06 intégrale (réapprovisionnement, achats, fournisseurs, transferts, réceptions, valorisation). P07–P12 non commencées.
+
+Décisions métier (contradictions stock/fonds/droits tranchées avant code) :
+
+- Les états de demande suivent S04 : `PARTIAL` et `CLOSED`, pas `CONSUMED`. La consommation d’un accord est un solde de lignes d’approbation, distinct de l’achat.
+- Un achat fournisseur sans lieu source crée une expédition auto-`DISPATCHED` et des couches `TRANSIT`. Le stock vendable n’augmente qu’à la réception validée.
+- Les frais fournisseur capitalisent le stock et la dette ; les frais externes payés débitent `ASSET:FUNDS`. T68 : marchandises 10 000, dette 10 500, stock 10 800.
+- Un surplus déclaré entre en quarantaine métier `UNVALUED`, distincte de ClamAV. La régularisation valorise la couche existante sans dupliquer la quantité.
+- `goods_receipts` reste append-only : les dossiers surplus/manquant sont créés avant l’insertion du reçu. `cost_layers.origin_id` est du texte, comparé sans cast UUID.
+- Le decrement de `stock_balances` n’utilise plus d’upsert Prisma (un INSERT négatif échouerait le CHECK avant le conflit). Mise à jour explicite après verrou.
+- P07 (crédit client, retours, recouvrement fournisseur avancé, inventaires) n’est pas livré. La dette `LIABILITY:SUPPLIER` est préparée.
+
+Fonctions livrées :
+
+- Circuit A : demande gérant versionnée, décision propriétaire (accord, refus, précisions), réponse gérant, achat autorisé, paiement, réception, couches de coût.
+- Circuit B : achat propriétaire, répartition multi-boutiques, transit, réception partielle puis finale, manquant, surplus, endommagé.
+- Fournisseurs, paiements partiels, sources bornées, justificatifs privés P05, audit, idempotence, isolation organisation/boutique.
+
+Écrans : gérant `/manager/requests`, `/manager/purchases`, `/manager/receipts`, `/manager/transfers` ; propriétaire `/owner/requests`, `/owner/purchases`, `/owner/suppliers`, `/owner/transfers`.
+
+Migration : `20260930120000_p06_replenishment` (nouvelle, sans modification des migrations P01–P05).
+
+Permissions : le gérant agit dans sa boutique d’affectation ; il ne décide pas, ne voit pas les coûts ni les documents owner, ne reçoit pas hors destination. Le propriétaire décide, achète, répartit, paie et régularise.
+
+Vérifications exécutées (Node local 24.14.0, lancements avec `PNPM_IGNORE_ENGINE=1`) :
+
+- `corepack pnpm lint` : code 0.
+- `corepack pnpm typecheck` : code 0.
+- `corepack pnpm test:unit` : **39/39**.
+- `corepack pnpm db:replay-test` : base `cercle_complet_test` recréée vide, migrations rejouées.
+- `corepack pnpm db:migrate` : migration `20260930120000_p06_replenishment` appliquée sur `cercle_complet` local.
+- `corepack pnpm test:integration` : **72/72** sur PostgreSQL réel (T27, T28, T31/T68, T32/T33/T69, T60, T71, T72, T73, concurrence, isolation, HTTP 401/403/422).
+- `corepack pnpm build` : code 0 ; routes P06 présentes (Next.js 16.3.6, 44 pages).
+- Playwright Chromium `tests/e2e/p06-replenishment.spec.ts` : **2/2** (circuits A et B, erreur de motif dans la modale, permission refusée, responsive 320–1440, thème sombre).
+- Suite pertinente Chromium P03/P04/P05 : **4/4**.
+- `python scripts/check_docs.py` : OK.
+- `python scripts/check_design_examples.py` : OK.
+- `python scripts/check_cursor_setup.py` : OK.
+- `python scripts/check_p00.py` : OK (72 tâches, 170 références).
+
+Limites restantes : P07–P12 non commencées ; interface avancée de dette fournisseur, retours et inventaires reportés ; ClamAV local toujours absent (`UNAVAILABLE`, pas de faux `CLEAN`) ; Firefox et WebKit non exécutés ; `POST /purchases/declare-irregular` et destinations après posting restent hors lot. Aucune validation pilote. Non poussé.

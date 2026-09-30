@@ -1117,6 +1117,27 @@ export async function getAttachmentForDownload(prisma: PrismaClient, organizatio
       const expense = await prisma.expense.findFirst({ where: { id: attachment.ownerDocumentId, shopId: assignment.shopId } });
       if (!expense) throw new DomainError("ATTACHMENT_NOT_FOUND", "Justificatif introuvable.", 404);
     }
+    if (attachment.ownerDocumentType === "purchases" && attachment.ownerDocumentId) {
+      const purchase = await prisma.purchase.findFirst({ where: { id: attachment.ownerDocumentId, shopId: assignment.shopId } });
+      if (!purchase) throw new DomainError("ATTACHMENT_NOT_FOUND", "Justificatif introuvable.", 404);
+    }
+    if (attachment.ownerDocumentType === "purchase_requests" && attachment.ownerDocumentId) {
+      const request = await prisma.purchaseRequest.findFirst({ where: { id: attachment.ownerDocumentId, shopId: assignment.shopId } });
+      if (!request) throw new DomainError("ATTACHMENT_NOT_FOUND", "Justificatif introuvable.", 404);
+    }
+    if (attachment.ownerDocumentType === "goods_receipts" && attachment.ownerDocumentId) {
+      const receipt = await prisma.goodsReceipt.findFirst({ where: { id: attachment.ownerDocumentId, destinationLocation: { shopId: assignment.shopId } } });
+      if (!receipt) throw new DomainError("ATTACHMENT_NOT_FOUND", "Justificatif introuvable.", 404);
+    }
+    if (attachment.ownerDocumentType === "shipments" && attachment.ownerDocumentId) {
+      const shipment = await prisma.shipment.findFirst({
+        where: { id: attachment.ownerDocumentId, OR: [{ destinationLocation: { shopId: assignment.shopId } }, { sourceLocation: { shopId: assignment.shopId } }] },
+      });
+      if (!shipment) throw new DomainError("ATTACHMENT_NOT_FOUND", "Justificatif introuvable.", 404);
+    }
+    if (attachment.ownerDocumentType === "purchase_payments") {
+      throw new DomainError("ATTACHMENT_NOT_FOUND", "Justificatif introuvable.", 404);
+    }
   }
   await writeAudit(prisma, { actorId, action: "ATTACHMENT_DOWNLOADED", entityType: "attachments", entityId: id, requestId: crypto.randomUUID(), afterJson: { scanStatus: attachment.scanStatus } });
   return attachment;

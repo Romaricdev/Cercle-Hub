@@ -217,7 +217,7 @@ export async function listProducts(prisma: PrismaClient, organizationId: string,
     include: {
       variants: { include: {
         units: { include: { prices: { orderBy: { validFrom: "desc" } } } },
-        costLayers: { where: { remainingQuantity: { gt: 0 } }, include: { location: { select: { name: true } } }, orderBy: { receivedAt: "desc" } },
+        costLayers: { where: { remainingQuantity: { gt: 0 }, compartment: "AVAILABLE" }, include: { location: { select: { name: true } } }, orderBy: { receivedAt: "desc" } },
       } },
       shops: true,
     },
@@ -230,14 +230,14 @@ export async function listProducts(prisma: PrismaClient, organizationId: string,
     variants: product.variants.map((variant) => {
       const layers = variant.costLayers;
       const costQuantity = layers.reduce((sum, layer) => sum + BigInt(layer.remainingQuantity.toFixed(6).replace(".", "")), 0n);
-      const costValue = layers.reduce((sum, layer) => sum + BigInt(layer.remainingQuantity.toFixed(6).replace(".", "")) * layer.unitCostMinor, 0n);
+      const costValue = layers.reduce((sum, layer) => sum + layer.remainingValueMinor, 0n);
       return {
       ...variant,
       costLayers: undefined,
       ...(includeCosts ? {
         costs: {
           lastUnitCostMinor: layers[0]?.unitCostMinor.toString() ?? null,
-          weightedAverageUnitCostMinor: costQuantity > 0n ? ((costValue + costQuantity / 2n) / costQuantity).toString() : null,
+          weightedAverageUnitCostMinor: costQuantity > 0n ? ((costValue * 1_000_000n + costQuantity / 2n) / costQuantity).toString() : null,
           layers: layers.map((layer) => ({ id: layer.id, originType: layer.originType, remainingQuantity: layer.remainingQuantity.toString(), unitCostMinor: layer.unitCostMinor.toString(), receivedAt: layer.receivedAt.toISOString(), location: layer.location.name })),
         },
       } : {}),
@@ -736,6 +736,8 @@ export async function validateOpening(prisma: PrismaClient, context: CommandCont
         create: { shopId, variantId: line.variantId, locationId: line.locationId, quantity },
         update: { quantity: { increment: quantity }, version: { increment: 1 } },
       });
+      const scaledQty = BigInt(line.quantity.toFixed(6).replace(".", ""));
+      const layerValue = (line.unitCostMinor * scaledQty) / 1_000_000n;
       await tx.costLayer.create({
         data: {
           variantId: line.variantId,
@@ -746,11 +748,14 @@ export async function validateOpening(prisma: PrismaClient, context: CommandCont
           initialQuantity: quantity,
           remainingQuantity: quantity,
           unitCostMinor: line.unitCostMinor,
+          initialValueMinor: layerValue,
+          remainingValueMinor: layerValue,
+          compartment: "AVAILABLE",
+          valuationOrigin: "OPENING",
           receivedAt: new Date(),
         },
       });
-      const scaled = BigInt(line.quantity.toFixed(6).replace(".", ""));
-      stockValue += (line.unitCostMinor * scaled) / 1_000_000n;
+      stockValue += layerValue;
       void event;
     }
     const funds = Array.isArray(draft.funds) ? draft.funds as Array<{ accountId?: unknown; amountMinor?: unknown }> : [];
@@ -862,11 +867,14 @@ export async function ownerOverview(prisma: PrismaClient, organizationId: string
   ]);
   const active = shops.find((row) => row.status === "ACTIVE")?._count ?? 0;
   const totalShops = shops.reduce((sum, row) => sum + row._count, 0);
-  const stockValueRows = await prisma.costLayer.findMany({ where: { location: { organizationId }, ...(shopId ? { location: { organizationId, shopId } } : {}) } });
-  const stockValue = stockValueRows.reduce((sum, layer) => {
-    const scaled = BigInt(layer.remainingQuantity.toFixed(6).replace(".", ""));
-    return sum + (scaled * layer.unitCostMinor) / 1_000_000n;
-  }, 0n);
+  const stockValueRows = await prisma.costLayer.findMany({
+    where: {
+      remainingQuantity: { gt: 0 },
+      compartment: "AVAILABLE",
+      location: { organizationId, ...(shopId ? { shopId } : {}) },
+    },
+  });
+  const stockValue = stockValueRows.reduce((sum, layer) => sum + layer.remainingValueMinor, 0n);
   return {
     state: active > 0 ? (commerce.allTimeCount > 0 ? "ACTIVE" : "EMPTY") : "SETUP",
     scope: shopId ? { type: "SHOP", shopId } : { type: "GLOBAL" },

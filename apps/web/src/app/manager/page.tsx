@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, History, ShieldCheck, ShoppingCart, Store, TabletSmartphone, Banknote, WalletCards, CircleAlert } from "lucide-react";
+import { ArrowRight, History, ShieldCheck, ShoppingCart, Store, TabletSmartphone, Banknote, WalletCards, CircleAlert, ClipboardList, PackageCheck } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -35,6 +35,18 @@ export default function ManagerHomePage() {
           <h2 className="mt-4 font-display text-lg font-semibold">Dépenses</h2>
           <p className="mt-1.5 text-sm leading-6 text-[var(--muted)]">Demandez, suivez l’autorisation, puis décaissiez réellement.</p>
           <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--primary)]">Créer une demande <ArrowRight aria-hidden="true" className="size-4 transition-transform group-hover:translate-x-1" /></span>
+        </Link>
+        <Link href={paths.managerRequests} className="group rounded-lg bg-[var(--surface)] p-5 shadow-[var(--shadow-card)] transition-transform duration-200 hover:-translate-y-0.5">
+          <div className="grid size-10 place-items-center rounded-lg bg-sky-500/10 text-sky-700 dark:text-sky-400"><ClipboardList aria-hidden="true" className="size-5" /></div>
+          <h2 className="mt-4 font-display text-lg font-semibold">Demandes d’achat</h2>
+          <p className="mt-1.5 text-sm leading-6 text-[var(--muted)]">Décrivez le besoin, suivez l’accord, puis achetez les quantités autorisées.</p>
+          <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--primary)]">Nouvelle demande <ArrowRight aria-hidden="true" className="size-4 transition-transform group-hover:translate-x-1" /></span>
+        </Link>
+        <Link href={paths.managerReceipts} className="group rounded-lg bg-[var(--surface)] p-5 shadow-[var(--shadow-card)] transition-transform duration-200 hover:-translate-y-0.5">
+          <div className="grid size-10 place-items-center rounded-lg bg-lime-500/10 text-lime-700 dark:text-lime-400"><PackageCheck aria-hidden="true" className="size-5" /></div>
+          <h2 className="mt-4 font-display text-lg font-semibold">Réceptions</h2>
+          <p className="mt-1.5 text-sm leading-6 text-[var(--muted)]">Confirmez les quantités arrivées, les manquants et les produits endommagés.</p>
+          <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--primary)]">Voir les attendus <ArrowRight aria-hidden="true" className="size-4 transition-transform group-hover:translate-x-1" /></span>
         </Link>
         <Link href={paths.managerDiscrepancies} className="group rounded-lg bg-[var(--surface)] p-5 shadow-[var(--shadow-card)] transition-transform duration-200 hover:-translate-y-0.5">
           <div className="grid size-10 place-items-center rounded-lg bg-orange-500/10 text-orange-700 dark:text-orange-400"><CircleAlert aria-hidden="true" className="size-5" /></div>

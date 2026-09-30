@@ -2,7 +2,7 @@
 
 ## Documents faisant autorité
 
-Phase actuelle : P00 documentaire réalisée ; P01 socle technique réalisé localement ; P02 accès sécurisés et design system réalisée localement ; P03 boutiques/catalogue, P04 ventes et P05 caisse/clôture aveugle réalisées localement. P06–P12 non démarrées. Le registre `docs/p00/README.md` précise les décisions et le backlog. L’état exécuté est dans `docs/IMPLEMENTATION_STATUS.md`. Lire `docs/conception/00-audit.md` et les compléments 2.1 liés, puis `docs/README.md`, `docs/00-decisions.md` et `docs/01-regles-metier.md` avant toute implémentation. Lire ensuite les documents du domaine concerné. `DOCUMENTATION_PROJET.md` conserve le cadrage historique ; ses propositions ouvertes sont remplacées par les décisions de `docs/`.
+Phase actuelle : P00 documentaire réalisée ; P01 socle technique réalisé localement ; P02 accès sécurisés et design system réalisée localement ; P03 boutiques/catalogue, P04 ventes, P05 caisse/clôture aveugle et P06 réapprovisionnement/achats/transferts réalisées localement. P07–P12 non démarrées. Le registre `docs/p00/README.md` précise les décisions et le backlog. L’état exécuté est dans `docs/IMPLEMENTATION_STATUS.md`. Lire `docs/conception/00-audit.md` et les compléments 2.1 liés, puis `docs/README.md`, `docs/00-decisions.md` et `docs/01-regles-metier.md` avant toute implémentation. Lire ensuite les documents du domaine concerné. `DOCUMENTATION_PROJET.md` conserve le cadrage historique ; ses propositions ouvertes sont remplacées par les décisions de `docs/`.
 
 ## Contraintes impératives
 

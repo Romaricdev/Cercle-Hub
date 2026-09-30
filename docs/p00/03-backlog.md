@@ -625,7 +625,7 @@ Statut : TERMINE. Dépendances : P05-01, P05-E08, P05-E09, P05-E21, P05-E22, P05
 
 ## P06-01 — Réapprovisionnement dans les deux circuits
 
-Statut : A_FAIRE. Dépendances : P05-GATE.
+Statut : TERMINE. Dépendances : P05-GATE.
 
 **Livrables :** Code, tests et preuve de recette du périmètre.
 
@@ -641,7 +641,7 @@ Statut : A_FAIRE. Dépendances : P05-GATE.
 
 ## P06-E10 — Demandes
 
-Statut : A_FAIRE. Dépendances : P05-GATE.
+Statut : TERMINE. Dépendances : P05-GATE.
 
 **Livrables :** GET /requests; POST /requests; Tests et états UI de E10.
 
@@ -659,7 +659,7 @@ Statut : A_FAIRE. Dépendances : P05-GATE.
 
 ## P06-E11 — Détail demande
 
-Statut : A_FAIRE. Dépendances : P05-GATE.
+Statut : TERMINE. Dépendances : P05-GATE.
 
 **Livrables :** PATCH /requests/:id; POST /requests/:id/submit; GET /requests/:id; Tests et états UI de E11.
 
@@ -677,7 +677,7 @@ Statut : A_FAIRE. Dépendances : P05-GATE.
 
 ## P06-E12 — Achat par gérant
 
-Statut : A_FAIRE. Dépendances : P05-GATE, P06-01.
+Statut : TERMINE. Dépendances : P05-GATE, P06-01.
 
 **Livrables :** POST /purchases; POST /purchases/with-receipt; Tests et états UI de E12.
 
@@ -695,7 +695,7 @@ Statut : A_FAIRE. Dépendances : P05-GATE, P06-01.
 
 ## P06-E13 — Réception
 
-Statut : A_FAIRE. Dépendances : P05-GATE.
+Statut : TERMINE. Dépendances : P05-GATE.
 
 **Livrables :** POST /receipts; GET /shipments/:id; Tests et états UI de E13.
 
@@ -713,7 +713,7 @@ Statut : A_FAIRE. Dépendances : P05-GATE.
 
 ## P06-E18 — Décider une demande
 
-Statut : A_FAIRE. Dépendances : P05-GATE.
+Statut : TERMINE. Dépendances : P05-GATE.
 
 **Livrables :** POST /requests/:id/decision; Tests et états UI de E18.
 
@@ -731,7 +731,7 @@ Statut : A_FAIRE. Dépendances : P05-GATE.
 
 ## P06-E19 — Achats propriétaire
 
-Statut : A_FAIRE. Dépendances : P05-GATE, P06-01.
+Statut : TERMINE. Dépendances : P05-GATE, P06-01.
 
 **Livrables :** GET /purchases; POST /purchases; POST /purchases/with-receipt; Tests et états UI de E19.
 
@@ -749,7 +749,7 @@ Statut : A_FAIRE. Dépendances : P05-GATE, P06-01.
 
 ## P06-E20 — Transferts propriétaire
 
-Statut : A_FAIRE. Dépendances : P05-GATE.
+Statut : TERMINE. Dépendances : P05-GATE.
 
 **Livrables :** POST /shipments; POST /shipments/:id/approve; POST /shipments/:id/dispatch; Tests et états UI de E20.
 
@@ -767,7 +767,7 @@ Statut : A_FAIRE. Dépendances : P05-GATE.
 
 ## P06-E29 — Expédition gérant
 
-Statut : A_FAIRE. Dépendances : P05-GATE.
+Statut : TERMINE. Dépendances : P05-GATE.
 
 **Livrables :** POST /shipments/:id/dispatch; POST /shipments/:id/submit; Tests et états UI de E29.
 
@@ -785,7 +785,7 @@ Statut : A_FAIRE. Dépendances : P05-GATE.
 
 ## P06-GATE — Valider la sortie P06
 
-Statut : A_FAIRE. Dépendances : P06-01, P06-E10, P06-E11, P06-E12, P06-E13, P06-E18, P06-E19, P06-E20, P06-E29.
+Statut : TERMINE. Dépendances : P06-01, P06-E10, P06-E11, P06-E12, P06-E13, P06-E18, P06-E19, P06-E20, P06-E29.
 
 **Livrables :** Compte rendu de phase.
 

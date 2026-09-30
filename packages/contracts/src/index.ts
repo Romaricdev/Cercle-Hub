@@ -1,5 +1,6 @@
 export { allocateLayerOutputs, orderCostLayers } from "./allocation.js";
 export type { CostLayerOrder } from "./allocation.js";
+export { allocateByLargestRemainder, takeRemainingValue } from "./purchase-allocation.js";
 export { canonicalJson, sha256Hex, toCanonical } from "./canonical.js";
 export { apiError, apiErrorSchema, commandEnvelopeSchema, foundationOpenApi, hashEnvelope, parseCommandEnvelope, PROTOCOL_VERSION } from "./envelope.js";
 export type { CommandEnvelope } from "./envelope.js";

@@ -172,16 +172,18 @@ export async function postSale(prisma: PrismaClient, context: SaleContext, input
       const balance = await tx.stockBalance.findUnique({ where: { variantId_locationId: { variantId: quoted.variantId, locationId: session.location_id } } });
       let remaining = scaled(quoted.quantityBase);
       if (!balance || scaled(balance.quantity.toString()) < remaining) throw new DomainError("INSUFFICIENT_STOCK", `${quoted.productName} · ${quoted.variantName} : stock insuffisant.`, 409);
-      const layerIds = await tx.$queryRaw<Array<{ id: string }>>`SELECT cl.id FROM cost_layers cl LEFT JOIN lots l ON l.id=cl.lot_id WHERE cl.variant_id=${quoted.variantId}::uuid AND cl.location_id=${session.location_id}::uuid AND cl.remaining_quantity>0 AND (l.expires_at IS NULL OR l.expires_at>=CURRENT_DATE) ORDER BY l.expires_at ASC NULLS LAST,cl.received_at ASC,cl.id ASC FOR UPDATE OF cl`;
+      const layerIds = await tx.$queryRaw<Array<{ id: string }>>`SELECT cl.id FROM cost_layers cl LEFT JOIN lots l ON l.id=cl.lot_id WHERE cl.variant_id=${quoted.variantId}::uuid AND cl.location_id=${session.location_id}::uuid AND cl.compartment='AVAILABLE' AND cl.remaining_quantity>0 AND (l.expires_at IS NULL OR l.expires_at>=CURRENT_DATE) ORDER BY l.expires_at ASC NULLS LAST,cl.received_at ASC,cl.id ASC FOR UPDATE OF cl`;
       const layers = await tx.costLayer.findMany({ where: { id: { in: layerIds.map(({ id }) => id) } }, include: { lot: true } });
       const ordered = layerIds.map(({ id }) => layers.find((layer) => layer.id === id)!).filter(Boolean);
       const lineId = crypto.randomUUID(); let lineCost = 0n; const allocations: Array<{ layerId: string; quantity: string; valueMinor: bigint }> = [];
       for (const layer of ordered) {
         if (remaining === 0n) break;
         const available = scaled(layer.remainingQuantity.toString()); const taken = available < remaining ? available : remaining;
-        const value = roundHalfUp(layer.unitCostMinor * taken); lineCost += value; remaining -= taken;
+        const remainingValue = layer.remainingValueMinor;
+        const value = taken === available ? remainingValue : roundHalfUp(remainingValue * taken, available);
+        lineCost += value; remaining -= taken;
         allocations.push({ layerId: layer.id, quantity: decimal(taken), valueMinor: value });
-        await tx.costLayer.update({ where: { id: layer.id }, data: { remainingQuantity: { decrement: decimal(taken) } } });
+        await tx.costLayer.update({ where: { id: layer.id }, data: { remainingQuantity: { decrement: decimal(taken) }, remainingValueMinor: { decrement: value } } });
       }
       if (remaining > 0n) throw new DomainError("INSUFFICIENT_VALUED_STOCK", "Le stock valorisé disponible est insuffisant.", 409);
       await tx.saleLine.create({ data: { id: lineId, saleId, variantId: quoted.variantId, saleUnitId: quoted.saleUnitId, productName: quoted.productName, variantName: quoted.variantName, unitName: quoted.unitName, unitSymbol: quoted.unitSymbol, quantity: quoted.quantity, quantityBase: quoted.quantityBase, unitPriceMinor: BigInt(quoted.unitPriceMinor), grossMinor: BigInt(quoted.grossMinor), discountMinor: BigInt(quoted.discountMinor), netMinor: BigInt(quoted.netMinor), costMinor: lineCost } });

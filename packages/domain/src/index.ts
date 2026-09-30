@@ -1,4 +1,6 @@
-export { applyPlatformEffect, claimOutboxBatch, markOutboxPublished, postReferenceCommand, receiveInbox } from "./reference-command.js";
+export {
+  applyPlatformEffect, claimOutboxBatch, markOutboxPublished, postReferenceCommand, receiveInbox,
+} from "./reference-command.js";
 export type { ReferenceCommandInput, ReferenceCommandResult } from "./reference-command.js";
 export { DomainError, withDeadlockRetry } from "./errors.js";
 export { assertSortColumn } from "./sort.js";
@@ -72,3 +74,41 @@ export { getOwnerSale, listOwnerSales, ownerSalesCommerce, resolveOwnerPeriod } 
 export type { OwnerSalesQuery, OverviewPeriodQuery } from "./p04-overview.js";
 export type { PaymentInput, SaleContext, SaleLineInput } from "./p04.js";
 export type { CommandContext, OpeningInput } from "./p03.js";
+export {
+  cancelRequestRemainder,
+  closePurchaseControl,
+  createRequest,
+  createShipment,
+  createSupplier,
+  decideRequest,
+  decideShipment,
+  dispatchShipment,
+  getPurchase,
+  getReplenishmentContext,
+  getRequest,
+  getShipment,
+  getSupplier,
+  listPurchases,
+  listRequests,
+  listShipments,
+  listSuppliers,
+  patchRequest,
+  payPurchase,
+  postPurchase,
+  postReceipt,
+  regularizeSurplus,
+  respondToRequest,
+  submitRequest,
+  submitShipment,
+  updateSupplier,
+  withdrawRequest,
+} from "./p06.js";
+export type {
+  DecisionLineInput,
+  DestinationInput,
+  FeeInput,
+  PaymentInput as PurchasePaymentInput,
+  PurchaseLineInput,
+  ReceiptLineInput,
+  RequestLineInput,
+} from "./p06.js";

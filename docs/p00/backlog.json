@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "createdAt": "2026-09-24",
-  "scope": "P00 documentaire réalisée ; P01, P02 et P03 réalisées localement ; P04–P12 non commencées",
+  "scope": "P00 documentaire réalisée ; P01–P06 réalisées localement ; P07–P12 non commencées",
   "tasks": [
     {
       "id": "P01-01",
@@ -1698,7 +1698,7 @@
       "id": "P06-01",
       "phase": "P06",
       "title": "Réapprovisionnement dans les deux circuits",
-      "status": "A_FAIRE",
+      "status": "TERMINE",
       "dependencies": [
         "P05-GATE"
       ],
@@ -1732,13 +1732,18 @@
       "deliverables": [
         "Code, tests et preuve de recette du périmètre"
       ],
-      "evidence": []
+      "evidence": [
+        "docs/IMPLEMENTATION_STATUS.md — compte rendu P06 30 septembre 2026",
+        "tests/integration/p06.test.ts",
+        "tests/integration/p06-http.test.ts",
+        "tests/e2e/p06-replenishment.spec.ts"
+      ]
     },
     {
       "id": "P06-E10",
       "phase": "P06",
       "title": "Demandes",
-      "status": "A_FAIRE",
+      "status": "TERMINE",
       "dependencies": [
         "P05-GATE"
       ],
@@ -1782,13 +1787,18 @@
         "POST /requests",
         "Tests et états UI de E10"
       ],
-      "evidence": []
+      "evidence": [
+        "docs/IMPLEMENTATION_STATUS.md — compte rendu P06 30 septembre 2026",
+        "tests/integration/p06.test.ts",
+        "tests/integration/p06-http.test.ts",
+        "tests/e2e/p06-replenishment.spec.ts"
+      ]
     },
     {
       "id": "P06-E11",
       "phase": "P06",
       "title": "Détail demande",
-      "status": "A_FAIRE",
+      "status": "TERMINE",
       "dependencies": [
         "P05-GATE"
       ],
@@ -1835,13 +1845,18 @@
         "GET /requests/:id",
         "Tests et états UI de E11"
       ],
-      "evidence": []
+      "evidence": [
+        "docs/IMPLEMENTATION_STATUS.md — compte rendu P06 30 septembre 2026",
+        "tests/integration/p06.test.ts",
+        "tests/integration/p06-http.test.ts",
+        "tests/e2e/p06-replenishment.spec.ts"
+      ]
     },
     {
       "id": "P06-E12",
       "phase": "P06",
       "title": "Achat par gérant",
-      "status": "A_FAIRE",
+      "status": "TERMINE",
       "dependencies": [
         "P05-GATE",
         "P06-01"
@@ -1889,13 +1904,18 @@
         "POST /purchases/with-receipt",
         "Tests et états UI de E12"
       ],
-      "evidence": []
+      "evidence": [
+        "docs/IMPLEMENTATION_STATUS.md — compte rendu P06 30 septembre 2026",
+        "tests/integration/p06.test.ts",
+        "tests/integration/p06-http.test.ts",
+        "tests/e2e/p06-replenishment.spec.ts"
+      ]
     },
     {
       "id": "P06-E13",
       "phase": "P06",
       "title": "Réception",
-      "status": "A_FAIRE",
+      "status": "TERMINE",
       "dependencies": [
         "P05-GATE"
       ],
@@ -1941,13 +1961,18 @@
         "GET /shipments/:id",
         "Tests et états UI de E13"
       ],
-      "evidence": []
+      "evidence": [
+        "docs/IMPLEMENTATION_STATUS.md — compte rendu P06 30 septembre 2026",
+        "tests/integration/p06.test.ts",
+        "tests/integration/p06-http.test.ts",
+        "tests/e2e/p06-replenishment.spec.ts"
+      ]
     },
     {
       "id": "P06-E18",
       "phase": "P06",
       "title": "Décider une demande",
-      "status": "A_FAIRE",
+      "status": "TERMINE",
       "dependencies": [
         "P05-GATE"
       ],
@@ -1991,13 +2016,18 @@
         "POST /requests/:id/decision",
         "Tests et états UI de E18"
       ],
-      "evidence": []
+      "evidence": [
+        "docs/IMPLEMENTATION_STATUS.md — compte rendu P06 30 septembre 2026",
+        "tests/integration/p06.test.ts",
+        "tests/integration/p06-http.test.ts",
+        "tests/e2e/p06-replenishment.spec.ts"
+      ]
     },
     {
       "id": "P06-E19",
       "phase": "P06",
       "title": "Achats propriétaire",
-      "status": "A_FAIRE",
+      "status": "TERMINE",
       "dependencies": [
         "P05-GATE",
         "P06-01"
@@ -2046,13 +2076,18 @@
         "POST /purchases/with-receipt",
         "Tests et états UI de E19"
       ],
-      "evidence": []
+      "evidence": [
+        "docs/IMPLEMENTATION_STATUS.md — compte rendu P06 30 septembre 2026",
+        "tests/integration/p06.test.ts",
+        "tests/integration/p06-http.test.ts",
+        "tests/e2e/p06-replenishment.spec.ts"
+      ]
     },
     {
       "id": "P06-E20",
       "phase": "P06",
       "title": "Transferts propriétaire",
-      "status": "A_FAIRE",
+      "status": "TERMINE",
       "dependencies": [
         "P05-GATE"
       ],
@@ -2099,13 +2134,18 @@
         "POST /shipments/:id/dispatch",
         "Tests et états UI de E20"
       ],
-      "evidence": []
+      "evidence": [
+        "docs/IMPLEMENTATION_STATUS.md — compte rendu P06 30 septembre 2026",
+        "tests/integration/p06.test.ts",
+        "tests/integration/p06-http.test.ts",
+        "tests/e2e/p06-replenishment.spec.ts"
+      ]
     },
     {
       "id": "P06-E29",
       "phase": "P06",
       "title": "Expédition gérant",
-      "status": "A_FAIRE",
+      "status": "TERMINE",
       "dependencies": [
         "P05-GATE"
       ],
@@ -2149,13 +2189,18 @@
         "POST /shipments/:id/submit",
         "Tests et états UI de E29"
       ],
-      "evidence": []
+      "evidence": [
+        "docs/IMPLEMENTATION_STATUS.md — compte rendu P06 30 septembre 2026",
+        "tests/integration/p06.test.ts",
+        "tests/integration/p06-http.test.ts",
+        "tests/e2e/p06-replenishment.spec.ts"
+      ]
     },
     {
       "id": "P06-GATE",
       "phase": "P06",
       "title": "Valider la sortie P06",
-      "status": "A_FAIRE",
+      "status": "TERMINE",
       "dependencies": [
         "P06-01",
         "P06-E10",
@@ -2182,7 +2227,12 @@
       "deliverables": [
         "Compte rendu de phase"
       ],
-      "evidence": []
+      "evidence": [
+        "docs/IMPLEMENTATION_STATUS.md — compte rendu P06 30 septembre 2026",
+        "tests/integration/p06.test.ts",
+        "tests/integration/p06-http.test.ts",
+        "tests/e2e/p06-replenishment.spec.ts"
+      ]
     },
     {
       "id": "P07-01",

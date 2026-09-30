@@ -6,6 +6,9 @@ import {
   Boxes,
   Building2,
   ChevronDown,
+  ClipboardList,
+  Package,
+  PackageCheck,
   CircleAlert,
   CircleUserRound,
   LayoutDashboard,
@@ -18,6 +21,7 @@ import {
   ReceiptText,
   SlidersHorizontal,
   TabletSmartphone,
+  Truck,
   UsersRound,
   WalletCards,
   Warehouse,
@@ -45,6 +49,10 @@ const ownerLinks = [
   { href: paths.ownerShops, label: "Boutiques", icon: Building2 },
   { href: paths.ownerProducts, label: "Catalogue", icon: Boxes },
   { href: paths.ownerStock, label: "Stock", icon: Warehouse },
+  { href: paths.ownerPurchases, label: "Achats", icon: Package },
+  { href: paths.ownerRequests, label: "Demandes", icon: ClipboardList },
+  { href: paths.ownerTransfers, label: "Transferts", icon: PackageCheck },
+  { href: paths.ownerSuppliers, label: "Fournisseurs", icon: Warehouse },
   {
     label: "Administration",
     icon: Settings2,
@@ -66,6 +74,10 @@ const managerLinks = [
   { href: paths.managerExpenses, label: "Dépenses", icon: WalletCards },
   { href: paths.managerFunds, label: "Fonds", icon: WalletCards },
   { href: paths.managerDiscrepancies, label: "Demandes d’explication", icon: CircleAlert },
+  { href: paths.managerRequests, label: "Demandes", icon: ClipboardList },
+  { href: paths.managerPurchases, label: "Achats", icon: Package },
+  { href: paths.managerReceipts, label: "Réceptions", icon: PackageCheck },
+  { href: paths.managerTransfers, label: "Expéditions", icon: Truck },
   { href: paths.managerStock, label: "Stock", icon: Warehouse },
   { href: paths.managerSales, label: "Historique", icon: ReceiptText },
   { href: paths.managerDevice, label: "Mon appareil", icon: TabletSmartphone },
@@ -117,7 +129,14 @@ export function AppShell({ role, children }: { role: "OWNER" | "MANAGER"; childr
     pathname.startsWith("/owner/sales/") ? "Détail de vente" :
     pathname.startsWith("/owner/sessions/") ? "Fiche de session" :
     pathname.startsWith("/owner/discrepancies/") ? "Dossier d’écart" :
-    pathname.startsWith("/manager/discrepancies/") ? "Répondre à la demande" :
+    pathname.startsWith("/owner/purchases/") ? "Fiche d’achat" :
+    pathname.startsWith("/owner/requests/") ? "Décision de demande" :
+    pathname.startsWith("/owner/transfers/") ? "Suivi d’expédition" :
+    pathname.startsWith("/owner/suppliers/") ? "Fiche fournisseur" :
+    pathname.startsWith("/manager/requests/") ? "Détail de demande" :
+    pathname.startsWith("/manager/receipts/") ? "Réception" :
+    pathname.startsWith("/manager/transfers/") ? "Expédition" :
+    pathname.startsWith("/manager/purchases/") ? "Achat autorisé" :
     ({
       [paths.ownerHome]: "Vue générale",
       [paths.ownerSales]: "Ventes",
@@ -134,6 +153,12 @@ export function AppShell({ role, children }: { role: "OWNER" | "MANAGER"; childr
       [paths.ownerLocations]: "Lieux",
       [paths.ownerSettings]: "Paramètres métier",
       [paths.ownerStock]: "Stock",
+      [paths.ownerRequests]: "Demandes",
+      [paths.ownerPurchases]: "Achats",
+      [paths.ownerPurchaseNew]: "Nouvel achat",
+      [paths.ownerSuppliers]: "Fournisseurs",
+      [paths.ownerTransfers]: "Transferts",
+      [paths.ownerTransferNew]: "Nouveau transfert",
       [paths.setup]: "Initialisation",
       [paths.managerHome]: "Vue générale",
       [paths.managerDevice]: "Mon appareil",
@@ -146,6 +171,12 @@ export function AppShell({ role, children }: { role: "OWNER" | "MANAGER"; childr
       [paths.managerExpenses]: "Dépenses",
       [paths.managerFunds]: "Mouvements de fonds",
       [paths.managerDiscrepancies]: "Demandes d’explication",
+      [paths.managerRequests]: "Demandes d’achat",
+      [paths.managerRequestNew]: "Nouvelle demande",
+      [paths.managerPurchases]: "Achats autorisés",
+      [paths.managerPurchaseNew]: "Achat autorisé",
+      [paths.managerReceipts]: "Réceptions",
+      [paths.managerTransfers]: "Expéditions",
     } as Record<string, string>)[pathname] ?? "Vue générale";
 
   async function signOut() {

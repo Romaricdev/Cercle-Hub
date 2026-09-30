@@ -228,9 +228,53 @@ Les montants restent des chaînes d’entiers mineurs. Le DTO gérant de session
 
 Prix snapshot 1 000 : total 2 000, rendu 3 000, mouvement cash +2 000. Le serveur ne prend pas le montant reçu 5 000 pour chiffre d’affaires.
 
+### Contrat P06 effectivement livré
+
+Argent en chaînes d’entiers mineurs. Quantités `numeric(20,6)` via RM01. Le stock vendable n’augmente qu’à la réception validée. Le transit n’est pas vendable. Les coûts d’achat, frais et couches FIFO/FEFO sont omis des DTO gérant. Une réception validée n’est pas mise à jour ; un surplus se régularise par commande liée. La dette fournisseur (`LIABILITY:SUPPLIER`) est écrite au posting d’achat ; l’interface avancée de recouvrement reste P07.
+
+États de demande (S04) : `DRAFT`, `SUBMITTED`, `NEEDS_INFO`, `APPROVED`, `PARTIAL`, `REJECTED`, `CANCELLED`, `CLOSED`. Pas de `CONSUMED` : la consommation d’accord est un solde de lignes d’approbation.
+
+États d’expédition : `DRAFT`, `SUBMITTED`, `APPROVED`, `DISPATCHED`, `PARTIAL`, `RECEIVED`, `DISPUTED`, `REJECTED`. Un achat fournisseur sans lieu source est auto-expédié en `DISPATCHED` avec couches `TRANSIT`.
+
+| Méthode et route | Entrée / résultat P06 |
+|---|---|
+| GET `/replenishment/context` | Produits, lieux, fournisseurs et sources filtrés ; soldes de comptes au propriétaire seulement |
+| GET/POST `/suppliers` | Liste / création ; le gérant ne peut pas saisir e-mail, notes, fiscalité ni conditions |
+| GET `/suppliers/:id` | Fiche ; montants d’historique au propriétaire seulement |
+| PATCH `/suppliers/:id` | Propriétaire, session fraîche ; désactivation plutôt que suppression |
+| GET/POST `/requests` | Liste / création gérant ; PATCH brouillon ; versions conservées |
+| POST `/requests/:id/submit` | `DRAFT` → `SUBMITTED` |
+| POST `/requests/:id/respond` | `NEEDS_INFO` → nouvelle version `SUBMITTED` ; historique immuable |
+| POST `/requests/:id/withdraw` | `{reason}` ; `CANCELLED` si rien n’est consommé |
+| POST `/requests/:id/decision` | Propriétaire ; `APPROVED`/`PARTIAL`/`REJECTED`/`NEEDS_INFO` ; motif obligatoire hors accord total |
+| POST `/requests/:id/cancel-remainder` | Propriétaire ; reliquat d’accord seulement |
+| GET/POST `/purchases` | Liste filtrée / posting atomique ; destinations, frais, paiements optionnels |
+| POST `/purchases/with-receipt` | Achat + réception immédiate atomique |
+| GET `/purchases/:id` | Fiche ; coûts et frais au propriétaire ; gérant limité à sa boutique ou destination |
+| POST `/purchases/:id/pay` | Paiement partiel ; source autorisée ; session caisse si source boutique |
+| POST `/purchases/:id/control-close` | Propriétaire, motif |
+| GET/POST `/shipments` | Liste `kind=in\|out\|all` / création ; gérant source `DRAFT`, propriétaire `APPROVED` |
+| POST `/shipments/:id/submit` | Gérant source |
+| POST `/shipments/:id/decision` | Propriétaire `APPROVED`/`REJECTED` |
+| POST `/shipments/:id/approve` | Alias d’approbation |
+| POST `/shipments/:id/dispatch` | Origine → transit ; pas de CA |
+| POST `/receipts` | `{shipmentId,lines[{acceptedQty,damagedQty?,surplusQty?}],deliveryComplete?}` ; pas de bouton « tout reçu » |
+| POST `/surplus/regularize` | Propriétaire ; valorise la quarantaine `UNVALUED` sans dupliquer la quantité |
+
+```json
+{
+  "supplierId":"00000000-0000-4000-8000-000000000001",
+  "lines":[{"variantId":"00000000-0000-4000-8000-000000000002","unitId":"00000000-0000-4000-8000-000000000003","quantity":"50","unitPriceMinor":"200"}],
+  "destinations":[{"purchaseLineIndex":0,"locationId":"00000000-0000-4000-8000-000000000004","quantity":"30"},{"purchaseLineIndex":0,"locationId":"00000000-0000-4000-8000-000000000005","quantity":"20"}],
+  "fees":[{"kind":"SUPPLIER","amountMinor":"500","description":"Manutention"},{"kind":"EXTERNAL","amountMinor":"300","accountId":"00000000-0000-4000-8000-000000000006","description":"Transport"}]
+}
+```
+
+Marchandises 10 000, frais fournisseur 500, transport 300, valeur stock 10 800, dette 10 500. Les frais se répartissent par plus grand reste, sans flottant.
+
 ## Erreurs métier stables
 
-`APPROVAL_REQUIRED`, `APPROVAL_EXPIRED`, `BUDGET_EXCEEDED`, `INSUFFICIENT_STOCK`, `INSUFFICIENT_CASH`, `LOT_EXPIRED`, `INVALID_PRECISION`, `PRICE_CHANGED`, `SESSION_REQUIRED`, `COUNT_IN_PROGRESS`, `ALREADY_CLOSED`, `DEVICE_READ_ONLY`, `SYNC_REQUIRED`, `CUSTOMER_OVER_LIMIT`, `CUSTOMER_OVERDUE`, `ALLOCATION_CHANGED`, `VERSION_CONFLICT`, `IDEMPOTENCY_PAYLOAD_MISMATCH`, `IMMUTABLE_DOCUMENT`, `REVIEW_REQUIRED`.
+`APPROVAL_REQUIRED`, `APPROVAL_EXPIRED`, `BUDGET_EXCEEDED`, `INSUFFICIENT_STOCK`, `INSUFFICIENT_CASH`, `FORBIDDEN_FUND_SOURCE`, `PAYMENT_EXCEEDS_DUE`, `RECEIPT_EXCEEDS_SENT`, `LOT_EXPIRED`, `INVALID_PRECISION`, `PRICE_CHANGED`, `SESSION_REQUIRED`, `COUNT_IN_PROGRESS`, `ALREADY_CLOSED`, `DEVICE_READ_ONLY`, `SYNC_REQUIRED`, `CUSTOMER_OVER_LIMIT`, `CUSTOMER_OVERDUE`, `ALLOCATION_CHANGED`, `VERSION_CONFLICT`, `IDEMPOTENCY_PAYLOAD_MISMATCH`, `IMMUTABLE_DOCUMENT`, `REVIEW_REQUIRED`.
 
 Chaque code doit avoir un message français et une action proposée. Les réponses d’erreur sont testées autant que les succès. API de rapport gérant refuse fields arbitraires permettant de lire l’attendu.
 

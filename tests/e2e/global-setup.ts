@@ -101,7 +101,7 @@ export default async function globalSetup(): Promise<void> {
   const source = await prisma.paymentSource.create({ data: { organizationId: organization.id, shopId: shop.id, name: "Caisse Vente E2E", type: "CASH" } });
   await prisma.moneyAccount.create({ data: { organizationId: organization.id, shopId: shop.id, paymentSourceId: source.id, name: source.name, currency: "XAF", balanceMinor: 50000n } });
   await prisma.stockBalance.create({ data: { shopId: shop.id, variantId: variant.id, locationId: location.id, quantity: "10" } });
-  await prisma.costLayer.create({ data: { variantId: variant.id, locationId: location.id, originType: "e2e_fixture", originId: shop.id, initialQuantity: "10", remainingQuantity: "10", unitCostMinor: 600n, receivedAt: new Date() } });
+  await prisma.costLayer.create({ data: { variantId: variant.id, locationId: location.id, originType: "e2e_fixture", originId: shop.id, initialQuantity: "10", remainingQuantity: "10", unitCostMinor: 600n, initialValueMinor: 6000n, remainingValueMinor: 6000n, receivedAt: new Date() } });
   await ensureOwner(prisma, auth, {
     email: ownerTotpEmail,
     name: "Propriétaire TOTP",
@@ -134,7 +134,7 @@ export default async function globalSetup(): Promise<void> {
   const ownerSource = await prisma.paymentSource.create({ data: { organizationId: organization.id, shopId: ownerShop.id, name: "Caisse Pilotage E2E", type: "CASH" } });
   await prisma.moneyAccount.create({ data: { organizationId: organization.id, shopId: ownerShop.id, paymentSourceId: ownerSource.id, name: ownerSource.name, currency: "XAF", balanceMinor: 80000n } });
   await prisma.stockBalance.create({ data: { shopId: ownerShop.id, variantId: ownerVariant.id, locationId: ownerLocation.id, quantity: "10" } });
-  await prisma.costLayer.create({ data: { variantId: ownerVariant.id, locationId: ownerLocation.id, originType: "e2e_fixture", originId: ownerShop.id, initialQuantity: "10", remainingQuantity: "10", unitCostMinor: 700n, receivedAt: new Date() } });
+  await prisma.costLayer.create({ data: { variantId: ownerVariant.id, locationId: ownerLocation.id, originType: "e2e_fixture", originId: ownerShop.id, initialQuantity: "10", remainingQuantity: "10", unitCostMinor: 700n, initialValueMinor: 7000n, remainingValueMinor: 7000n, receivedAt: new Date() } });
   const p05Auth = await prisma.user.findUnique({ where: { email: managerP05Email } }) ?? (await auth.api.signUpEmail({ body: { email: managerP05Email, password, name: "Gérant P05" } })).user;
   const p05Manager = await prisma.appUser.upsert({
     where: { authUserId: p05Auth.id },
@@ -149,6 +149,49 @@ export default async function globalSetup(): Promise<void> {
   const p05Source = await prisma.paymentSource.create({ data: { organizationId: organization.id, shopId: p05Shop.id, name: "Caisse Espèces E2E", type: "CASH" } });
   await prisma.moneyAccount.create({ data: { organizationId: organization.id, shopId: p05Shop.id, paymentSourceId: p05Source.id, name: p05Source.name, currency: "XAF", balanceMinor: 50000n } });
   await ensureOwner(prisma, auth, { email: ownerP05Email, name: "Propriétaire P05 caisse", organizationId: organization.id });
+  const managerP06Email = "manager.p06.e2e@example.test";
+  const managerP06BEmail = "manager.p06b.e2e@example.test";
+  const ownerP06Email = "owner.p06.e2e@example.test";
+  const p06Auth = await prisma.user.findUnique({ where: { email: managerP06Email } }) ?? (await auth.api.signUpEmail({ body: { email: managerP06Email, password, name: "Gérant P06 A" } })).user;
+  const p06Manager = await prisma.appUser.upsert({
+    where: { authUserId: p06Auth.id },
+    create: { authUserId: p06Auth.id, organizationId: organization.id, role: "MANAGER", displayName: "Gérant P06 A" },
+    update: { organizationId: organization.id, status: "ACTIVE" },
+  });
+  const p06bAuth = await prisma.user.findUnique({ where: { email: managerP06BEmail } }) ?? (await auth.api.signUpEmail({ body: { email: managerP06BEmail, password, name: "Gérant P06 B" } })).user;
+  const p06ManagerB = await prisma.appUser.upsert({
+    where: { authUserId: p06bAuth.id },
+    create: { authUserId: p06bAuth.id, organizationId: organization.id, role: "MANAGER", displayName: "Gérant P06 B" },
+    update: { organizationId: organization.id, status: "ACTIVE" },
+  });
+  await prisma.managerAssignment.updateMany({ where: { userId: { in: [p06Manager.id, p06ManagerB.id] }, endedAt: null }, data: { endedAt: new Date() } });
+  const p06ShopA = await prisma.shop.create({ data: { organizationId: organization.id, code: `P06A${Date.now().toString().slice(-5)}`, name: "Boutique Réappro A", status: "ACTIVE", activatedAt: new Date() } });
+  const p06ShopB = await prisma.shop.create({ data: { organizationId: organization.id, code: `P06B${Date.now().toString().slice(-5)}`, name: "Boutique Réappro B", status: "ACTIVE", activatedAt: new Date() } });
+  await prisma.managerAssignment.createMany({ data: [
+    { shopId: p06ShopA.id, userId: p06Manager.id, reason: "Recette P06 A" },
+    { shopId: p06ShopB.id, userId: p06ManagerB.id, reason: "Recette P06 B" },
+  ] });
+  await prisma.device.createMany({ data: [
+    { organizationId: organization.id, shopId: p06ShopA.id, userId: p06Manager.id, publicKey: `e2e-p06a-${crypto.randomUUID()}-public-key-material`, name: "Tablette P06 A", status: "ACTIVE" },
+    { organizationId: organization.id, shopId: p06ShopB.id, userId: p06ManagerB.id, publicKey: `e2e-p06b-${crypto.randomUUID()}-public-key-material`, name: "Tablette P06 B", status: "ACTIVE" },
+  ] });
+  await prisma.location.createMany({ data: [
+    { organizationId: organization.id, shopId: p06ShopA.id, name: "Stock Réappro A", type: "SHOP" },
+    { organizationId: organization.id, shopId: p06ShopB.id, name: "Stock Réappro B", type: "SHOP" },
+  ] });
+  const p06Product = await prisma.product.create({ data: { organizationId: organization.id, name: "Riz E2E P06", sku: `RIZ-${Date.now()}`, shops: { create: [{ shopId: p06ShopA.id }, { shopId: p06ShopB.id }] } } });
+  const p06Variant = await prisma.productVariant.create({ data: { productId: p06Product.id, name: "Sac 25 kg" } });
+  const p06Unit = await prisma.saleUnit.create({ data: { variantId: p06Variant.id, name: "Sac", symbol: "sac", factor: "1", precision: 0, isReference: true } });
+  await prisma.price.create({ data: { saleUnitId: p06Unit.id, amountMinor: 12000n, validFrom: new Date() } });
+  const p06CashA = await prisma.paymentSource.create({ data: { organizationId: organization.id, shopId: p06ShopA.id, name: "Caisse Réappro A", type: "CASH" } });
+  const p06CashB = await prisma.paymentSource.create({ data: { organizationId: organization.id, shopId: p06ShopB.id, name: "Caisse Réappro B", type: "CASH" } });
+  const p06Bank = await prisma.paymentSource.create({ data: { organizationId: organization.id, name: "Banque Réappro", type: "BANK" } });
+  await prisma.moneyAccount.createMany({ data: [
+    { organizationId: organization.id, shopId: p06ShopA.id, paymentSourceId: p06CashA.id, name: p06CashA.name, currency: "XAF", balanceMinor: 200000n },
+    { organizationId: organization.id, shopId: p06ShopB.id, paymentSourceId: p06CashB.id, name: p06CashB.name, currency: "XAF", balanceMinor: 200000n },
+    { organizationId: organization.id, paymentSourceId: p06Bank.id, name: p06Bank.name, currency: "XAF", balanceMinor: 500000n },
+  ] });
+  await ensureOwner(prisma, auth, { email: ownerP06Email, name: "Propriétaire P06", organizationId: organization.id });
   await prisma.$disconnect();
 }
 
@@ -189,3 +232,6 @@ export const e2eOwnerP04 = { email: ownerP04Email, password };
 export const e2eManagerP04Owner = { email: managerP04OwnerEmail, password };
 export const e2eManagerP05 = { email: managerP05Email, password };
 export const e2eOwnerP05 = { email: ownerP05Email, password };
+export const e2eManagerP06 = { email: "manager.p06.e2e@example.test", password };
+export const e2eManagerP06B = { email: "manager.p06b.e2e@example.test", password };
+export const e2eOwnerP06 = { email: "owner.p06.e2e@example.test", password };

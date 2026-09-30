@@ -117,6 +117,11 @@ model Organization {
   discrepancyCases  DiscrepancyCase[]
   attachments       Attachment[]
   cashClosures      CashClosure[]
+  suppliers         Supplier[]
+  purchaseRequests  PurchaseRequest[]
+  purchases         Purchase[]
+  shipments         Shipment[]
+  goodsReceipts     GoodsReceipt[]
 
   @@map("organizations")
 }
@@ -153,6 +158,15 @@ model AppUser {
   discrepancyActions   DiscrepancyAction[]
   attachments          Attachment[]
   cashClosures         CashClosure[]
+  createdSuppliers     Supplier[]
+  purchaseRequests     PurchaseRequest[]
+  requestActions       PurchaseRequestAction[]
+  purchaseApprovals    PurchaseApproval[]
+  purchases            Purchase[]
+  purchasePayments     PurchasePayment[]
+  shipments            Shipment[]
+  dispatchedShipments  Shipment[] @relation("ShipmentDispatcher")
+  goodsReceipts        GoodsReceipt[]
 
   @@index([organizationId, status])
   @@map("app_users")
@@ -190,6 +204,8 @@ model Shop {
   expenses         Expense[]
   fundTransfers    FundTransfer[]
   discrepancyCases DiscrepancyCase[]
+  purchaseRequests PurchaseRequest[]
+  purchases        Purchase[]
 
   @@unique([organizationId, code])
   @@map("shops")
@@ -396,6 +412,10 @@ model ProductVariant {
   stockEntries  StockEntry[]
   stockBalances StockBalance[]
   costLayers    CostLayer[]
+  requestLines  PurchaseRequestLine[]
+  purchaseLines PurchaseLine[]
+  shipmentLines ShipmentLine[]
+  receiptLines  GoodsReceiptLine[]
   saleLines     SaleLine[]
 
   @@unique([productId, name])
@@ -416,6 +436,8 @@ model SaleUnit {
   variant     ProductVariant @relation(fields: [variantId], references: [id], onDelete: Restrict)
   prices      Price[]
   saleLines   SaleLine[]
+  requestLines PurchaseRequestLine[]
+  purchaseLines PurchaseLine[]
 
   @@unique([variantId, name])
   @@index([variantId, status])
@@ -465,6 +487,10 @@ model Location {
   stockBalances  StockBalance[]
   costLayers     CostLayer[]
   cashSessions   CashSession[]
+  purchaseDestinations PurchaseDestination[]
+  shipmentsOut   Shipment[] @relation("ShipmentSource")
+  shipmentsIn    Shipment[] @relation("ShipmentDestination")
+  goodsReceipts  GoodsReceipt[]
 
   @@unique([shopId, type])
   @@index([organizationId, status])
@@ -481,6 +507,7 @@ model Lot {
   location   Location       @relation(fields: [locationId], references: [id], onDelete: Restrict)
   entries    StockEntry[]
   layers     CostLayer[]
+  receiptLines GoodsReceiptLine[]
 
   @@unique([variantId, locationId, code])
   @@index([expiresAt])
@@ -543,22 +570,34 @@ model StockBalance {
 }
 
 model CostLayer {
-  id                String                @id @default(uuid()) @db.Uuid
-  variantId         String                @map("variant_id") @db.Uuid
-  locationId        String                @map("location_id") @db.Uuid
-  lotId             String?               @map("lot_id") @db.Uuid
-  originType        String                @map("origin_type")
-  originId          String                @map("origin_id")
-  initialQuantity   Decimal               @map("initial_quantity") @db.Decimal(20, 6)
-  remainingQuantity Decimal               @map("remaining_quantity") @db.Decimal(20, 6)
-  unitCostMinor     BigInt                @map("unit_cost_minor")
-  receivedAt        DateTime              @map("received_at") @db.Timestamptz(6)
-  variant           ProductVariant        @relation(fields: [variantId], references: [id], onDelete: Restrict)
-  location          Location              @relation(fields: [locationId], references: [id], onDelete: Restrict)
-  lot               Lot?                  @relation(fields: [lotId], references: [id], onDelete: Restrict)
-  saleAllocations   StockCostAllocation[]
+  id                  String                     @id @default(uuid()) @db.Uuid
+  variantId           String                     @map("variant_id") @db.Uuid
+  locationId          String                     @map("location_id") @db.Uuid
+  lotId               String?                    @map("lot_id") @db.Uuid
+  originType          String                     @map("origin_type")
+  originId            String                     @map("origin_id")
+  initialQuantity     Decimal                    @map("initial_quantity") @db.Decimal(20, 6)
+  remainingQuantity   Decimal                    @map("remaining_quantity") @db.Decimal(20, 6)
+  unitCostMinor       BigInt                     @map("unit_cost_minor")
+  initialValueMinor   BigInt                     @default(0) @map("initial_value_minor")
+  remainingValueMinor BigInt                     @default(0) @map("remaining_value_minor")
+  compartment         String                     @default("AVAILABLE")
+  valuationOrigin     String                     @default("PURCHASE") @map("valuation_origin")
+  originLayerId       String?                    @map("origin_layer_id") @db.Uuid
+  shipmentLineId      String?                    @map("shipment_line_id") @db.Uuid
+  receivedAt          DateTime                   @map("received_at") @db.Timestamptz(6)
+  variant             ProductVariant             @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  location            Location                   @relation(fields: [locationId], references: [id], onDelete: Restrict)
+  lot                 Lot?                       @relation(fields: [lotId], references: [id], onDelete: Restrict)
+  originLayer         CostLayer?                 @relation("CostLayerOrigin", fields: [originLayerId], references: [id], onDelete: Restrict)
+  derivedLayers       CostLayer[]                @relation("CostLayerOrigin")
+  shipmentLine        ShipmentLine?              @relation(fields: [shipmentLineId], references: [id], onDelete: Restrict)
+  saleAllocations     StockCostAllocation[]
+  originAllocations   ShipmentCostAllocation[]   @relation("OriginLayer")
+  transitAllocations  ShipmentCostAllocation[]   @relation("TransitLayer")
 
   @@index([variantId, locationId, receivedAt])
+  @@index([variantId, locationId, compartment, receivedAt])
   @@map("cost_layers")
 }
 
@@ -586,6 +625,7 @@ model CashSession {
   expenses       Expense[]
   fundReceipts   FundReceipt[]
   discrepancies  DiscrepancyCase[]
+  purchasePayments PurchasePayment[]
 
   @@index([shopId, status])
   @@map("cash_sessions")
@@ -729,6 +769,9 @@ model MoneyAccount {
   transfersOut        FundTransfer[] @relation("FundSource")
   transfersIn         FundTransfer[] @relation("FundDestination")
   transfersTransit    FundTransfer[] @relation("FundTransit")
+  purchasePayments    PurchasePayment[]
+  purchaseFees        PurchaseFee[]
+  approvals           PurchaseApproval[]
 
   @@unique([paymentSourceId, currency])
   @@index([organizationId, shopId])
@@ -991,6 +1034,8 @@ model DiscrepancyCase {
   session              CashSession?         @relation(fields: [sessionId], references: [id], onDelete: Restrict)
   resolvedBy           AppUser?             @relation("DiscrepancyResolver", fields: [resolvedById], references: [id], onDelete: Restrict)
   actions              DiscrepancyAction[]
+  surplusReceipts      GoodsReceipt[] @relation("ReceiptSurplus")
+  missingReceipts      GoodsReceipt[] @relation("ReceiptMissing")
 
   @@index([organizationId, state, createdAt])
   @@index([shopId, state])
@@ -1033,4 +1078,343 @@ model Attachment {
 
   @@index([organizationId, ownerDocumentType, ownerDocumentId])
   @@map("attachments")
+}
+
+model Supplier {
+  id              String             @id @default(uuid()) @db.Uuid
+  organizationId  String             @map("organization_id") @db.Uuid
+  name            String
+  tradeName       String?            @map("trade_name")
+  phone           String?
+  email           String?
+  address         String?
+  taxId           String?            @map("tax_id")
+  contactName     String?            @map("contact_name")
+  paymentTerms    String?            @map("payment_terms")
+  leadTimeDays    Int?               @map("lead_time_days")
+  notes           String?
+  status          String             @default("ACTIVE")
+  normalizedName  String             @map("normalized_name")
+  createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdById     String             @map("created_by_id") @db.Uuid
+  organization    Organization       @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  createdBy       AppUser            @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  requests        PurchaseRequest[]
+  purchases       Purchase[]
+
+  @@index([organizationId, status, name])
+  @@map("suppliers")
+}
+
+model PurchaseRequest {
+  id                   String                  @id @default(uuid()) @db.Uuid
+  familyId             String                  @map("family_id") @db.Uuid
+  organizationId       String                  @map("organization_id") @db.Uuid
+  shopId               String                  @map("shop_id") @db.Uuid
+  actorId              String                  @map("actor_id") @db.Uuid
+  type                 String                  @default("RESTOCK")
+  status               String
+  version              Int                     @default(1)
+  urgency              String                  @default("NORMAL")
+  comment              String
+  suggestedSupplierId  String?                 @map("suggested_supplier_id") @db.Uuid
+  estimatedFeesMinor   BigInt                  @default(0) @map("estimated_fees_minor")
+  createdAt            DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
+  submittedAt          DateTime?               @map("submitted_at") @db.Timestamptz(6)
+  organization         Organization            @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  shop                 Shop                    @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  actor                AppUser                 @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  suggestedSupplier    Supplier?               @relation(fields: [suggestedSupplierId], references: [id], onDelete: Restrict)
+  lines                PurchaseRequestLine[]
+  actions              PurchaseRequestAction[]
+  approvals            PurchaseApproval[]
+  purchases            Purchase[]
+  shipments            Shipment[]
+
+  @@unique([familyId, version])
+  @@index([shopId, status, createdAt])
+  @@index([organizationId, status, createdAt])
+  @@map("purchase_requests")
+}
+
+model PurchaseRequestLine {
+  id                 String                 @id @default(uuid()) @db.Uuid
+  requestId          String                 @map("request_id") @db.Uuid
+  variantId          String                 @map("variant_id") @db.Uuid
+  unitId             String                 @map("unit_id") @db.Uuid
+  quantityBase       Decimal                @map("quantity_base") @db.Decimal(20, 6)
+  estimatedUnitMinor BigInt?                @map("estimated_unit_minor")
+  sort               Int                    @default(0)
+  request            PurchaseRequest        @relation(fields: [requestId], references: [id], onDelete: Restrict)
+  variant            ProductVariant         @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  unit               SaleUnit               @relation(fields: [unitId], references: [id], onDelete: Restrict)
+  approvalLines      PurchaseApprovalLine[]
+
+  @@index([requestId, sort])
+  @@map("purchase_request_lines")
+}
+
+model PurchaseRequestAction {
+  id         String          @id @default(uuid()) @db.Uuid
+  requestId  String          @map("request_id") @db.Uuid
+  actorId    String          @map("actor_id") @db.Uuid
+  actionType String          @map("action_type")
+  text       String
+  createdAt  DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  request    PurchaseRequest @relation(fields: [requestId], references: [id], onDelete: Restrict)
+  actor      AppUser         @relation(fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([requestId, createdAt])
+  @@map("purchase_request_actions")
+}
+
+model PurchaseApproval {
+  id              String                 @id @default(uuid()) @db.Uuid
+  requestId       String                 @map("request_id") @db.Uuid
+  actorId         String                 @map("actor_id") @db.Uuid
+  outcome         String
+  buyer           String?
+  budgetMinor     BigInt                 @default(0) @map("budget_minor")
+  sourceAccountId String?                @map("source_account_id") @db.Uuid
+  validUntil      DateTime?              @map("valid_until") @db.Timestamptz(6)
+  reason          String?
+  createdAt       DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  request         PurchaseRequest        @relation(fields: [requestId], references: [id], onDelete: Restrict)
+  actor           AppUser                @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  sourceAccount   MoneyAccount?          @relation(fields: [sourceAccountId], references: [id], onDelete: Restrict)
+  lines           PurchaseApprovalLine[]
+  purchases       Purchase[]
+
+  @@index([requestId, createdAt])
+  @@map("purchase_approvals")
+}
+
+model PurchaseApprovalLine {
+  id                   String              @id @default(uuid()) @db.Uuid
+  approvalId           String              @map("approval_id") @db.Uuid
+  requestLineId        String              @map("request_line_id") @db.Uuid
+  maxQtyBase           Decimal             @map("max_qty_base") @db.Decimal(20, 6)
+  maxAmountMinor       BigInt              @map("max_amount_minor")
+  consumedQtyBase      Decimal             @default(0) @map("consumed_qty_base") @db.Decimal(20, 6)
+  consumedAmountMinor  BigInt              @default(0) @map("consumed_amount_minor")
+  approval             PurchaseApproval    @relation(fields: [approvalId], references: [id], onDelete: Restrict)
+  requestLine          PurchaseRequestLine @relation(fields: [requestLineId], references: [id], onDelete: Restrict)
+
+  @@index([approvalId])
+  @@map("purchase_approval_lines")
+}
+
+model Purchase {
+  id                 String                 @id @default(uuid()) @db.Uuid
+  organizationId     String                 @map("organization_id") @db.Uuid
+  shopId             String?                @map("shop_id") @db.Uuid
+  actorId            String                 @map("actor_id") @db.Uuid
+  supplierId         String                 @map("supplier_id") @db.Uuid
+  requestId          String?                @map("request_id") @db.Uuid
+  approvalId         String?                @map("approval_id") @db.Uuid
+  reference          String                 @unique
+  status             String
+  goodsMinor         BigInt                 @map("goods_minor")
+  supplierFeesMinor  BigInt                 @default(0) @map("supplier_fees_minor")
+  externalFeesMinor  BigInt                 @default(0) @map("external_fees_minor")
+  stockValueMinor    BigInt                 @map("stock_value_minor")
+  paidMinor          BigInt                 @default(0) @map("paid_minor")
+  receivedStatus     String                 @default("NONE") @map("received_status")
+  paymentStatus      String                 @default("DUE") @map("payment_status")
+  controlStatus      String                 @default("OPEN") @map("control_status")
+  dueDate            DateTime?              @map("due_date") @db.Date
+  postedAt           DateTime?              @map("posted_at") @db.Timestamptz(6)
+  createdAt          DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  organization       Organization           @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  shop               Shop?                  @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  actor              AppUser                @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  supplier           Supplier               @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  request            PurchaseRequest?       @relation(fields: [requestId], references: [id], onDelete: Restrict)
+  approval           PurchaseApproval?      @relation(fields: [approvalId], references: [id], onDelete: Restrict)
+  lines              PurchaseLine[]
+  destinations       PurchaseDestination[]
+  fees               PurchaseFee[]
+  payments           PurchasePayment[]
+  shipments          Shipment[]
+
+  @@index([organizationId, status, createdAt])
+  @@index([shopId, createdAt])
+  @@index([supplierId, createdAt])
+  @@map("purchases")
+}
+
+model PurchaseLine {
+  id                     String                 @id @default(uuid()) @db.Uuid
+  purchaseId             String                 @map("purchase_id") @db.Uuid
+  variantId              String                 @map("variant_id") @db.Uuid
+  unitId                 String                 @map("unit_id") @db.Uuid
+  quantityBase           Decimal                @map("quantity_base") @db.Decimal(20, 6)
+  unitPriceMinor         BigInt                 @map("unit_price_minor")
+  goodsMinor             BigInt                 @map("goods_minor")
+  allocatedFeesMinor     BigInt                 @default(0) @map("allocated_fees_minor")
+  allocatedExternalMinor BigInt                 @default(0) @map("allocated_external_minor")
+  receivedQtyBase        Decimal                @default(0) @map("received_qty_base") @db.Decimal(20, 6)
+  purchase               Purchase               @relation(fields: [purchaseId], references: [id], onDelete: Restrict)
+  variant                ProductVariant         @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  unit                   SaleUnit               @relation(fields: [unitId], references: [id], onDelete: Restrict)
+  destinations           PurchaseDestination[]
+  shipmentLines          ShipmentLine[]
+
+  @@index([purchaseId])
+  @@map("purchase_lines")
+}
+
+model PurchaseDestination {
+  id              String       @id @default(uuid()) @db.Uuid
+  purchaseId      String       @map("purchase_id") @db.Uuid
+  purchaseLineId  String       @map("purchase_line_id") @db.Uuid
+  locationId      String       @map("location_id") @db.Uuid
+  qtyBase         Decimal      @map("qty_base") @db.Decimal(20, 6)
+  receivedQtyBase Decimal      @default(0) @map("received_qty_base") @db.Decimal(20, 6)
+  purchase        Purchase     @relation(fields: [purchaseId], references: [id], onDelete: Restrict)
+  purchaseLine    PurchaseLine @relation(fields: [purchaseLineId], references: [id], onDelete: Restrict)
+  location        Location     @relation(fields: [locationId], references: [id], onDelete: Restrict)
+
+  @@index([purchaseId])
+  @@index([locationId])
+  @@map("purchase_destinations")
+}
+
+model PurchaseFee {
+  id          String        @id @default(uuid()) @db.Uuid
+  purchaseId  String        @map("purchase_id") @db.Uuid
+  kind        String
+  amountMinor BigInt        @map("amount_minor")
+  accountId   String?       @map("account_id") @db.Uuid
+  description String
+  purchase    Purchase      @relation(fields: [purchaseId], references: [id], onDelete: Restrict)
+  account     MoneyAccount? @relation(fields: [accountId], references: [id], onDelete: Restrict)
+
+  @@index([purchaseId])
+  @@map("purchase_fees")
+}
+
+model PurchasePayment {
+  id          String       @id @default(uuid()) @db.Uuid
+  purchaseId  String       @map("purchase_id") @db.Uuid
+  accountId   String       @map("account_id") @db.Uuid
+  actorId     String       @map("actor_id") @db.Uuid
+  sessionId   String?      @map("session_id") @db.Uuid
+  amountMinor BigInt       @map("amount_minor")
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  purchase    Purchase     @relation(fields: [purchaseId], references: [id], onDelete: Restrict)
+  account     MoneyAccount @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  actor       AppUser      @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  session     CashSession? @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+
+  @@index([purchaseId, createdAt])
+  @@map("purchase_payments")
+}
+
+model Shipment {
+  id                     String         @id @default(uuid()) @db.Uuid
+  organizationId         String         @map("organization_id") @db.Uuid
+  sourceLocationId       String?        @map("source_location_id") @db.Uuid
+  destinationLocationId  String         @map("destination_location_id") @db.Uuid
+  requestId              String?        @map("request_id") @db.Uuid
+  purchaseId             String?        @map("purchase_id") @db.Uuid
+  actorId                String         @map("actor_id") @db.Uuid
+  status                 String
+  carrier                String?
+  note                   String?
+  dispatchedById         String?        @map("dispatched_by_id") @db.Uuid
+  dispatchedAt           DateTime?      @map("dispatched_at") @db.Timestamptz(6)
+  createdAt              DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  organization           Organization   @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  sourceLocation         Location?      @relation("ShipmentSource", fields: [sourceLocationId], references: [id], onDelete: Restrict)
+  destinationLocation    Location       @relation("ShipmentDestination", fields: [destinationLocationId], references: [id], onDelete: Restrict)
+  request                PurchaseRequest? @relation(fields: [requestId], references: [id], onDelete: Restrict)
+  purchase               Purchase?      @relation(fields: [purchaseId], references: [id], onDelete: Restrict)
+  actor                  AppUser        @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  dispatchedBy           AppUser?       @relation("ShipmentDispatcher", fields: [dispatchedById], references: [id], onDelete: Restrict)
+  lines                  ShipmentLine[]
+  receipts               GoodsReceipt[]
+
+  @@index([organizationId, status, createdAt])
+  @@index([destinationLocationId, status])
+  @@index([sourceLocationId, status])
+  @@index([purchaseId])
+  @@map("shipments")
+}
+
+model ShipmentLine {
+  id             String                    @id @default(uuid()) @db.Uuid
+  shipmentId     String                    @map("shipment_id") @db.Uuid
+  variantId      String                    @map("variant_id") @db.Uuid
+  purchaseLineId String?                   @map("purchase_line_id") @db.Uuid
+  requestedQty   Decimal                   @map("requested_qty") @db.Decimal(20, 6)
+  dispatchedQty  Decimal                   @default(0) @map("dispatched_qty") @db.Decimal(20, 6)
+  receivedQty    Decimal                   @default(0) @map("received_qty") @db.Decimal(20, 6)
+  shipment       Shipment                  @relation(fields: [shipmentId], references: [id], onDelete: Restrict)
+  variant        ProductVariant            @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  purchaseLine   PurchaseLine?             @relation(fields: [purchaseLineId], references: [id], onDelete: Restrict)
+  allocations    ShipmentCostAllocation[]
+  receiptLines   GoodsReceiptLine[]
+  transitLayers  CostLayer[]
+
+  @@index([shipmentId])
+  @@map("shipment_lines")
+}
+
+model ShipmentCostAllocation {
+  id                 String       @id @default(uuid()) @db.Uuid
+  shipmentLineId     String       @map("shipment_line_id") @db.Uuid
+  originCostLayerId  String?      @map("origin_cost_layer_id") @db.Uuid
+  transitCostLayerId String       @map("transit_cost_layer_id") @db.Uuid
+  qty                Decimal      @db.Decimal(20, 6)
+  valueMinor         BigInt       @map("value_minor")
+  shipmentLine       ShipmentLine @relation(fields: [shipmentLineId], references: [id], onDelete: Restrict)
+  originLayer        CostLayer?   @relation("OriginLayer", fields: [originCostLayerId], references: [id], onDelete: Restrict)
+  transitLayer       CostLayer    @relation("TransitLayer", fields: [transitCostLayerId], references: [id], onDelete: Restrict)
+
+  @@index([shipmentLineId])
+  @@map("shipment_cost_allocations")
+}
+
+model GoodsReceipt {
+  id                      String             @id @default(uuid()) @db.Uuid
+  organizationId          String             @map("organization_id") @db.Uuid
+  shipmentId              String             @map("shipment_id") @db.Uuid
+  destinationLocationId   String             @map("destination_location_id") @db.Uuid
+  receivedById            String             @map("received_by_id") @db.Uuid
+  status                  String             @default("POSTED")
+  deliveryComplete        Boolean            @default(false) @map("delivery_complete")
+  surplusCaseId           String?            @map("surplus_case_id") @db.Uuid
+  missingCaseId           String?            @map("missing_case_id") @db.Uuid
+  createdAt               DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  organization            Organization       @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  shipment                Shipment           @relation(fields: [shipmentId], references: [id], onDelete: Restrict)
+  destinationLocation     Location           @relation(fields: [destinationLocationId], references: [id], onDelete: Restrict)
+  receivedBy              AppUser            @relation(fields: [receivedById], references: [id], onDelete: Restrict)
+  surplusCase             DiscrepancyCase?   @relation("ReceiptSurplus", fields: [surplusCaseId], references: [id], onDelete: Restrict)
+  missingCase             DiscrepancyCase?   @relation("ReceiptMissing", fields: [missingCaseId], references: [id], onDelete: Restrict)
+  lines                   GoodsReceiptLine[]
+
+  @@index([shipmentId, createdAt])
+  @@map("goods_receipts")
+}
+
+model GoodsReceiptLine {
+  id             String        @id @default(uuid()) @db.Uuid
+  receiptId      String        @map("receipt_id") @db.Uuid
+  shipmentLineId String        @map("shipment_line_id") @db.Uuid
+  variantId      String        @map("variant_id") @db.Uuid
+  lotId          String?       @map("lot_id") @db.Uuid
+  acceptedQty    Decimal       @default(0) @map("accepted_qty") @db.Decimal(20, 6)
+  damagedQty     Decimal       @default(0) @map("damaged_qty") @db.Decimal(20, 6)
+  surplusQty     Decimal       @default(0) @map("surplus_qty") @db.Decimal(20, 6)
+  remarks        String?
+  receipt        GoodsReceipt  @relation(fields: [receiptId], references: [id], onDelete: Restrict)
+  shipmentLine   ShipmentLine  @relation(fields: [shipmentLineId], references: [id], onDelete: Restrict)
+  variant        ProductVariant @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  lot            Lot?          @relation(fields: [lotId], references: [id], onDelete: Restrict)
+
+  @@index([receiptId])
+  @@map("goods_receipt_lines")
 }
