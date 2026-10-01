@@ -25,6 +25,7 @@ import {
   UsersRound,
   WalletCards,
   Warehouse,
+  type LucideIcon,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
@@ -39,24 +40,40 @@ import { Sheet } from "../ui/sheet";
 import { Skeleton } from "../ui/skeleton";
 import { ThemeSwitcher } from "./theme-switcher";
 
-const ownerLinks = [
+type NavigationLink = { href: string; label: string; icon: LucideIcon };
+type NavigationGroup = { label: string; icon: LucideIcon; children: NavigationLink[] };
+type NavigationItem = NavigationLink | NavigationGroup;
+
+const ownerLinks: NavigationItem[] = [
   { href: paths.ownerHome, label: "Vue générale", icon: LayoutDashboard },
-  { href: paths.ownerSales, label: "Ventes", icon: ReceiptText },
-  { href: paths.ownerSessions, label: "Caisse", icon: Banknote },
-  { href: paths.ownerExpenses, label: "Dépenses", icon: WalletCards },
-  { href: paths.ownerFunds, label: "Fonds", icon: WalletCards },
-  { href: paths.ownerDiscrepancies, label: "Écarts", icon: CircleAlert },
-  { href: paths.ownerShops, label: "Boutiques", icon: Building2 },
-  { href: paths.ownerProducts, label: "Catalogue", icon: Boxes },
-  { href: paths.ownerStock, label: "Stock", icon: Warehouse },
-  { href: paths.ownerPurchases, label: "Achats", icon: Package },
-  { href: paths.ownerRequests, label: "Demandes", icon: ClipboardList },
-  { href: paths.ownerTransfers, label: "Transferts", icon: PackageCheck },
-  { href: paths.ownerSuppliers, label: "Fournisseurs", icon: Warehouse },
   {
-    label: "Administration",
+    label: "Ventes et caisse",
+    icon: Banknote,
+    children: [
+      { href: paths.ownerSales, label: "Ventes", icon: ReceiptText },
+      { href: paths.ownerSessions, label: "Sessions de caisse", icon: Banknote },
+      { href: paths.ownerExpenses, label: "Dépenses", icon: WalletCards },
+      { href: paths.ownerFunds, label: "Mouvements de fonds", icon: WalletCards },
+      { href: paths.ownerDiscrepancies, label: "Écarts de caisse", icon: CircleAlert },
+    ],
+  },
+  {
+    label: "Stock et achats",
+    icon: Package,
+    children: [
+      { href: paths.ownerStock, label: "État du stock", icon: Warehouse },
+      { href: paths.ownerProducts, label: "Catalogue", icon: Boxes },
+      { href: paths.ownerPurchases, label: "Achats", icon: Package },
+      { href: paths.ownerRequests, label: "Demandes d’achat", icon: ClipboardList },
+      { href: paths.ownerTransfers, label: "Transferts", icon: PackageCheck },
+      { href: paths.ownerSuppliers, label: "Fournisseurs", icon: Warehouse },
+    ],
+  },
+  {
+    label: "Organisation",
     icon: Settings2,
     children: [
+      { href: paths.ownerShops, label: "Boutiques", icon: Building2 },
       { href: paths.ownerUsers, label: "Utilisateurs", icon: UsersRound },
       { href: paths.ownerDevices, label: "Appareils", icon: TabletSmartphone },
       { href: paths.ownerSources, label: "Sources de fonds", icon: WalletCards },
@@ -67,19 +84,23 @@ const ownerLinks = [
   { href: paths.ownerAccount, label: "Mon compte", icon: CircleUserRound },
 ];
 
-const managerLinks = [
+const managerLinks: NavigationItem[] = [
   { href: paths.managerHome, label: "Vue générale", icon: LayoutDashboard },
   { href: paths.managerSale, label: "Vendre", icon: ShoppingCart },
-  { href: paths.managerCash, label: "Caisse", icon: Banknote },
-  { href: paths.managerExpenses, label: "Dépenses", icon: WalletCards },
-  { href: paths.managerFunds, label: "Fonds", icon: WalletCards },
-  { href: paths.managerDiscrepancies, label: "Demandes d’explication", icon: CircleAlert },
-  { href: paths.managerRequests, label: "Demandes", icon: ClipboardList },
-  { href: paths.managerPurchases, label: "Achats", icon: Package },
-  { href: paths.managerReceipts, label: "Réceptions", icon: PackageCheck },
-  { href: paths.managerTransfers, label: "Expéditions", icon: Truck },
-  { href: paths.managerStock, label: "Stock", icon: Warehouse },
-  { href: paths.managerSales, label: "Historique", icon: ReceiptText },
+  { label: "Ventes et caisse", icon: Banknote, children: [
+    { href: paths.managerCash, label: "Caisse du jour", icon: Banknote },
+    { href: paths.managerSales, label: "Historique des ventes", icon: ReceiptText },
+    { href: paths.managerExpenses, label: "Dépenses", icon: WalletCards },
+    { href: paths.managerFunds, label: "Mouvements de fonds", icon: WalletCards },
+    { href: paths.managerDiscrepancies, label: "Demandes d’explication", icon: CircleAlert },
+  ] },
+  { label: "Stock et achats", icon: Package, children: [
+    { href: paths.managerStock, label: "État du stock", icon: Warehouse },
+    { href: paths.managerRequests, label: "Demandes d’achat", icon: ClipboardList },
+    { href: paths.managerPurchases, label: "Achats autorisés", icon: Package },
+    { href: paths.managerReceipts, label: "Réceptions", icon: PackageCheck },
+    { href: paths.managerTransfers, label: "Expéditions", icon: Truck },
+  ] },
   { href: paths.managerDevice, label: "Mon appareil", icon: TabletSmartphone },
 ];
 
@@ -91,7 +112,7 @@ export function AppShell({ role, children }: { role: "OWNER" | "MANAGER"; childr
   const [menuOpen, setMenuOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [adminOpen, setAdminOpen] = useState(true);
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({ "Ventes et caisse": true });
 
   useEffect(() => {
     api<MeResponse>("/api/v1/me")
@@ -125,6 +146,10 @@ export function AppShell({ role, children }: { role: "OWNER" | "MANAGER"; childr
   }, [router]);
 
   const links = role === "OWNER" ? ownerLinks : managerLinks;
+  useEffect(() => {
+    const activeGroup = links.find((item): item is NavigationGroup => "children" in item && item.children.some((child) => pathname === child.href));
+    if (activeGroup) setOpenGroups((current) => current[activeGroup.label] ? current : { ...current, [activeGroup.label]: true });
+  }, [links, pathname]);
   const pageLabel =
     pathname.startsWith("/owner/sales/") ? "Détail de vente" :
     pathname.startsWith("/owner/sessions/") ? "Fiche de session" :
@@ -190,22 +215,23 @@ export function AppShell({ role, children }: { role: "OWNER" | "MANAGER"; childr
         const Icon = link.icon;
         if ("children" in link && link.children) {
           const activeGroup = link.children.some((child) => pathname === child.href);
+          const groupOpen = Boolean(openGroups[link.label]);
           return (
             <div key={link.label} className="space-y-1">
               <button
                 type="button"
-                aria-expanded={adminOpen}
+                aria-expanded={groupOpen}
                 title={!compact ? link.label : undefined}
-                onClick={() => setAdminOpen((value) => !value)}
+                onClick={() => setOpenGroups((current) => ({ ...current, [link.label]: !current[link.label] }))}
                 className={`group flex min-h-11 w-full items-center gap-3 rounded-lg px-3 font-display text-sm font-medium transition-colors ${activeGroup ? "text-[var(--primary)]" : "text-[var(--muted)] hover:bg-[var(--surface-subtle)] hover:text-[var(--foreground)]"} ${!compact ? "md:justify-center md:px-0" : ""} ${!compact && !collapsed ? "lg:justify-start lg:px-3" : ""}`}
               >
                 <Icon aria-hidden="true" className="size-[1.15rem] shrink-0" />
                 <span className={`flex-1 whitespace-nowrap text-left ${!compact ? (collapsed ? "md:sr-only" : "md:sr-only lg:not-sr-only") : ""}`}>{link.label}</span>
-                <ChevronDown aria-hidden="true" className={`size-3.5 transition-transform ${adminOpen ? "rotate-180" : ""} ${!compact ? "md:hidden lg:block" : ""}`} />
+                <ChevronDown aria-hidden="true" className={`size-3.5 transition-transform ${groupOpen ? "rotate-180" : ""} ${!compact ? "md:hidden lg:block" : ""}`} />
               </button>
               <AnimatePresence initial={false}>
-                {adminOpen ? (
-                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className={`overflow-hidden space-y-1 ${!compact && !collapsed ? "lg:ml-3" : ""}`}>
+                {groupOpen ? (
+                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className={`space-y-1 overflow-hidden border-l border-[var(--separator)]/60 pl-2 ${!compact && !collapsed ? "lg:ml-5" : ""}`}>
                     {link.children.map((child) => {
                       const ChildIcon = child.icon;
                       const active = pathname === child.href;
@@ -230,6 +256,7 @@ export function AppShell({ role, children }: { role: "OWNER" | "MANAGER"; childr
           );
         }
 
+        if (!("href" in link)) return null;
         const active = pathname === link.href;
         return (
           <Link
@@ -284,11 +311,11 @@ export function AppShell({ role, children }: { role: "OWNER" | "MANAGER"; childr
             {collapsed ? <PanelLeftOpen className="size-4" /> : <PanelLeftClose className="size-4" />}
           </Button>
         </div>
-        <div className="mt-8 flex-1">
+        <div className="mt-8 min-h-0 flex-1 overflow-y-auto pr-1 [scrollbar-width:thin]">
           <p className={"mb-2 px-3 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-[var(--muted)] md:sr-only " + (!collapsed ? "lg:not-sr-only" : "")}>Piloter</p>
           {navigation()}
         </div>
-        <div className={`rounded-xl bg-[var(--surface-subtle)] p-3 md:bg-transparent md:p-0 ${collapsed ? "lg:bg-transparent" : "lg:bg-[var(--surface-subtle)] lg:p-3"}`}>
+        <div className={`mt-3 shrink-0 rounded-xl bg-[var(--surface-subtle)] p-3 md:bg-transparent md:p-0 ${collapsed ? "lg:bg-transparent" : "lg:bg-[var(--surface-subtle)] lg:p-3"}`}>
           <div className={`flex items-center gap-3 md:justify-center ${!collapsed ? "lg:justify-start" : ""}`}>
             <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-[var(--brand-accent)] text-xs font-bold text-[var(--brand-accent-foreground)]">{initials}</span>
             <div className={`min-w-0 md:hidden ${collapsed ? "lg:hidden" : "lg:block"}`}>

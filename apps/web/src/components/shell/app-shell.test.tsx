@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { MeResponse } from "../../lib/session";
@@ -41,6 +41,8 @@ describe("coquille authentifiée", () => {
       </AppShell>,
     );
     expect(await screen.findByRole("navigation", { name: "Navigation principale" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Organisation" })).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(screen.getByRole("button", { name: "Organisation" }));
     expect(screen.getByRole("link", { name: "Utilisateurs" })).toBeInTheDocument();
     expect(screen.getByText("Awa")).toBeInTheDocument();
     expect(screen.queryByText(/FCFA|chiffre d’affaires/i)).not.toBeInTheDocument();

@@ -603,6 +603,15 @@ Vérifications exécutées : `corepack pnpm lint` code 0 ; `corepack pnpm typech
 
 Vérifications exécutées : `corepack pnpm lint` code 0 ; `corepack pnpm typecheck` code 0 ; `corepack pnpm test` **39/39** ; `corepack pnpm build` code 0, **44 routes**.
 
+### Réorganisation de la navigation latérale — 1er octobre 2026
+
+- Propriétaire : les entrées sont regroupées en **Ventes et caisse**, **Stock et achats** et **Organisation**, avec **Vue générale** et **Mon compte** accessibles directement.
+- Gérant : **Vue générale** et **Vendre** restent prioritaires ; les autres fonctions sont regroupées en **Ventes et caisse** et **Stock et achats**, avec **Mon appareil** en accès direct.
+- Le groupe de la page courante s’ouvre automatiquement. Les groupes restent contrôlables au clavier avec `aria-expanded`, une indentation et un repère vertical pour leurs sous-entrées.
+- La zone de navigation peut défiler indépendamment sur les écrans de faible hauteur tandis que le profil reste visible en bas de la sidebar. La même hiérarchie est utilisée dans le panneau mobile.
+
+Vérifications exécutées : `corepack pnpm lint` code 0 ; `corepack pnpm typecheck` code 0 ; `corepack pnpm test` **39/39**, dont ouverture accessible du groupe Organisation ; `corepack pnpm build` code 0, **44 routes**. La capture automatisée locale n’a pas été disponible (`cua_repl` : chemin d’installation introuvable) ; aucune validation visuelle automatisée n’est revendiquée.
+
 ### États lisibles des expéditions — 1er octobre 2026
 
 - Avant la sortie physique (`DRAFT`, `SUBMITTED`, `APPROVED`), les fiches gérant et propriétaire affichent la quantité **à expédier** à partir de `requestedQty`. Elles n’affichent plus un faux « 0 restant » calculé sur une quantité encore non expédiée.
