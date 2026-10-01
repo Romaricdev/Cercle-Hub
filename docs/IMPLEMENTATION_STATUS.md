@@ -602,3 +602,11 @@ Vérifications exécutées : `corepack pnpm lint` code 0 ; `corepack pnpm typech
 - Les erreurs de l’action restent dans la modale et la fiche est rechargée après validation pour afficher le statut, les réceptions et les reliquats mis à jour.
 
 Vérifications exécutées : `corepack pnpm lint` code 0 ; `corepack pnpm typecheck` code 0 ; `corepack pnpm test` **39/39** ; `corepack pnpm build` code 0, **44 routes**.
+
+### États lisibles des expéditions — 1er octobre 2026
+
+- Avant la sortie physique (`DRAFT`, `SUBMITTED`, `APPROVED`), les fiches gérant et propriétaire affichent la quantité **à expédier** à partir de `requestedQty`. Elles n’affichent plus un faux « 0 restant » calculé sur une quantité encore non expédiée.
+- Après la sortie physique, la progression distingue **envoyé**, **reçu** et **en transit**. Le terme « reliquat » reste réservé aux quantités effectivement expédiées mais non encore reçues.
+- Quand le gérant de la boutique source a terminé son action, la fiche explique que la réception appartient au gérant de la destination ou au propriétaire. Aucun droit inter-boutiques n’est ajouté.
+
+Vérifications exécutées : `corepack pnpm lint` code 0 ; `corepack pnpm typecheck` code 0 ; `corepack pnpm test` **39/39** ; `corepack pnpm build` code 0, **44 routes**.
