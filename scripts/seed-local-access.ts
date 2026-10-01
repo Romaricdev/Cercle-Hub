@@ -6,6 +6,7 @@ const password = "local-dev-password-15";
 const accounts = [
   { email: "owner.local@example.test", name: "Propriétaire local", role: "OWNER" as const, mfaRequired: true },
   { email: "manager.local@example.test", name: "Gérant local", role: "MANAGER" as const, mfaRequired: false },
+  { email: "manager.akwa.local@example.test", name: "Gérante Akwa", role: "MANAGER" as const, mfaRequired: false },
 ];
 
 function assertLocalDevelopmentDatabase(databaseUrl: string): void {
@@ -61,6 +62,7 @@ async function main(): Promise<void> {
   console.log("http://127.0.0.1:8080/login");
   console.log(`Propriétaire  ${accounts[0]?.email}  ${password}`);
   console.log(`Gérant        ${accounts[1]?.email}  ${password}`);
+  console.log(`Gérante Akwa  ${accounts[2]?.email}  ${password}`);
   console.log("Le propriétaire doit activer le TOTP à la première connexion.");
 }
 

@@ -32,16 +32,17 @@ corepack pnpm db:seed-local
 |---|---|---|
 | Propriétaire | `owner.local@example.test` | `local-dev-password-15` |
 | Gérant | `manager.local@example.test` | `local-dev-password-15` |
+| Gérante Akwa | `manager.akwa.local@example.test` | `local-dev-password-15` |
 
 Le propriétaire doit activer le TOTP à la première connexion. Ces comptes ne vont que sur `cercle_complet` local.
 
-Pour charger aussi le périmètre P03 (boutique active initialisée, catalogue, fonds, stock, dépôt, politiques et boutique brouillon `CC02`) :
+Pour charger tout le parcours livré de P03 à P06 : boutique active initialisée, catalogue, stock, ventes, caisse, dépense, mouvement de fonds partiellement reçu, écart commenté, fournisseur, demandes, achat, réception et transfert inter-boutiques :
 
 ```powershell
 corepack pnpm db:seed-local-full
 ```
 
-Équivalent : `db:seed-local` puis `db:seed-local-p03`. Réservé à la machine locale ; aucune donnée démo en production.
+Le jeu complet conserve `CC02` comme boutique en préparation et ajoute `CC03 — Boutique Akwa`, affectée au second compte gérant. La commande est rejouable sans dupliquer les documents du parcours. Équivalent : `db:seed-local`, puis `db:seed-local-p03`, puis `db:seed-local-demo`. Réservé à la machine locale ; aucune donnée démo en production.
 
 ## Démarrage
 

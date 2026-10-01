@@ -26,7 +26,8 @@
     "db:replay-test": "corepack pnpm --filter @cercle/database replay-test",
     "db:seed-local": "corepack pnpm --filter @cercle/database seed-local",
     "db:seed-local-p03": "corepack pnpm build:packages && corepack pnpm --filter @cercle/database exec tsx ../../scripts/seed-local-p03.ts",
-    "db:seed-local-full": "corepack pnpm db:seed-local && corepack pnpm db:seed-local-p03"
+    "db:seed-local-demo": "corepack pnpm build:packages && corepack pnpm --filter @cercle/database exec tsx ../../scripts/seed-local-demo.ts",
+    "db:seed-local-full": "corepack pnpm db:seed-local && corepack pnpm db:seed-local-p03 && corepack pnpm db:seed-local-demo"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "catalog:",

@@ -619,3 +619,12 @@ Vérifications exécutées : `corepack pnpm lint` code 0 ; `corepack pnpm typech
 - Quand le gérant de la boutique source a terminé son action, la fiche explique que la réception appartient au gérant de la destination ou au propriétaire. Aucun droit inter-boutiques n’est ajouté.
 
 Vérifications exécutées : `corepack pnpm lint` code 0 ; `corepack pnpm typecheck` code 0 ; `corepack pnpm test` **39/39** ; `corepack pnpm build` code 0, **44 routes**.
+
+### Seed local complet P03–P06 — 1er octobre 2026
+
+- Un second compte gérant local, `manager.akwa.local@example.test`, est créé avec la même protection qui interdit l’exécution du seed sur un hôte distant ou sur la base de test.
+- `CC03 — Boutique Akwa` est initialisée puis affectée à ce compte, avec appareil approuvé, caisse espèces, Mobile Money, stock valorisé et obligation initiale. `CC02` reste disponible pour tester le parcours d’initialisation.
+- Le parcours de démonstration utilise les services métier pour créer des ventes, une dépense demandée/autorisée/décaissée, un apport et un mouvement de fonds partiellement reçu, une clôture avec écart et réponse du gérant, une nouvelle session ouverte, un fournisseur, une demande approuvée, un achat partiellement payé et reçu, une demande en attente et un transfert inter-boutiques partiellement reçu.
+- `db:seed-local-full` enchaîne désormais les comptes, le socle P03 et le parcours complet. Chaque étape possède un marqueur métier stable afin qu’une seconde exécution n’ajoute pas de doublons.
+
+Vérifications exécutées : `corepack pnpm db:seed-local-full` code 0 sur `cercle_complet` local ; seconde exécution directe de `seed-local-demo.ts` code 0 sans nouvelle création ; `corepack pnpm lint` code 0 ; `corepack pnpm typecheck` code 0 ; `corepack pnpm test:unit` **39/39**.
