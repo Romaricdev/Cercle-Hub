@@ -311,7 +311,7 @@ export function AppShell({ role, children }: { role: "OWNER" | "MANAGER"; childr
             {collapsed ? <PanelLeftOpen className="size-4" /> : <PanelLeftClose className="size-4" />}
           </Button>
         </div>
-        <div className="mt-8 min-h-0 flex-1 overflow-y-auto pr-1 [scrollbar-width:thin]">
+        <div className="mt-8 min-h-0 flex-1 overflow-y-auto pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <p className={"mb-2 px-3 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-[var(--muted)] md:sr-only " + (!collapsed ? "lg:not-sr-only" : "")}>Piloter</p>
           {navigation()}
         </div>
