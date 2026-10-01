@@ -593,3 +593,12 @@ Vérifications exécutées après la passe complète : `corepack pnpm lint` code
 - L’accès reste limité à l’organisation du propriétaire ; aucune permission d’approbation, d’expédition ou de réception n’a été élargie.
 
 Vérifications exécutées : `corepack pnpm lint` code 0 ; `corepack pnpm typecheck` code 0 ; `corepack pnpm test` **39/39** ; intégration PostgreSQL ciblée `tests/integration/p06.test.ts` **13/13**, incluant pagination, filtre de type et isolation inter-organisation ; `corepack pnpm build` code 0, **44 routes**.
+
+### Réception propriétaire depuis une expédition — 1er octobre 2026
+
+- La fiche `/owner/transfers/[id]` affiche désormais **Enregistrer la réception** lorsque le serveur accorde `canReceive`, notamment lorsqu’une boutique destinataire ne dispose pas encore d’un gérant actif.
+- Le propriétaire contrôle chaque ligne : quantité acceptée et vendable, quantité endommagée, surplus constaté et remarque facultative. Aucun reliquat n’est transformé automatiquement en stock.
+- La case « livraison terminée » reste explicite : si elle est cochée alors qu’un manquant subsiste, le circuit d’écart existant est déclenché. Si elle reste décochée, le reliquat demeure attendu.
+- Les erreurs de l’action restent dans la modale et la fiche est rechargée après validation pour afficher le statut, les réceptions et les reliquats mis à jour.
+
+Vérifications exécutées : `corepack pnpm lint` code 0 ; `corepack pnpm typecheck` code 0 ; `corepack pnpm test` **39/39** ; `corepack pnpm build` code 0, **44 routes**.

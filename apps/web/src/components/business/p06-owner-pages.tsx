@@ -512,6 +512,10 @@ export function OwnerTransferDetailPage() {
   const [unitCost, setUnitCost] = useState("");
   const [accounts, setAccounts] = useState<Catalog["accounts"]>([]);
   const [accountId, setAccountId] = useState("");
+  const [receiveOpen, setReceiveOpen] = useState(false);
+  const [receiveError, setReceiveError] = useState<string | null>(null);
+  const [deliveryComplete, setDeliveryComplete] = useState(false);
+  const [receiveLines, setReceiveLines] = useState<Record<string, { accepted: string; damaged: string; surplus: string; remarks: string }>>({});
   const surplusReceipt = data?.receipts?.find((receipt) => receipt.lines.some((line) => Number(line.surplusQty) > 0) && receipt.surplusCaseId);
   const surplusQty = surplusReceipt?.lines.find((line) => Number(line.surplusQty) > 0)?.surplusQty ?? "0";
   const surplusVariantId = data?.lines[0]?.variantId;
@@ -522,6 +526,21 @@ export function OwnerTransferDetailPage() {
   }, [params.id]);
   if (!data && !error) return <Skeleton className="h-80" />;
   if (!data) return <Alert tone="error">{error}</Alert>;
+  const shipment = data;
+  function openReceipt() {
+    setReceiveError(null);
+    setDeliveryComplete(false);
+    setReceiveLines(Object.fromEntries(shipment.lines.filter((line) => line.id).map((line) => [line.id!, { accepted: line.remainingQty, damaged: "0", surplus: "0", remarks: "" }])));
+    setReceiveOpen(true);
+  }
+  async function submitReceipt() {
+    setPending(true); setReceiveError(null);
+    try {
+      await api("/api/v1/receipts", { method: "POST", body: JSON.stringify({ shipmentId: params.id, deliveryComplete, lines: shipment.lines.filter((line) => line.id).map((line) => ({ shipmentLineId: line.id, acceptedQty: receiveLines[line.id!]?.accepted || "0", damagedQty: receiveLines[line.id!]?.damaged || "0", surplusQty: receiveLines[line.id!]?.surplus || "0", remarks: receiveLines[line.id!]?.remarks || undefined })) }) });
+      setReceiveOpen(false);
+      await load();
+    } catch (caught) { setReceiveError((caught as RequestError).message); } finally { setPending(false); }
+  }
   return (
     <section className="space-y-6">
       <PageHeader title="Suivi d’expédition">{data.sourceName} <ArrowRight className="mx-1 inline size-4" /> {data.destinationName}{data.purchaseReference ? ` · ${data.purchaseReference}` : ""}</PageHeader>
@@ -544,8 +563,12 @@ export function OwnerTransferDetailPage() {
       <div className="flex flex-wrap gap-2">
         {data.capabilities.canApprove ? <Button disabled={pending} onClick={() => { setPending(true); api(`/api/v1/shipments/${params.id}/approve`, { method: "POST" }).then(() => load()).catch((caught: RequestError) => setError(caught.message)).finally(() => setPending(false)); }}>Autoriser l’expédition</Button> : null}
         {data.capabilities.canDispatch ? <Button disabled={pending} onClick={() => { setPending(true); api(`/api/v1/shipments/${params.id}/dispatch`, { method: "POST" }).then(() => load()).catch((caught: RequestError) => setError(caught.message)).finally(() => setPending(false)); }}>Expédier</Button> : null}
+        {data.capabilities.canReceive ? <Button disabled={pending} onClick={openReceipt}>Enregistrer la réception</Button> : null}
         {surplusReceipt && surplusVariantId ? <Button variant="secondary" onClick={() => { setSurplusError(null); setSurplusOpen(true); }}>Régulariser le surplus</Button> : null}
       </div>
+      <ConfirmDialog size="lg" open={receiveOpen} onOpenChange={(next) => { setReceiveOpen(next); if (!next) setReceiveError(null); }} title="Enregistrer la réception" confirmLabel="Confirmer les quantités reçues" pending={pending} error={receiveError} onConfirm={() => void submitReceipt()}>
+        <div className="space-y-4"><Alert>Contrôlez chaque produit. Les quantités acceptées deviennent disponibles à destination ; les endommagées et surplus restent tracés séparément.</Alert>{data.lines.map((line, index) => { const lineId = line.id; if (!lineId) return null; const values = receiveLines[lineId] ?? { accepted: "", damaged: "0", surplus: "0", remarks: "" }; return <section key={lineId} className="rounded-lg bg-[var(--surface-subtle)] p-4"><div className="flex flex-wrap items-start justify-between gap-2"><div><h3 className="font-semibold">{line.productName}</h3><p className="mt-1 text-sm text-[var(--muted)]">Ligne {index + 1}</p></div><Badge>Reliquat attendu : {line.remainingQty}</Badge></div><div className="mt-4 grid gap-3 sm:grid-cols-3"><Field id={`${lineId}-owner-accepted`} label="Accepté vendable" value={values.accepted} onChange={(event) => setReceiveLines((current) => ({ ...current, [lineId]: { ...values, accepted: event.target.value } }))} /><Field id={`${lineId}-owner-damaged`} label="Endommagé" value={values.damaged} onChange={(event) => setReceiveLines((current) => ({ ...current, [lineId]: { ...values, damaged: event.target.value } }))} /><Field id={`${lineId}-owner-surplus`} label="Surplus constaté" value={values.surplus} onChange={(event) => setReceiveLines((current) => ({ ...current, [lineId]: { ...values, surplus: event.target.value } }))} /></div><div className="mt-3"><Label htmlFor={`${lineId}-owner-remarks`}>Remarque (facultative)</Label><Textarea id={`${lineId}-owner-remarks`} value={values.remarks} onChange={(event) => setReceiveLines((current) => ({ ...current, [lineId]: { ...values, remarks: event.target.value } }))} /></div></section>; })}<label className="flex items-start gap-3 rounded-lg bg-[var(--surface-subtle)] p-4 text-sm"><input className="mt-1" type="checkbox" checked={deliveryComplete} onChange={(event) => setDeliveryComplete(event.target.checked)} /><span><strong className="block">La livraison est terminée</strong><span className="mt-1 block text-[var(--muted)]">Cochez uniquement si aucun autre colis n’est attendu. Tout manquant restant ouvrira un dossier d’écart.</span></span></label></div>
+      </ConfirmDialog>
       <ConfirmDialog open={surplusOpen} onOpenChange={(next) => { setSurplusOpen(next); if (!next) setSurplusError(null); }} title="Régulariser le surplus" confirmLabel="Valoriser et rendre vendable" pending={pending} error={surplusError} onConfirm={() => {
         if (!surplusReceipt || !surplusVariantId) return;
         setPending(true);
