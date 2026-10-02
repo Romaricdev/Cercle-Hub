@@ -154,6 +154,7 @@ export function AppShell({ role, children }: { role: "OWNER" | "MANAGER"; childr
     pathname.startsWith("/owner/sales/") ? "Détail de vente" :
     pathname.startsWith("/owner/sessions/") ? "Fiche de session" :
     pathname.startsWith("/owner/discrepancies/") ? "Dossier d’écart" :
+    pathname === paths.ownerPurchaseNew ? "Nouvel achat" :
     pathname.startsWith("/owner/purchases/") ? "Fiche d’achat" :
     pathname.startsWith("/owner/requests/") ? "Décision de demande" :
     pathname.startsWith("/owner/transfers/") ? "Suivi d’expédition" :

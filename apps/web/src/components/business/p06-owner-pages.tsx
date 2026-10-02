@@ -18,7 +18,7 @@ import { Label } from "../ui/label";
 import { PageHeader } from "../ui/page-header";
 import { Skeleton } from "../ui/skeleton";
 import { Textarea } from "../ui/textarea";
-import { buyerLabel, paymentStatus, purchaseStatus, receivedStatus, requestStatus, shipmentStatus, urgencyLabel } from "./p06-labels";
+import { buyerLabel, paymentStatus, receivedStatus, requestStatus, shipmentStatus, urgencyLabel } from "./p06-labels";
 
 type RequestRow = { id: string; status: string; urgency: string; comment: string; shopName: string; actorName: string; createdAt: string };
 type RequestDetail = {
@@ -209,20 +209,43 @@ export function OwnerRequestDetailPage() {
 export function OwnerPurchasesPage() {
   const [rows, setRows] = useState<PurchaseRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [status, setStatus] = useState("ALL");
   useEffect(() => {
     api<{ purchases: PurchaseRow[] }>("/api/v1/purchases").then((payload) => setRows(payload.purchases)).catch((caught: RequestError) => setError(caught.message));
   }, []);
   if (!rows && !error) return <Skeleton className="h-[32rem]" />;
+  const normalizedQuery = query.trim().toLowerCase();
+  const filtered = (rows ?? []).filter((row) => {
+    const matchesQuery = !normalizedQuery || `${row.reference} ${row.supplierName} ${row.shopName ?? ""}`.toLowerCase().includes(normalizedQuery);
+    const matchesStatus = status === "ALL" || (status === "TO_RECEIVE" ? row.receivedStatus !== "COMPLETE" : status === "TO_PAY" ? row.paymentStatus !== "PAID" : row.status === status);
+    return matchesQuery && matchesStatus;
+  });
+  const totalGoods = (rows ?? []).reduce((sum, row) => sum + BigInt(row.goodsMinor ?? "0"), 0n);
+  const awaitingReceipt = (rows ?? []).filter((row) => row.receivedStatus !== "COMPLETE").length;
+  const awaitingPayment = (rows ?? []).filter((row) => row.paymentStatus !== "PAID").length;
   return (
     <section className="space-y-6 overflow-x-clip">
       <PageHeader title="Achats" action={<Link href={paths.ownerPurchaseNew}><Button>Nouvel achat</Button></Link>}>Suivez paiements, expéditions et réceptions jusqu’à la clôture de contrôle.</PageHeader>
       {error ? <Alert tone="error">{error}</Alert> : null}
+      {(rows ?? []).length > 0 ? <>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <article className="rounded-xl bg-[var(--surface)] p-4 shadow-[var(--shadow-card)]"><p className="text-sm text-[var(--muted)]">Achats enregistrés</p><p className="mt-1 font-display text-2xl font-semibold tabular-nums">{rows?.length ?? 0}</p></article>
+          <article className="rounded-xl bg-[var(--surface)] p-4 shadow-[var(--shadow-card)]"><p className="text-sm text-[var(--muted)]">À réceptionner</p><p className="mt-1 font-display text-2xl font-semibold tabular-nums">{awaitingReceipt}</p></article>
+          <article className="rounded-xl bg-[var(--surface)] p-4 shadow-[var(--shadow-card)]"><p className="text-sm text-[var(--muted)]">Valeur des marchandises</p><p className="mt-1 font-display text-2xl font-semibold tabular-nums">{formatFcfa(totalGoods.toString())}</p><p className="mt-1 text-xs text-[var(--muted)]">{awaitingPayment} paiement{awaitingPayment > 1 ? "s" : ""} à solder</p></article>
+        </div>
+        <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_14rem]">
+          <label className="relative block"><Search className="absolute left-3 top-3.5 size-4 text-[var(--muted)]" /><span className="sr-only">Rechercher un achat</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Référence, fournisseur ou boutique" className="h-11 w-full rounded-lg bg-[var(--surface)] pl-10 pr-4 text-sm shadow-[var(--shadow-card)] outline-none focus:ring-2 focus:ring-[var(--focus)]" /></label>
+          <select aria-label="Filtrer les achats" value={status} onChange={(event) => setStatus(event.target.value)} className="h-11 rounded-lg bg-[var(--surface)] px-3 text-sm shadow-[var(--shadow-card)] outline-none focus:ring-2 focus:ring-[var(--focus)]"><option value="ALL">Tous les achats</option><option value="TO_RECEIVE">À réceptionner</option><option value="TO_PAY">À payer</option><option value="POSTED">Enregistrés</option></select>
+        </div>
+      </> : null}
       {(rows ?? []).length === 0 ? <EmptyState title="Aucun achat" icon={<Package className="size-5" />} action={<Link href={paths.ownerPurchaseNew}><Button>Enregistrer un achat</Button></Link>}>Créez un achat, répartissez les quantités, puis suivez chaque réception.</EmptyState> : (
         <>
-          <ul className="grid gap-3 xl:hidden">{(rows ?? []).map((row) => <li key={row.id}><Link href={`${paths.ownerPurchases}/${row.id}`} className="block rounded-xl bg-[var(--surface)] p-4 shadow-[var(--shadow-card)]"><p className="font-semibold">{row.reference}</p><p className="text-sm text-[var(--muted)]">{row.supplierName}</p><p className="mt-2 tabular-nums">{row.goodsMinor ? formatFcfa(row.goodsMinor) : "—"}</p></Link></li>)}</ul>
+          {filtered.length === 0 ? <EmptyState title="Aucun achat correspondant" icon={<Search className="size-5" />}>Modifiez la recherche ou le filtre pour retrouver un achat.</EmptyState> : null}
+          <ul className="grid gap-3 xl:hidden">{filtered.map((row) => <li key={row.id}><Link href={`${paths.ownerPurchases}/${row.id}`} className="block rounded-xl bg-[var(--surface)] p-4 shadow-[var(--shadow-card)]"><div className="flex items-start justify-between gap-3"><div><p className="font-semibold text-[var(--primary)]">{row.reference}</p><p className="mt-1 text-sm text-[var(--muted)]">{row.supplierName} · {row.shopName ?? "Organisation"}</p></div><Badge tone={receivedStatus[row.receivedStatus]?.tone ?? "neutral"}>{receivedStatus[row.receivedStatus]?.label ?? row.receivedStatus}</Badge></div><div className="mt-4 flex items-end justify-between gap-3"><div><p className="text-xs text-[var(--muted)]">Créé le {formatWhen(row.createdAt)}</p><span className="mt-2 block"><Badge tone={paymentStatus[row.paymentStatus]?.tone ?? "neutral"}>{paymentStatus[row.paymentStatus]?.label ?? row.paymentStatus}</Badge></span></div><p className="font-semibold tabular-nums">{row.goodsMinor ? formatFcfa(row.goodsMinor) : "—"}</p></div></Link></li>)}</ul>
           <div className="hidden overflow-x-auto rounded-xl bg-[var(--surface)] shadow-[var(--shadow-card)] xl:block">
-            <table className="w-full text-sm"><thead className="text-left text-[var(--muted)]"><tr><th className="px-5 py-3 font-medium">Référence</th><th className="px-5 py-3 font-medium">Fournisseur</th><th className="px-5 py-3 font-medium">État</th><th className="px-5 py-3 font-medium">Réception</th><th className="px-5 py-3 font-medium">Paiement</th><th className="px-5 py-3 text-right font-medium">Marchandises</th></tr></thead>
-            <tbody>{(rows ?? []).map((row) => <tr key={row.id} className="border-t border-[var(--separator)]/50"><td className="px-5 py-3"><Link className="text-[var(--primary)]" href={`${paths.ownerPurchases}/${row.id}`}>{row.reference}</Link></td><td className="px-5 py-3">{row.supplierName}</td><td className="px-5 py-3"><Badge tone={purchaseStatus[row.status]?.tone ?? "neutral"}>{purchaseStatus[row.status]?.label ?? row.status}</Badge></td><td className="px-5 py-3"><Badge tone={receivedStatus[row.receivedStatus]?.tone ?? "neutral"}>{receivedStatus[row.receivedStatus]?.label ?? row.receivedStatus}</Badge></td><td className="px-5 py-3"><Badge tone={paymentStatus[row.paymentStatus]?.tone ?? "neutral"}>{paymentStatus[row.paymentStatus]?.label ?? row.paymentStatus}</Badge></td><td className="px-5 py-3 text-right tabular-nums">{row.goodsMinor ? formatFcfa(row.goodsMinor) : "—"}</td></tr>)}</tbody></table>
+            <table className="w-full text-sm"><thead className="text-left text-[var(--muted)]"><tr><th className="px-5 py-3 font-medium">Achat</th><th className="px-5 py-3 font-medium">Fournisseur</th><th className="px-5 py-3 font-medium">Boutique</th><th className="px-5 py-3 font-medium">Réception</th><th className="px-5 py-3 font-medium">Paiement</th><th className="px-5 py-3 text-right font-medium">Marchandises</th></tr></thead>
+            <tbody>{filtered.map((row) => <tr key={row.id} className="border-t border-[var(--separator)]/50"><td className="px-5 py-4"><Link className="font-semibold text-[var(--primary)]" href={`${paths.ownerPurchases}/${row.id}`}>{row.reference}</Link><p className="mt-1 text-xs text-[var(--muted)]">{formatWhen(row.createdAt)}</p></td><td className="px-5 py-4">{row.supplierName}</td><td className="px-5 py-4">{row.shopName ?? "Organisation"}</td><td className="px-5 py-4"><Badge tone={receivedStatus[row.receivedStatus]?.tone ?? "neutral"}>{receivedStatus[row.receivedStatus]?.label ?? row.receivedStatus}</Badge></td><td className="px-5 py-4"><Badge tone={paymentStatus[row.paymentStatus]?.tone ?? "neutral"}>{paymentStatus[row.paymentStatus]?.label ?? row.paymentStatus}</Badge></td><td className="px-5 py-4 text-right font-semibold tabular-nums">{row.goodsMinor ? formatFcfa(row.goodsMinor) : "—"}</td></tr>)}</tbody></table>
           </div>
         </>
       )}
@@ -288,17 +311,17 @@ export function OwnerPurchaseNewPage() {
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="space-y-6">
           <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]">
-            <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="font-display font-semibold">Fournisseur</h2><p className="mt-1 text-sm text-[var(--muted)]">Sélectionnez l’entreprise qui facture cet achat.</p></div><Link className="text-sm font-semibold text-[var(--primary)]" href={paths.ownerSuppliers}>Gérer les fournisseurs</Link></div>
+            <div className="flex flex-wrap items-start justify-between gap-3"><div className="flex items-start gap-3"><span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[var(--primary)] text-sm font-semibold text-white">1</span><div><h2 className="font-display font-semibold">Fournisseur</h2><p className="mt-1 text-sm text-[var(--muted)]">Sélectionnez l’entreprise qui facture cet achat.</p></div></div><Link className="text-sm font-semibold text-[var(--primary)]" href={paths.ownerSuppliers}>Gérer les fournisseurs</Link></div>
             <div className="mt-4"><Label htmlFor="supplier">Entreprise fournisseur</Label><select id="supplier" aria-label="Fournisseur" value={supplierId} onChange={(event) => setSupplierId(event.target.value)} className="h-10 w-full rounded-md bg-[var(--surface-subtle)] px-3 text-sm"><option value="">Choisir un fournisseur</option>{catalog?.suppliers.map((supplier) => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}</select></div>
           </article>
           <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]">
-            <h2 className="font-display font-semibold">Produits et répartition</h2><p className="mt-1 text-sm text-[var(--muted)]">Chaque quantité achetée doit être intégralement affectée à un ou plusieurs lieux.</p>
+            <div className="flex items-start gap-3"><span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[var(--primary)] text-sm font-semibold text-white">2</span><div><h2 className="font-display font-semibold">Produits et répartition</h2><p className="mt-1 text-sm text-[var(--muted)]">Saisissez le prix facturé pour cet achat, puis affectez chaque quantité à un ou plusieurs lieux.</p></div></div>
             <div className="mt-4 grid gap-3 md:grid-cols-2">
               <div><Label htmlFor="product">Produit</Label><select id="product" value={productId} onChange={(event) => { setProductId(event.target.value); setVariantId(""); setUnitId(""); }} className="h-10 w-full rounded-md bg-[var(--surface-subtle)] px-3 text-sm"><option value="">Choisir</option>{catalog?.products.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></div>
               <div><Label htmlFor="variant">Variante</Label><select id="variant" value={variantId} onChange={(event) => setVariantId(event.target.value)} className="h-10 w-full rounded-md bg-[var(--surface-subtle)] px-3 text-sm"><option value="">Choisir</option>{product?.variants.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></div>
               <div><Label htmlFor="unit">Unité</Label><select id="unit" value={unitId} onChange={(event) => setUnitId(event.target.value)} className="h-10 w-full rounded-md bg-[var(--surface-subtle)] px-3 text-sm"><option value="">Choisir</option>{variant?.units.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></div>
               <Field id="qty" label="Quantité" value={quantity} onChange={(event) => setQuantity(event.target.value)} />
-              <Field id="price" label="Prix d’achat unitaire" inputMode="numeric" value={unitPrice} onChange={(event) => setUnitPrice(event.target.value.replace(/\D/g, ""))} />
+              <div><Field id="price" label="Prix d’achat unitaire (FCFA)" inputMode="numeric" value={unitPrice} onChange={(event) => setUnitPrice(event.target.value.replace(/\D/g, ""))} /><p className="mt-1.5 text-xs leading-5 text-[var(--muted)]">Prix de cette livraison. Il peut différer des achats précédents sans modifier leur historique.</p></div>
             </div>
             <Button className="mt-4" variant="secondary" disabled={!variant || !unitId || !unitPrice || !quantity} onClick={addLine}><Plus className="size-4" />Ajouter la ligne</Button>
             <ul className="mt-4 space-y-3">{lines.map((line, index) => (
@@ -317,10 +340,10 @@ export function OwnerPurchaseNewPage() {
             ))}</ul>
           </article>
           <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]">
-            <h2 className="font-display font-semibold">Frais et paiement initial</h2><p className="mt-1 text-sm text-[var(--muted)]">Le paiement peut être partiel. Le solde restant sera conservé comme montant dû au fournisseur.</p>
+            <div className="flex items-start gap-3"><span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[var(--primary)] text-sm font-semibold text-white">3</span><div><h2 className="font-display font-semibold">Frais et paiement initial</h2><p className="mt-1 text-sm text-[var(--muted)]">Séparez la facture fournisseur des frais externes. Le paiement peut être partiel.</p></div></div>
             <div className="mt-4 grid gap-3 md:grid-cols-2">
-              <Field id="fee" label="Frais fournisseur" inputMode="numeric" value={fee} onChange={(event) => setFee(event.target.value.replace(/\D/g, ""))} />
-              <Field id="transport" label="Transport externe" inputMode="numeric" value={transport} onChange={(event) => setTransport(event.target.value.replace(/\D/g, ""))} />
+              <div><Field id="fee" label="Frais facturés par le fournisseur" inputMode="numeric" value={fee} onChange={(event) => setFee(event.target.value.replace(/\D/g, ""))} /><p className="mt-1.5 text-xs text-[var(--muted)]">Ajoutés au montant dû au fournisseur.</p></div>
+              <div><Field id="transport" label="Transport payé à un tiers" inputMode="numeric" value={transport} onChange={(event) => setTransport(event.target.value.replace(/\D/g, ""))} /><p className="mt-1.5 text-xs text-[var(--muted)]">Intégré au coût du stock, sans augmenter la dette fournisseur.</p></div>
               <div className="md:col-span-2"><Label htmlFor="account">Source de paiement</Label><select id="account" value={accountId} onChange={(event) => setAccountId(event.target.value)} className="h-10 w-full rounded-md bg-[var(--surface-subtle)] px-3 text-sm"><option value="">Aucun paiement maintenant</option>{catalog?.accounts.map((account) => <option key={account.id} value={account.id}>{account.name}{account.balanceMinor ? ` · solde ${formatFcfa(account.balanceMinor)}` : ""}</option>)}</select></div>
               <Field id="pay" label="Montant payé maintenant (FCFA)" inputMode="numeric" value={payNow} onChange={(event) => setPayNow(event.target.value.replace(/\D/g, ""))} />
               <div className="rounded-lg bg-[var(--surface-subtle)] p-3 text-sm"><p className="text-[var(--muted)]">Solde prévisionnel de la source</p><p className={`mt-1 font-semibold tabular-nums ${balanceAfterPayment !== null && balanceAfterPayment < 0n ? "text-[var(--destructive)]" : ""}`}>{balanceAfterPayment === null ? "Sélectionnez une source" : formatFcfa(balanceAfterPayment.toString())}</p></div>
@@ -333,7 +356,7 @@ export function OwnerPurchaseNewPage() {
           {!allocationsValid && lines.length > 0 ? <Alert tone="warning" className="mt-4">Répartissez exactement toute la quantité de chaque ligne avant l’enregistrement.</Alert> : null}
           {!paymentValid ? <Alert tone="error" className="mt-4">Le paiement dépasse le total ou le solde disponible de la source.</Alert> : null}
           <Button className="mt-4 w-full" disabled={pending || !supplierId || !allocationsValid || !paymentValid} onClick={() => void submit()}>{pending ? "Enregistrement…" : "Enregistrer l’achat"}</Button>
-          <p className="mt-3 text-xs leading-5 text-[var(--muted)]">Le stock ne sera valorisé qu’après validation de la réception physique.</p>
+          <p className="mt-3 text-xs leading-5 text-[var(--muted)]">Le prix saisi est conservé sur cet achat. Le stock ne sera valorisé qu’après validation de la réception physique.</p>
         </aside>
       </div>
     </section>
@@ -345,15 +368,19 @@ export function OwnerPurchaseDetailPage() {
   const [data, setData] = useState<{
     reference: string;
     supplier: { name: string };
+    shopName: string | null;
+    createdAt: string;
     goodsMinor?: string;
+    supplierFeesMinor?: string;
+    externalFeesMinor?: string;
     paidMinor?: string;
     dueMinor?: string;
     stockValueMinor?: string;
     receivedStatus: string;
     paymentStatus: string;
-    lines: Array<{ id: string; productName: string; variantName: string; quantityBase: string; unitPriceMinor?: string; destinations: Array<{ locationName: string; qtyBase: string }> }>;
+    lines: Array<{ id: string; productName: string; variantName: string; unitName: string; quantityBase: string; receivedQtyBase: string; unitPriceMinor?: string; goodsMinor?: string; destinations: Array<{ locationName: string; qtyBase: string; receivedQtyBase: string }> }>;
     fees: Array<{ kind: string; amountMinor: string; description: string }>;
-    payments: Array<{ id: string; amountMinor: string; accountName: string }>;
+    payments: Array<{ id: string; amountMinor: string; accountName: string; createdAt: string }>;
     shipments: Array<{ id: string; status: string; destinationName: string; lines: Array<{ remainingQty: string }> }>;
     capabilities: { canPay: boolean };
   } | null>(null);
@@ -368,18 +395,21 @@ export function OwnerPurchaseDetailPage() {
   useEffect(() => { void load(); api<Catalog>("/api/v1/replenishment/context").then((payload) => setAccounts(payload.accounts)).catch(() => undefined); }, [params.id]);
   if (!data && !error) return <Skeleton className="h-80" />;
   if (!data) return <Alert tone="error">{error}</Alert>;
+  const supplierTotal = BigInt(data.goodsMinor ?? "0") + BigInt(data.supplierFeesMinor ?? "0");
+  const acquisitionTotal = supplierTotal + BigInt(data.externalFeesMinor ?? "0");
   return (
     <section className="space-y-6 overflow-x-clip">
-      <PageHeader title={data.reference} action={data.capabilities.canPay ? <Button onClick={() => { setPayError(null); setPayOpen(true); }}>Enregistrer un paiement</Button> : undefined}>{data.supplier.name}</PageHeader>
+      <PageHeader title={data.reference} action={data.capabilities.canPay ? <Button onClick={() => { setPayError(null); setPayOpen(true); }}>Enregistrer un paiement</Button> : undefined}>{data.supplier.name} · {data.shopName ?? "Achat de l’organisation"} · {formatWhen(data.createdAt)}</PageHeader>
       {error ? <Alert tone="error">{error}</Alert> : null}
       <div className="flex flex-wrap gap-2"><Badge tone={receivedStatus[data.receivedStatus]?.tone ?? "neutral"}>{receivedStatus[data.receivedStatus]?.label ?? data.receivedStatus}</Badge><Badge tone={paymentStatus[data.paymentStatus]?.tone ?? "neutral"}>{paymentStatus[data.paymentStatus]?.label ?? data.paymentStatus}</Badge></div>
-      <div className="grid gap-4 md:grid-cols-3">
-        <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]"><p className="text-sm text-[var(--muted)]">Marchandises</p><p className="mt-1 font-display text-lg">{formatFcfa(data.goodsMinor)}</p></article>
-        <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]"><p className="text-sm text-[var(--muted)]">Valeur stock</p><p className="mt-1 font-display text-lg">{formatFcfa(data.stockValueMinor)}</p></article>
-        <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]"><p className="text-sm text-[var(--muted)]">Reste dû</p><p className="mt-1 font-display text-lg">{formatFcfa(data.dueMinor)}</p></article>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]"><p className="text-sm text-[var(--muted)]">Facture fournisseur</p><p className="mt-1 font-display text-xl font-semibold tabular-nums">{formatFcfa(supplierTotal.toString())}</p><p className="mt-1 text-xs text-[var(--muted)]">Marchandises et frais fournisseur</p></article>
+        <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]"><p className="text-sm text-[var(--muted)]">Coût d’acquisition</p><p className="mt-1 font-display text-xl font-semibold tabular-nums">{formatFcfa(acquisitionTotal.toString())}</p><p className="mt-1 text-xs text-[var(--muted)]">Avec frais externes</p></article>
+        <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]"><p className="text-sm text-[var(--muted)]">Valeur reçue en stock</p><p className="mt-1 font-display text-xl font-semibold tabular-nums">{formatFcfa(data.stockValueMinor)}</p><p className="mt-1 text-xs text-[var(--muted)]">Après réception physique</p></article>
+        <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]"><p className="text-sm text-[var(--muted)]">Reste dû au fournisseur</p><p className="mt-1 font-display text-xl font-semibold tabular-nums">{formatFcfa(data.dueMinor)}</p><p className="mt-1 text-xs text-[var(--muted)]">Payé : {formatFcfa(data.paidMinor)}</p></article>
       </div>
-      <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]"><h2 className="font-display font-semibold">Produits achetés</h2><ul className="mt-3 divide-y divide-[var(--separator)]/60">{data.lines.map((line) => <li key={line.id} className="grid gap-3 py-4 text-sm md:grid-cols-[minmax(0,1fr)_auto]"><div><p className="font-medium">{line.productName} · {line.variantName}</p><p className="mt-1 text-[var(--muted)]">Quantité : {line.quantityBase}</p></div><div className="md:text-right"><p className="font-semibold tabular-nums">{line.unitPriceMinor ? formatFcfa(line.unitPriceMinor) : "—"} / unité</p><p className="mt-1 text-[var(--muted)]">{line.destinations.map((destination) => `${destination.locationName} : ${destination.qtyBase}`).join(" · ")}</p></div></li>)}</ul></article>
-      <div className="grid gap-4 lg:grid-cols-2"><article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]"><h2 className="font-display font-semibold">Frais et paiements</h2>{data.fees.length === 0 && data.payments.length === 0 ? <p className="mt-3 text-sm text-[var(--muted)]">Aucun frais ou paiement enregistré.</p> : <><ul className="mt-3 divide-y divide-[var(--separator)]/60 text-sm">{data.fees.map((fee, index) => <li key={`${fee.kind}-${index}`} className="flex justify-between gap-3 py-3"><span>{fee.description}</span><strong className="tabular-nums">{formatFcfa(fee.amountMinor)}</strong></li>)}{data.payments.map((payment) => <li key={payment.id} className="flex justify-between gap-3 py-3"><span>Paiement · {payment.accountName}</span><strong className="tabular-nums">{formatFcfa(payment.amountMinor)}</strong></li>)}</ul></>}</article><article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]"><h2 className="font-display font-semibold">Expéditions</h2>{data.shipments.length === 0 ? <p className="mt-3 text-sm text-[var(--muted)]">Aucune expédition créée.</p> : <ul className="mt-3 divide-y divide-[var(--separator)]/60">{data.shipments.map((shipment) => <li key={shipment.id} className="flex items-center justify-between gap-3 py-3 text-sm"><Link className="inline-flex items-center gap-2 font-medium text-[var(--primary)]" href={`${paths.ownerTransfers}/${shipment.id}`}>{shipment.destinationName}<ArrowRight className="size-4" /></Link><Badge tone={shipmentStatus[shipment.status]?.tone ?? "neutral"}>{shipmentStatus[shipment.status]?.label ?? shipment.status}</Badge></li>)}</ul>}</article></div>
+      <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]"><div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="font-display font-semibold">Produits achetés</h2><p className="mt-1 text-sm text-[var(--muted)]">Le prix d’achat appartient à cette acquisition et reste consultable dans son historique.</p></div><Badge tone="info">{data.lines.length} ligne{data.lines.length > 1 ? "s" : ""}</Badge></div><ul className="mt-4 grid gap-3">{data.lines.map((line) => <li key={line.id} className="rounded-lg bg-[var(--surface-subtle)] p-4"><div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-start"><div><p className="font-semibold">{line.productName}</p><p className="mt-1 text-sm text-[var(--muted)]">{line.variantName} · {line.quantityBase} {line.unitName}</p></div><div className="md:text-right"><p className="text-xs text-[var(--muted)]">Prix d’achat unitaire</p><p className="font-semibold tabular-nums">{line.unitPriceMinor ? formatFcfa(line.unitPriceMinor) : "—"}</p></div><div className="md:w-32 md:text-right"><p className="text-xs text-[var(--muted)]">Sous-total</p><p className="font-semibold tabular-nums">{line.goodsMinor ? formatFcfa(line.goodsMinor) : "—"}</p></div></div><div className="mt-3 flex flex-wrap gap-2">{line.destinations.map((destination) => <span key={destination.locationName} className="rounded-md bg-[var(--surface)] px-3 py-1.5 text-xs"><span className="font-medium">{destination.locationName}</span> · reçu {destination.receivedQtyBase} / {destination.qtyBase}</span>)}</div></li>)}</ul></article>
+      <div className="grid gap-4 lg:grid-cols-2"><article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]"><h2 className="font-display font-semibold">Frais et paiements</h2>{data.fees.length === 0 && data.payments.length === 0 ? <p className="mt-3 text-sm text-[var(--muted)]">Aucun frais ou paiement enregistré.</p> : <><ul className="mt-3 divide-y divide-[var(--separator)]/60 text-sm">{data.fees.map((fee, index) => <li key={`${fee.kind}-${index}`} className="flex justify-between gap-3 py-3"><span><span className="font-medium">{fee.description}</span><span className="mt-0.5 block text-xs text-[var(--muted)]">{fee.kind === "SUPPLIER" ? "Facturé par le fournisseur" : "Frais externe d’acquisition"}</span></span><strong className="tabular-nums">{formatFcfa(fee.amountMinor)}</strong></li>)}{data.payments.map((payment) => <li key={payment.id} className="flex justify-between gap-3 py-3"><span><span className="font-medium">Paiement · {payment.accountName}</span><span className="mt-0.5 block text-xs text-[var(--muted)]">{formatWhen(payment.createdAt)}</span></span><strong className="tabular-nums text-[var(--success)]">− {formatFcfa(payment.amountMinor)}</strong></li>)}</ul></>}</article><article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]"><h2 className="font-display font-semibold">Réceptions et expéditions</h2><p className="mt-1 text-sm text-[var(--muted)]">Suivez l’arrivée physique des marchandises par destination.</p>{data.shipments.length === 0 ? <p className="mt-3 text-sm text-[var(--muted)]">Aucune expédition créée.</p> : <ul className="mt-3 divide-y divide-[var(--separator)]/60">{data.shipments.map((shipment) => <li key={shipment.id} className="flex items-center justify-between gap-3 py-3 text-sm"><Link className="inline-flex items-center gap-2 font-medium text-[var(--primary)]" href={`${paths.ownerTransfers}/${shipment.id}`}>{shipment.destinationName}<ArrowRight className="size-4" /></Link><Badge tone={shipmentStatus[shipment.status]?.tone ?? "neutral"}>{shipmentStatus[shipment.status]?.label ?? shipment.status}</Badge></li>)}</ul>}</article></div>
       <ConfirmDialog open={payOpen} onOpenChange={(next) => { setPayOpen(next); if (!next) setPayError(null); }} title="Paiement fournisseur" confirmLabel="Enregistrer le paiement" pending={pending} error={payError} onConfirm={() => { setPending(true); api(`/api/v1/purchases/${params.id}/pay`, { method: "POST", body: JSON.stringify({ accountId, amountMinor: amount }) }).then(() => { setPayOpen(false); void load(); }).catch((caught: RequestError) => setPayError(caught.message)).finally(() => setPending(false)); }}>
         <div className="grid gap-3"><Field id="pay-amount" label="Montant" inputMode="numeric" value={amount} onChange={(event) => setAmount(event.target.value.replace(/\D/g, ""))} /><div><Label htmlFor="pay-account">Source</Label><select id="pay-account" value={accountId} onChange={(event) => setAccountId(event.target.value)} className="h-10 w-full rounded-md bg-[var(--surface-subtle)] px-3 text-sm">{accounts.map((account) => <option key={account.id} value={account.id}>{account.name}</option>)}</select></div></div>
       </ConfirmDialog>

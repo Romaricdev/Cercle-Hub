@@ -638,6 +638,16 @@ Vérifications exécutées : `corepack pnpm db:seed-local-full` code 0 sur `cerc
 
 Vérifications exécutées : `corepack pnpm lint` code 0 ; `corepack pnpm typecheck` code 0 ; `corepack pnpm test:unit` **39/39** ; `corepack pnpm --filter @cercle/web build` code 0, **44 pages**.
 
+### Raffinement du parcours d’achat propriétaire — 2 octobre 2026
+
+- La liste des achats affiche des indicateurs de volume, les réceptions et paiements restant à traiter, une recherche par référence, fournisseur ou boutique et des filtres opérationnels. Les cartes mobiles reprennent les statuts, la date et le montant ; le tableau ordinateur ajoute la boutique et la date de création.
+- La création est structurée en trois étapes visibles : fournisseur, produits et répartition, puis frais et paiement. Le prix unitaire est présenté comme le prix propre à la livraison courante ; une variation ne réécrit donc aucun achat antérieur.
+- Les frais facturés par le fournisseur sont distingués des frais externes. La synthèse sépare marchandises, frais d’acquisition, coût prévu, montant payé et dette fournisseur.
+- La fiche d’achat distingue facture fournisseur, coût total d’acquisition, valeur effectivement reçue en stock et reste dû. Chaque ligne expose prix unitaire, sous-total et progression de réception par destination ; les frais et paiements sont datés et qualifiés.
+- Le fil d’Ariane de `/owner/purchases/new` affiche désormais « Nouvel achat » au lieu de « Fiche d’achat ».
+
+Vérifications exécutées : `corepack pnpm lint` code 0 ; `corepack pnpm typecheck` code 0 ; `corepack pnpm test:unit` **39/39** ; `corepack pnpm --filter @cercle/web build` code 0, **44 pages**.
+
 ### Fiche et décision de demande propriétaire — 2 octobre 2026
 
 - La fiche propriétaire adopte une composition à deux colonnes sur ordinateur : besoin et historique à gauche, estimation et décision à droite. Elle revient en une colonne sur tablette et téléphone.
