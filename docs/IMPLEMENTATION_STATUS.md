@@ -637,3 +637,12 @@ Vérifications exécutées : `corepack pnpm db:seed-local-full` code 0 sur `cerc
 - Les mouvements de fonds affichent les totaux envoyé, réceptionné et encore en transit. Le formulaire matérialise l’itinéraire source-destination et chaque mouvement expose sa progression financière avant l’action de réception.
 
 Vérifications exécutées : `corepack pnpm lint` code 0 ; `corepack pnpm typecheck` code 0 ; `corepack pnpm test:unit` **39/39** ; `corepack pnpm --filter @cercle/web build` code 0, **44 pages**.
+
+### Fiche et décision de demande propriétaire — 2 octobre 2026
+
+- La fiche propriétaire adopte une composition à deux colonnes sur ordinateur : besoin et historique à gauche, estimation et décision à droite. Elle revient en une colonne sur tablette et téléphone.
+- Chaque produit affiche sa variante, sa quantité avec une unité accordée, son coût unitaire estimé et son sous-total. La synthèse distingue marchandises, frais et budget suggéré, tout en signalant les estimations incomplètes.
+- La modale de décision est élargie et rappelle la demande examinée. Pour une approbation, le budget est prérempli depuis les estimations mais reste modifiable ; tout écart avec la suggestion est affiché avant validation.
+- Le plafond global est réparti entre les lignes selon leur poids estimé et le dernier reliquat est affecté exactement à la dernière ligne. Le budget total n’est donc plus recopié comme plafond sur chaque produit.
+
+Vérifications exécutées : `corepack pnpm lint` code 0 ; `corepack pnpm typecheck` code 0 ; `corepack pnpm test:unit` **39/39** ; `corepack pnpm --filter @cercle/web build` code 0, **44 pages**.

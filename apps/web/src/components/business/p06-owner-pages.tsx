@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, ClipboardList, Mail, MapPin, Package, Phone, Plus, Search, Trash2, Truck, Warehouse } from "lucide-react";
+import { ArrowRight, Calculator, CheckCircle2, ClipboardList, Mail, MapPin, Package, Phone, Plus, Search, Store, Trash2, Truck, UserRound, Warehouse } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -28,6 +28,8 @@ type RequestDetail = {
   comment: string;
   shopName: string;
   actorName: string;
+  estimatedFeesMinor: string;
+  suggestedSupplier: { name: string } | null;
   lines: Array<{ id: string; productName: string; variantName: string; unitName: string; quantityBase: string; estimatedUnitMinor: string | null }>;
   actions: Array<{ id: string; text: string; actorName: string; createdAt: string }>;
   approval: null | { budgetMinor: string; remainingBudgetMinor: string; buyer: string | null; reason: string | null };
@@ -89,6 +91,12 @@ function quantityNumber(value: string) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function quantityWithUnit(quantity: string, unit: string) {
+  const normalized = unit.charAt(0).toLowerCase() + unit.slice(1);
+  const label = quantityNumber(quantity) > 1 && !normalized.endsWith("s") ? `${normalized}s` : normalized;
+  return `${quantity} ${label}`;
+}
+
 export function OwnerRequestsPage() {
   const [rows, setRows] = useState<RequestRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -134,35 +142,64 @@ export function OwnerRequestDetailPage() {
   async function decide() {
     setPending(true); setModalError(null);
     try {
-      await api(`/api/v1/requests/${params.id}/decision`, { method: "POST", body: JSON.stringify({ outcome, reason: reason || undefined, budgetMinor: budget || undefined, buyer: outcome === "APPROVED" || outcome === "PARTIAL" ? buyer : undefined, lines: data?.lines.map((line) => ({ requestLineId: line.id, maxQtyBase: line.quantityBase, maxAmountMinor: budget || "0" })) }) });
+      const authorizedBudget = BigInt(budget || "0");
+      const weights = (data?.lines ?? []).map((line) => line.estimatedUnitMinor ? lineAmount(line.estimatedUnitMinor, line.quantityBase) : 1n);
+      const weightTotal = weights.reduce((sum, value) => sum + value, 0n);
+      let allocated = 0n;
+      const decisionLines = (data?.lines ?? []).map((line, index, all) => {
+        const amount = index === all.length - 1 ? authorizedBudget - allocated : weightTotal > 0n ? authorizedBudget * weights[index]! / weightTotal : 0n;
+        allocated += amount;
+        return { requestLineId: line.id, maxQtyBase: line.quantityBase, maxAmountMinor: amount.toString() };
+      });
+      await api(`/api/v1/requests/${params.id}/decision`, { method: "POST", body: JSON.stringify({ outcome, reason: reason || undefined, budgetMinor: budget || undefined, buyer: outcome === "APPROVED" || outcome === "PARTIAL" ? buyer : undefined, lines: decisionLines }) });
       setOpen(false);
       await load();
     } catch (caught) { setModalError((caught as RequestError).message); } finally { setPending(false); }
   }
   if (!data && !error) return <Skeleton className="h-[32rem]" />;
   if (!data) return <Alert tone="error">{error}</Alert>;
+  const pricedLines = data.lines.filter((line) => line.estimatedUnitMinor !== null);
+  const estimatedGoods = pricedLines.reduce((sum, line) => sum + lineAmount(line.estimatedUnitMinor ?? "0", line.quantityBase), 0n);
+  const estimatedFees = BigInt(data.estimatedFeesMinor || "0");
+  const estimateComplete = pricedLines.length === data.lines.length;
+  const suggestedBudget = estimateComplete ? estimatedGoods + estimatedFees : null;
+  function openDecision() {
+    setModalError(null);
+    setReason("");
+    setOutcome("APPROVED");
+    setBuyer("MANAGER");
+    setBudget(suggestedBudget?.toString() ?? "");
+    setOpen(true);
+  }
   return (
     <section className="space-y-6 overflow-x-clip">
-      <PageHeader title={`Demande · ${data.shopName}`} action={data.capabilities.canDecide ? <Button onClick={() => { setModalError(null); setOpen(true); }}>Décider</Button> : undefined}>{data.actorName} · {urgencyLabel[data.urgency]}</PageHeader>
+      <PageHeader title={`Demande · ${data.shopName}`}>{data.actorName} · version {data.versions.at(-1)?.version ?? 1}</PageHeader>
       {error ? <Alert tone="error">{error}</Alert> : null}
-      <div className="flex flex-wrap gap-2"><Badge tone={requestStatus[data.status]?.tone ?? "neutral"}>{requestStatus[data.status]?.label ?? data.status}</Badge><Badge>{urgencyLabel[data.urgency]}</Badge></div>
-      <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]"><h2 className="font-display font-semibold">Besoin exprimé</h2><p className="mt-2 max-w-4xl text-sm leading-6">{data.comment}</p><p className="mt-3 text-xs text-[var(--muted)]">Demandé par {data.actorName} · version {data.versions.at(-1)?.version ?? 1}</p></article>
-      <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]">
-        <h2 className="font-display font-semibold">Lignes</h2>
-        <ul className="mt-3 divide-y divide-[var(--separator)]/60">{data.lines.map((line) => <li key={line.id} className="flex justify-between py-3 text-sm"><span>{line.productName} · {line.variantName}</span><span>{line.quantityBase} {line.unitName}</span></li>)}</ul>
+      <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)] sm:p-6">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between"><div className="min-w-0"><div className="flex flex-wrap gap-2"><Badge tone={requestStatus[data.status]?.tone ?? "neutral"}>{requestStatus[data.status]?.label ?? data.status}</Badge><Badge>{`Urgence ${urgencyLabel[data.urgency]?.toLowerCase()}`}</Badge></div><h2 className="mt-4 max-w-3xl font-display text-xl font-semibold leading-8">{data.comment}</h2>{data.suggestedSupplier ? <p className="mt-3 text-sm text-[var(--muted)]">Fournisseur envisagé : <span className="font-medium text-[var(--text)]">{data.suggestedSupplier.name}</span></p> : <p className="mt-3 text-sm text-[var(--muted)]">Aucun fournisseur proposé</p>}</div><dl className="grid shrink-0 gap-3 text-sm sm:grid-cols-2 lg:min-w-72 lg:grid-cols-1"><div className="flex items-center gap-3 rounded-lg bg-[var(--surface-subtle)] px-3 py-2"><Store className="size-4 text-[var(--primary)]" /><div><dt className="text-xs text-[var(--muted)]">Boutique</dt><dd className="font-semibold">{data.shopName}</dd></div></div><div className="flex items-center gap-3 rounded-lg bg-[var(--surface-subtle)] px-3 py-2"><UserRound className="size-4 text-[var(--primary)]" /><div><dt className="text-xs text-[var(--muted)]">Demandé par</dt><dd className="font-semibold">{data.actorName}</dd></div></div></dl></div>
       </article>
-      {data.approval ? <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]"><h2 className="font-display font-semibold">Dernier accord</h2><dl className="mt-4 grid gap-4 text-sm sm:grid-cols-3"><div><dt className="text-[var(--muted)]">Budget autorisé</dt><dd className="mt-1 font-semibold tabular-nums">{formatFcfa(data.approval.budgetMinor)}</dd></div><div><dt className="text-[var(--muted)]">Budget restant</dt><dd className="mt-1 font-semibold tabular-nums">{formatFcfa(data.approval.remainingBudgetMinor)}</dd></div><div><dt className="text-[var(--muted)]">Acheteur</dt><dd className="mt-1 font-semibold">{buyerLabel[data.approval.buyer ?? ""] ?? "—"}</dd></div></dl>{data.approval.reason ? <p className="mt-4 rounded-lg bg-[var(--surface-subtle)] p-3 text-sm">{data.approval.reason}</p> : null}</article> : null}
-      <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]"><h2 className="font-display font-semibold">Historique</h2><ol className="mt-4 border-l-2 border-[var(--separator)] pl-5">{data.actions.map((action) => <li key={action.id} className="relative pb-5 text-sm last:pb-0"><span className="absolute -left-[1.65rem] top-1 size-3 rounded-full bg-[var(--primary)]" /><p className="font-medium">{action.actorName}</p><p className="mt-1 text-[var(--muted)]">{action.text}</p><p className="mt-1 text-xs text-[var(--muted)]">{formatWhen(action.createdAt)}</p></li>)}</ol></article>
-      <ConfirmDialog open={open} onOpenChange={(next) => { setOpen(next); if (!next) setModalError(null); }} title="Décision sur la demande" confirmLabel="Enregistrer la décision" pending={pending} error={modalError} onConfirm={() => void decide()}>
-        <div className="grid gap-3">
-          <div><Label htmlFor="outcome">Décision</Label><select id="outcome" value={outcome} onChange={(event) => setOutcome(event.target.value as typeof outcome)} className="h-10 w-full rounded-md bg-[var(--surface-subtle)] px-3 text-sm"><option value="APPROVED">Approuver</option><option value="PARTIAL">Approuver partiellement</option><option value="NEEDS_INFO">Demander une précision</option><option value="REJECTED">Refuser</option></select></div>
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="space-y-6">
+          <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]"><div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="font-display font-semibold">Produits demandés</h2><p className="mt-1 text-sm text-[var(--muted)]">Quantités et estimations transmises par la boutique.</p></div><Badge tone="info">{data.lines.length} ligne{data.lines.length > 1 ? "s" : ""}</Badge></div><ul className="mt-4 grid gap-2">{data.lines.map((line) => { const subtotal = line.estimatedUnitMinor ? lineAmount(line.estimatedUnitMinor, line.quantityBase) : null; return <li key={line.id} className="grid gap-3 rounded-lg bg-[var(--surface-subtle)] px-4 py-3 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center"><div><p className="font-semibold">{line.productName}</p><p className="text-sm text-[var(--muted)]">{line.variantName}</p></div><div className="sm:text-right"><p className="font-semibold tabular-nums">{quantityWithUnit(line.quantityBase, line.unitName)}</p>{line.estimatedUnitMinor ? <p className="text-xs text-[var(--muted)]">{formatFcfa(line.estimatedUnitMinor)} / {line.unitName.toLowerCase()}</p> : <p className="text-xs text-[var(--muted)]">Prix non estimé</p>}</div><div className="sm:w-32 sm:text-right"><p className="text-xs text-[var(--muted)]">Sous-total</p><p className="font-semibold tabular-nums">{subtotal === null ? "—" : formatFcfa(subtotal.toString())}</p></div></li>; })}</ul></article>
+          <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]"><h2 className="font-display font-semibold">Historique du dossier</h2><ol className="mt-4 space-y-0">{data.actions.map((action, index) => <li key={action.id} className="relative grid grid-cols-[1.25rem_1fr] gap-3 pb-5 last:pb-0"><div className="relative flex justify-center"><span className="mt-1.5 size-2.5 rounded-full bg-[var(--primary)]" />{index < data.actions.length - 1 ? <span className="absolute top-4 h-[calc(100%-0.25rem)] w-px bg-[var(--separator)]" /> : null}</div><div><div className="flex flex-wrap items-baseline justify-between gap-2"><p className="font-medium">{action.actorName}</p><time className="text-xs text-[var(--muted)]">{formatWhen(action.createdAt)}</time></div><p className="mt-1 text-sm leading-6 text-[var(--muted)]">{action.text}</p></div></li>)}</ol></article>
+        </div>
+        <aside className="space-y-4 xl:sticky xl:top-4">
+          <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]"><div className="flex items-center gap-2"><Calculator className="size-5 text-[var(--primary)]" /><h2 className="font-display font-semibold">Estimation</h2></div><dl className="mt-4 grid gap-3 text-sm"><div className="flex justify-between gap-4"><dt className="text-[var(--muted)]">Marchandises</dt><dd className="font-semibold tabular-nums">{pricedLines.length ? formatFcfa(estimatedGoods.toString()) : "—"}</dd></div><div className="flex justify-between gap-4"><dt className="text-[var(--muted)]">Frais estimés</dt><dd className="font-semibold tabular-nums">{formatFcfa(estimatedFees.toString())}</dd></div><div className="h-px bg-[var(--separator)]/60" /><div className="flex justify-between gap-4"><dt className="font-semibold">Budget suggéré</dt><dd className="font-semibold tabular-nums text-[var(--primary)]">{suggestedBudget === null ? "À préciser" : formatFcfa(suggestedBudget.toString())}</dd></div></dl>{!estimateComplete ? <p className="mt-4 rounded-lg bg-[var(--surface-subtle)] p-3 text-sm leading-6 text-[var(--muted)]">Au moins un prix manque. Vérifiez le budget avant de décider.</p> : null}</article>
+          {data.approval ? <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]"><div className="flex items-center gap-2"><CheckCircle2 className="size-5 text-[var(--success)]" /><h2 className="font-display font-semibold">Dernier accord</h2></div><dl className="mt-4 grid gap-3 text-sm"><div><dt className="text-[var(--muted)]">Budget autorisé</dt><dd className="font-semibold tabular-nums">{formatFcfa(data.approval.budgetMinor)}</dd></div><div><dt className="text-[var(--muted)]">Budget restant</dt><dd className="font-semibold tabular-nums">{formatFcfa(data.approval.remainingBudgetMinor)}</dd></div><div><dt className="text-[var(--muted)]">Acheteur</dt><dd className="font-semibold">{buyerLabel[data.approval.buyer ?? ""] ?? "—"}</dd></div></dl>{data.approval.reason ? <p className="mt-4 rounded-lg bg-[var(--surface-subtle)] p-3 text-sm">{data.approval.reason}</p> : null}</article> : null}
+          {data.capabilities.canDecide ? <div className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]"><h2 className="font-display font-semibold">Décision attendue</h2><p className="mt-2 text-sm leading-6 text-[var(--muted)]">Validez un plafond, demandez une précision ou refusez la demande.</p><Button className="mt-4 w-full" onClick={openDecision}>Examiner et décider<ArrowRight className="size-4" /></Button></div> : null}
+        </aside>
+      </div>
+      <ConfirmDialog size="md" open={open} onOpenChange={(next) => { setOpen(next); if (!next) setModalError(null); }} title="Décision sur la demande" confirmLabel="Enregistrer la décision" pending={pending} error={modalError} onConfirm={() => void decide()}>
+        <div className="grid gap-5">
+          <div className="rounded-lg bg-[var(--surface-subtle)] p-4"><p className="text-xs font-medium uppercase tracking-wide text-[var(--muted)]">Demande examinée</p><p className="mt-1 font-semibold text-[var(--text)]">{data.shopName} · {data.lines.length} produit{data.lines.length > 1 ? "s" : ""}</p><p className="mt-1 text-sm">Budget suggéré : <span className="font-semibold tabular-nums">{suggestedBudget === null ? "incomplet" : formatFcfa(suggestedBudget.toString())}</span></p></div>
+          <div><Label htmlFor="outcome">Décision</Label><select id="outcome" value={outcome} onChange={(event) => setOutcome(event.target.value as typeof outcome)} className="h-11 w-full rounded-md bg-[var(--surface-subtle)] px-3 text-sm"><option value="APPROVED">Approuver</option><option value="PARTIAL">Approuver partiellement</option><option value="NEEDS_INFO">Demander une précision</option><option value="REJECTED">Refuser</option></select></div>
           {(outcome === "APPROVED" || outcome === "PARTIAL") ? (
             <>
-              <Field id="budget" label="Budget autorisé (FCFA)" inputMode="numeric" value={budget} onChange={(event) => setBudget(event.target.value.replace(/\D/g, ""))} />
-              <div><Label htmlFor="buyer">Acheteur</Label><select id="buyer" value={buyer} onChange={(event) => setBuyer(event.target.value)} className="h-10 w-full rounded-md bg-[var(--surface-subtle)] px-3 text-sm"><option value="MANAGER">Gérant</option><option value="OWNER">Propriétaire</option><option value="EXISTING_STOCK">Stock existant</option></select></div>
+              <div><Field id="budget" label="Budget maximal autorisé (FCFA)" inputMode="numeric" value={budget} onChange={(event) => setBudget(event.target.value.replace(/\D/g, ""))} /><p className="mt-1.5 text-xs leading-5 text-[var(--muted)]">Prérempli depuis les estimations. Vous pouvez modifier ce plafond avant validation.</p>{suggestedBudget !== null && budget && BigInt(budget) !== suggestedBudget ? <p className="mt-2 rounded-md bg-[var(--surface-subtle)] px-3 py-2 text-xs">Écart avec l’estimation : <span className="font-semibold tabular-nums">{formatFcfa((BigInt(budget) - suggestedBudget).toString())}</span></p> : null}</div>
+              <div><Label htmlFor="buyer">Acheteur désigné</Label><select id="buyer" value={buyer} onChange={(event) => setBuyer(event.target.value)} className="h-11 w-full rounded-md bg-[var(--surface-subtle)] px-3 text-sm"><option value="MANAGER">Gérant de la boutique</option><option value="OWNER">Propriétaire</option><option value="EXISTING_STOCK">Servir depuis le stock existant</option></select></div>
             </>
           ) : null}
-          <div><Label htmlFor="reason">Motif</Label><Textarea id="reason" value={reason} onChange={(event) => setReason(event.target.value)} /></div>
+          <div><Label htmlFor="reason">Motif de la décision{outcome === "APPROVED" ? " (facultatif)" : ""}</Label><Textarea id="reason" className="min-h-24" placeholder={outcome === "NEEDS_INFO" ? "Précisez les informations attendues du gérant…" : "Expliquez brièvement votre décision…"} value={reason} onChange={(event) => setReason(event.target.value)} /></div>
         </div>
       </ConfirmDialog>
     </section>
