@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Banknote, CircleAlert, FileUp, LockKeyhole, Search, WalletCards } from "lucide-react";
+import { ArrowRight, Banknote, CircleAlert, FileUp, Landmark, LockKeyhole, MoveRight, Search, WalletCards } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -352,31 +352,39 @@ export function ManagerFundsPage() {
   useEffect(() => { void load(); }, []);
   const blocked = cash?.session?.status === "COUNTING";
   const hasOpenSession = cash?.session?.status === "OPEN";
+  const inTransit = (rows ?? []).filter((row) => ["SENT", "PARTIAL"].includes(row.state)).reduce((sum, row) => sum + BigInt(row.remainingMinor), 0n);
+  const received = (rows ?? []).reduce((sum, row) => sum + BigInt(row.amountReceivedMinor), 0n);
   return (
     <section className="space-y-6 overflow-x-clip">
       <PageHeader title="Mouvements de fonds">Une remise sort de la caisse vers le transit. La réception crédite la destination sans créer ni détruire d’argent.</PageHeader>
       {error && !receiveId ? <Alert tone="error">{error}</Alert> : null}
       {blocked ? <Alert><span className="inline-flex items-center gap-2"><LockKeyhole className="size-4" />Le comptage est en cours. Aucun fonds ne peut sortir ni être réceptionné avant sa fin.</span></Alert> : null}
       {!blocked && cash && !hasOpenSession ? <Alert>Ouvrez d’abord la caisse du jour pour effectuer un mouvement de fonds.</Alert> : null}
-      {!blocked && hasOpenSession ? <form className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]" onSubmit={(event) => { event.preventDefault(); setPending(true); api<{ id: string }>("/api/v1/fund-transfers", { method: "POST", body: JSON.stringify({ ...form, purpose: "REMITTANCE" }) }).then((created) => api(`/api/v1/fund-transfers/${created.id}/send`, { method: "POST" })).then(() => { setForm({ sourceAccountId: "", destinationAccountId: "", amountMinor: "", reason: "" }); return load(); }).catch((caught: RequestError) => setError(caught.message)).finally(() => setPending(false)); }}>
-        <h2 className="font-display font-semibold">Remise de fonds</h2>
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
+      <div className="grid gap-3 sm:grid-cols-3">
+        <div className="rounded-xl bg-[var(--surface)] p-4 shadow-[var(--shadow-card)]"><p className="text-sm text-[var(--muted)]">Mouvements</p><p className="mt-1 font-display text-2xl font-semibold tabular-nums">{rows?.length ?? 0}</p></div>
+        <div className="rounded-xl bg-[var(--surface)] p-4 shadow-[var(--shadow-card)]"><p className="text-sm text-[var(--muted)]">Encore en transit</p><p className="mt-1 font-display text-xl font-semibold tabular-nums">{formatFcfa(inTransit.toString())}</p></div>
+        <div className="rounded-xl bg-[var(--surface)] p-4 shadow-[var(--shadow-card)]"><p className="text-sm text-[var(--muted)]">Déjà réceptionné</p><p className="mt-1 font-display text-xl font-semibold tabular-nums">{formatFcfa(received.toString())}</p></div>
+      </div>
+      {!blocked && hasOpenSession ? <form className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)] sm:p-6" onSubmit={(event) => { event.preventDefault(); setPending(true); api<{ id: string }>("/api/v1/fund-transfers", { method: "POST", body: JSON.stringify({ ...form, purpose: "REMITTANCE" }) }).then((created) => api(`/api/v1/fund-transfers/${created.id}/send`, { method: "POST" })).then(() => { setForm({ sourceAccountId: "", destinationAccountId: "", amountMinor: "", reason: "" }); return load(); }).catch((caught: RequestError) => setError(caught.message)).finally(() => setPending(false)); }}>
+        <div className="flex items-start gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-lg bg-[var(--surface-subtle)] text-[var(--primary)]"><Landmark className="size-5" /></span><div><h2 className="font-display font-semibold">Nouvelle remise</h2><p className="mt-1 text-sm text-[var(--muted)]">Déclarez la sortie physique des fonds et leur destination attendue.</p></div></div>
+        <div className="mt-5 grid gap-4 md:grid-cols-[1fr_auto_1fr] md:items-end">
           <label className="block text-sm font-medium">Source<select required value={form.sourceAccountId} onChange={(event) => setForm((current) => ({ ...current, sourceAccountId: event.target.value }))} className="mt-1.5 h-11 w-full rounded-md bg-[var(--surface-subtle)] px-3 outline-none focus:ring-2 focus:ring-[var(--focus)]"><option value="">Choisir</option>{accounts.map((account) => <option key={account.id} value={account.id}>{account.name}</option>)}</select></label>
+          <MoveRight className="mb-3 hidden size-5 text-[var(--muted)] md:block" />
           <label className="block text-sm font-medium">Destination<select required value={form.destinationAccountId} onChange={(event) => setForm((current) => ({ ...current, destinationAccountId: event.target.value }))} className="mt-1.5 h-11 w-full rounded-md bg-[var(--surface-subtle)] px-3 outline-none focus:ring-2 focus:ring-[var(--focus)]"><option value="">Choisir</option>{accounts.filter((account) => account.id !== form.sourceAccountId).map((account) => <option key={account.id} value={account.id}>{account.name}</option>)}</select></label>
-          <Field id="fund-amount" label="Montant (FCFA)" inputMode="numeric" value={form.amountMinor} onChange={(event) => setForm((current) => ({ ...current, amountMinor: event.target.value.replace(/\D/g, "") }))} />
+          <div className="md:col-span-2"><Field id="fund-amount" label="Montant (FCFA)" inputMode="numeric" value={form.amountMinor} onChange={(event) => setForm((current) => ({ ...current, amountMinor: event.target.value.replace(/\D/g, "") }))} /></div>
           <Field id="fund-reason" label="Motif" value={form.reason} onChange={(event) => setForm((current) => ({ ...current, reason: event.target.value }))} />
         </div>
         <Button type="submit" className="mt-4" disabled={pending || !form.amountMinor || !form.reason}>{pending ? "Envoi…" : "Remettre les fonds"}</Button>
       </form> : null}
       {!rows ? <Skeleton className="h-48" /> : rows.length === 0 ? <EmptyState title="Aucun mouvement" icon={<Banknote className="size-5" />}>Les remises et réceptions de cette boutique apparaîtront ici.</EmptyState> : (
         <ul className="grid gap-3">{rows.map((row) => (
-          <li key={row.id} className="rounded-xl bg-[var(--surface)] p-4 shadow-[var(--shadow-card)]">
+          <li key={row.id} className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]">
             <div className="flex flex-wrap items-start justify-between gap-3">
-              <div><p className="font-semibold">{row.source} → {row.destination}</p><p className="mt-1 text-sm text-[var(--muted)]">{row.reason}</p></div>
+              <div className="min-w-0"><div className="flex flex-wrap items-center gap-2 font-semibold"><span>{row.source}</span><ArrowRight className="size-4 text-[var(--muted)]" /><span>{row.destination}</span></div><p className="mt-2 text-sm leading-6 text-[var(--muted)]">{row.reason}</p></div>
               <div className="text-right"><p className="tabular-nums font-semibold">{formatFcfa(row.amountSentMinor)}</p><Badge tone={transferState[row.state]?.tone ?? "neutral"}>{transferState[row.state]?.label ?? row.state}</Badge></div>
             </div>
-            {["SENT", "PARTIAL"].includes(row.state) ? <p className="mt-2 text-sm text-[var(--muted)]">Reste en transit : {formatFcfa(row.remainingMinor)}</p> : null}
-            {["SENT", "PARTIAL"].includes(row.state) ? <Button className="mt-3" variant="secondary" disabled={blocked} onClick={() => { setReceiveId(row.id); setReceiveAmount(row.remainingMinor); }}>{blocked ? "Réception suspendue" : "Confirmer une réception"}</Button> : null}
+            <div className="mt-4 grid gap-3 rounded-lg bg-[var(--surface-subtle)] p-3 text-sm sm:grid-cols-3"><div><p className="text-[var(--muted)]">Envoyé</p><p className="font-semibold tabular-nums">{formatFcfa(row.amountSentMinor)}</p></div><div><p className="text-[var(--muted)]">Réceptionné</p><p className="font-semibold tabular-nums">{formatFcfa(row.amountReceivedMinor)}</p></div><div><p className="text-[var(--muted)]">En transit</p><p className="font-semibold tabular-nums">{formatFcfa(row.remainingMinor)}</p></div></div>
+            {["SENT", "PARTIAL"].includes(row.state) ? <Button className="mt-4" variant="secondary" disabled={blocked} onClick={() => { setReceiveId(row.id); setReceiveAmount(row.remainingMinor); }}>{blocked ? "Réception suspendue" : "Enregistrer une réception"}</Button> : null}
           </li>
         ))}</ul>
       )}

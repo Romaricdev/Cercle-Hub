@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, ClipboardList, PackageCheck, Plus, Search, Trash2, Truck } from "lucide-react";
+import { ArrowRight, CalendarClock, CheckCircle2, ClipboardList, PackageCheck, Plus, Search, Store, Trash2, Truck, UserRound } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -98,6 +98,8 @@ export function ManagerRequestsPage() {
     if (filter === "done") return ["APPROVED", "PARTIAL", "REJECTED", "CANCELLED", "CLOSED"].includes(row.status);
     return true;
   });
+  const pendingCount = (rows ?? []).filter((row) => ["SUBMITTED", "NEEDS_INFO"].includes(row.status)).length;
+  const approvedCount = (rows ?? []).filter((row) => ["APPROVED", "PARTIAL"].includes(row.status)).length;
   if (!rows && !error) return <Skeleton className="h-[32rem]" />;
   return (
     <section className="space-y-6 overflow-x-clip">
@@ -105,11 +107,18 @@ export function ManagerRequestsPage() {
         Préparez le besoin de la boutique. L’achat et le stock n’avancent qu’après décision du propriétaire.
       </PageHeader>
       {error ? <Alert tone="error">{error}</Alert> : null}
-      <label className="relative block max-w-md"><Search className="absolute left-3 top-3 size-4 text-[var(--muted)]" /><span className="sr-only">Rechercher</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Motif ou état" className="h-11 w-full rounded-lg bg-[var(--surface)] pl-10 pr-4 text-sm shadow-[var(--shadow-card)] outline-none focus:ring-2 focus:ring-[var(--focus)]" /></label>
-      <div className="flex flex-wrap gap-2">
-        {([["all", "Toutes"], ["pending", "En attente"], ["done", "Terminées"]] as const).map(([value, label]) => (
-          <Button key={value} variant={filter === value ? "primary" : "secondary"} onClick={() => setFilter(value)}>{label}</Button>
-        ))}
+      <div className="grid gap-3 sm:grid-cols-3">
+        <div className="rounded-xl bg-[var(--surface)] p-4 shadow-[var(--shadow-card)]"><p className="text-sm text-[var(--muted)]">Toutes les demandes</p><p className="mt-1 font-display text-2xl font-semibold tabular-nums">{rows?.length ?? 0}</p></div>
+        <div className="rounded-xl bg-[var(--surface)] p-4 shadow-[var(--shadow-card)]"><p className="text-sm text-[var(--muted)]">À suivre</p><p className="mt-1 font-display text-2xl font-semibold tabular-nums">{pendingCount}</p></div>
+        <div className="rounded-xl bg-[var(--surface)] p-4 shadow-[var(--shadow-card)]"><p className="text-sm text-[var(--muted)]">Accords reçus</p><p className="mt-1 font-display text-2xl font-semibold tabular-nums">{approvedCount}</p></div>
+      </div>
+      <div className="flex flex-col gap-3 rounded-xl bg-[var(--surface)] p-3 shadow-[var(--shadow-card)] lg:flex-row lg:items-center lg:justify-between">
+        <label className="relative block min-w-0 flex-1 lg:max-w-md"><Search className="absolute left-3 top-3 size-4 text-[var(--muted)]" /><span className="sr-only">Rechercher</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher par motif ou état" className="h-11 w-full rounded-lg bg-[var(--surface-subtle)] pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-[var(--focus)]" /></label>
+        <div className="flex flex-wrap gap-2" aria-label="Filtrer les demandes">
+          {([["all", "Toutes"], ["pending", "En attente"], ["done", "Terminées"]] as const).map(([value, label]) => (
+            <Button key={value} variant={filter === value ? "primary" : "ghost"} onClick={() => setFilter(value)}>{label}</Button>
+          ))}
+        </div>
       </div>
       {!rows || filtered.length === 0 ? (
         <EmptyState title="Aucune demande" icon={<ClipboardList className="size-5" />} action={<Link href={paths.managerRequestNew}><Button>Créer une demande</Button></Link>}>
@@ -118,13 +127,13 @@ export function ManagerRequestsPage() {
       ) : (
         <>
           <ul className="grid gap-3 xl:hidden">{filtered.map((row) => (
-            <li key={row.id}><Link href={`${paths.managerRequests}/${row.id}`} className="block rounded-xl bg-[var(--surface)] p-4 shadow-[var(--shadow-card)]"><p className="font-semibold">{row.comment}</p><p className="mt-1 text-sm text-[var(--muted)]">{formatWhen(row.createdAt)}</p><div className="mt-2"><Badge tone={requestStatus[row.status]?.tone ?? "neutral"}>{requestStatus[row.status]?.label ?? row.status}</Badge></div></Link></li>
+            <li key={row.id}><Link href={`${paths.managerRequests}/${row.id}`} className="group block rounded-xl bg-[var(--surface)] p-4 shadow-[var(--shadow-card)] transition-transform hover:-translate-y-0.5"><div className="flex items-start justify-between gap-4"><div className="min-w-0"><p className="font-semibold leading-6">{row.comment}</p><p className="mt-2 flex items-center gap-1.5 text-sm text-[var(--muted)]"><CalendarClock className="size-4" />{formatWhen(row.createdAt)}</p></div><ArrowRight className="mt-1 size-4 shrink-0 text-[var(--muted)] transition-transform group-hover:translate-x-1" /></div><div className="mt-3 flex flex-wrap items-center gap-2"><Badge tone={requestStatus[row.status]?.tone ?? "neutral"}>{requestStatus[row.status]?.label ?? row.status}</Badge><span className="text-sm text-[var(--muted)]">Urgence {urgencyLabel[row.urgency]?.toLowerCase()}</span></div></Link></li>
           ))}</ul>
           <div className="hidden overflow-x-auto rounded-xl bg-[var(--surface)] shadow-[var(--shadow-card)] xl:block">
             <table className="w-full text-sm">
               <thead className="text-left text-[var(--muted)]"><tr><th className="px-5 py-3 font-medium">Motif</th><th className="px-5 py-3 font-medium">État</th><th className="px-5 py-3 font-medium">Urgence</th><th className="px-5 py-3 font-medium">Date</th></tr></thead>
               <tbody>{filtered.map((row) => (
-                <tr key={row.id} className="border-t border-[var(--separator)]/50"><td className="px-5 py-3"><Link className="font-medium text-[var(--primary)]" href={`${paths.managerRequests}/${row.id}`}>{row.comment}</Link></td><td className="px-5 py-3"><Badge tone={requestStatus[row.status]?.tone ?? "neutral"}>{requestStatus[row.status]?.label ?? row.status}</Badge></td><td className="px-5 py-3">{urgencyLabel[row.urgency]}</td><td className="px-5 py-3">{formatWhen(row.createdAt)}</td></tr>
+                <tr key={row.id} className="border-t border-[var(--separator)]/50 transition-colors hover:bg-[var(--surface-subtle)]"><td className="px-5 py-4"><Link className="font-medium text-[var(--primary)]" href={`${paths.managerRequests}/${row.id}`}>{row.comment}</Link></td><td className="px-5 py-4"><Badge tone={requestStatus[row.status]?.tone ?? "neutral"}>{requestStatus[row.status]?.label ?? row.status}</Badge></td><td className="px-5 py-4">{urgencyLabel[row.urgency]}</td><td className="px-5 py-4 text-[var(--muted)]">{formatWhen(row.createdAt)}</td></tr>
               ))}</tbody>
             </table>
           </div>
@@ -171,33 +180,42 @@ export function ManagerRequestFormPage() {
     <section className="space-y-6 overflow-x-clip">
       <PageHeader title="Nouvelle demande">Décrivez le besoin. Rien n’est acheté ni mis en stock à cette étape.</PageHeader>
       {error ? <Alert tone="error">{error}</Alert> : null}
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl bg-[var(--surface)] px-5 py-4 text-sm shadow-[var(--shadow-card)]">
+        <span className="inline-flex items-center gap-2 font-semibold text-[var(--primary)]"><span className="grid size-7 place-items-center rounded-full bg-[var(--primary)] text-xs text-white">1</span>Décrire</span>
+        <ArrowRight className="hidden size-4 text-[var(--muted)] sm:block" />
+        <span className="inline-flex items-center gap-2 text-[var(--muted)]"><span className="grid size-7 place-items-center rounded-full bg-[var(--surface-subtle)] text-xs">2</span>Soumettre</span>
+        <ArrowRight className="hidden size-4 text-[var(--muted)] sm:block" />
+        <span className="inline-flex items-center gap-2 text-[var(--muted)]"><span className="grid size-7 place-items-center rounded-full bg-[var(--surface-subtle)] text-xs">3</span>Attendre la décision</span>
+      </div>
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="space-y-6">
           <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]">
-            <h2 className="font-display font-semibold">Contexte</h2>
-            <div className="mt-4 grid gap-4">
-              <div><Label htmlFor="comment">Motif</Label><Textarea id="comment" value={comment} onChange={(event) => setComment(event.target.value)} minLength={5} /></div>
-              <div><Label htmlFor="urgency">Urgence</Label><select id="urgency" value={urgency} onChange={(event) => setUrgency(event.target.value)} className="h-10 w-full rounded-md bg-[var(--surface-subtle)] px-3 text-sm"><option value="LOW">Basse</option><option value="NORMAL">Normale</option><option value="HIGH">Haute</option></select></div>
-              <div><Label htmlFor="supplier">Fournisseur envisagé (facultatif)</Label><select id="supplier" value={supplierId} onChange={(event) => setSupplierId(event.target.value)} className="h-10 w-full rounded-md bg-[var(--surface-subtle)] px-3 text-sm"><option value="">Aucun</option>{catalog?.suppliers.map((supplier) => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}</select></div>
+            <div className="flex items-start gap-3"><span className="grid size-9 shrink-0 place-items-center rounded-lg bg-[var(--surface-subtle)] text-[var(--primary)]"><ClipboardList className="size-5" /></span><div><h2 className="font-display font-semibold">Contexte de la demande</h2><p className="mt-1 text-sm text-[var(--muted)]">Expliquez brièvement pourquoi la boutique a besoin de ces produits.</p></div></div>
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
+              <div className="md:col-span-2"><Label htmlFor="comment">Motif</Label><Textarea id="comment" className="min-h-24" placeholder="Ex. Réassort nécessaire avant le week-end…" value={comment} onChange={(event) => setComment(event.target.value)} minLength={5} /></div>
+              <div><Label htmlFor="urgency">Urgence</Label><select id="urgency" value={urgency} onChange={(event) => setUrgency(event.target.value)} className="h-11 w-full rounded-md bg-[var(--surface-subtle)] px-3 text-sm"><option value="LOW">Basse</option><option value="NORMAL">Normale</option><option value="HIGH">Haute</option></select></div>
+              <div><Label htmlFor="supplier">Fournisseur envisagé <span className="font-normal text-[var(--muted)]">(facultatif)</span></Label><select id="supplier" value={supplierId} onChange={(event) => setSupplierId(event.target.value)} className="h-11 w-full rounded-md bg-[var(--surface-subtle)] px-3 text-sm"><option value="">Aucun fournisseur proposé</option>{catalog?.suppliers.map((supplier) => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}</select></div>
             </div>
           </article>
           <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]">
-            <h2 className="font-display font-semibold">Lignes</h2>
-            <div className="mt-4 grid gap-3 md:grid-cols-2">
+            <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="font-display font-semibold">Produits demandés</h2><p className="mt-1 text-sm text-[var(--muted)]">Ajoutez chaque produit et la quantité réellement nécessaire.</p></div>{lines.length > 0 ? <Badge tone="info">{lines.length} ligne{lines.length > 1 ? "s" : ""}</Badge> : null}</div>
+            <div className="mt-5 grid gap-3 rounded-xl bg-[var(--surface-subtle)] p-4 md:grid-cols-2">
               <div><Label htmlFor="product">Produit</Label><select id="product" value={productId} onChange={(event) => { setProductId(event.target.value); setVariantId(""); setUnitId(""); }} className="h-10 w-full rounded-md bg-[var(--surface-subtle)] px-3 text-sm"><option value="">Choisir</option>{catalog?.products.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></div>
               <div><Label htmlFor="variant">Variante</Label><select id="variant" value={variantId} onChange={(event) => { setVariantId(event.target.value); setUnitId(""); }} className="h-10 w-full rounded-md bg-[var(--surface-subtle)] px-3 text-sm"><option value="">Choisir</option>{product?.variants.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></div>
               <div><Label htmlFor="unit">Unité</Label><select id="unit" value={unitId} onChange={(event) => setUnitId(event.target.value)} className="h-10 w-full rounded-md bg-[var(--surface-subtle)] px-3 text-sm"><option value="">Choisir</option>{variant?.units.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></div>
               <Field id="qty" label="Quantité" value={quantity} onChange={(event) => setQuantity(event.target.value)} />
+              <div className="md:col-span-2"><Button variant="secondary" onClick={addLine} disabled={!unitId}><Plus className="size-4" />Ajouter ce produit</Button></div>
             </div>
-            <Button className="mt-4" variant="secondary" onClick={addLine} disabled={!unitId}><Plus className="size-4" />Ajouter la ligne</Button>
-            <ul className="mt-4 divide-y divide-[var(--separator)]/60">{lines.map((line, index) => <li key={`${line.variantId}-${index}`} className="flex items-center justify-between gap-3 py-3 text-sm"><span>{line.label}</span><Button aria-label={`Retirer ${line.label}`} variant="ghost" onClick={() => setLines(lines.filter((_, current) => current !== index))}><Trash2 className="size-4" />Retirer</Button></li>)}</ul>
-            {lines.length === 0 ? <p className="mt-3 text-sm text-[var(--muted)]">Ajoutez au moins un produit avant d’enregistrer.</p> : null}
+            <ul className="mt-4 grid gap-2">{lines.map((line, index) => <li key={`${line.variantId}-${index}`} className="flex items-center justify-between gap-3 rounded-lg bg-[var(--surface-subtle)] px-4 py-3 text-sm"><span className="font-medium">{line.label}</span><Button aria-label={`Retirer ${line.label}`} variant="ghost" onClick={() => setLines(lines.filter((_, current) => current !== index))}><Trash2 className="size-4" /><span className="hidden sm:inline">Retirer</span></Button></li>)}</ul>
+            {lines.length === 0 ? <div className="mt-4 rounded-lg bg-[var(--surface-subtle)] px-4 py-5 text-center text-sm text-[var(--muted)]"><PackageCheck className="mx-auto mb-2 size-5" />Aucun produit ajouté. Complétez les champs ci-dessus pour commencer.</div> : null}
           </article>
         </div>
         <aside className="h-fit rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)] xl:sticky xl:top-4">
           <h2 className="font-display font-semibold">Synthèse</h2>
-          <p className="mt-2 text-sm text-[var(--muted)]">{lines.length} ligne{lines.length > 1 ? "s" : ""} · aucune écriture de stock</p>
-          <div className="mt-4 grid gap-2">
+          <dl className="mt-4 grid gap-3 text-sm"><div className="flex justify-between gap-4"><dt className="text-[var(--muted)]">Produits</dt><dd className="font-semibold tabular-nums">{lines.length}</dd></div><div className="flex justify-between gap-4"><dt className="text-[var(--muted)]">Urgence</dt><dd className="font-semibold">{urgencyLabel[urgency]}</dd></div><div className="flex justify-between gap-4"><dt className="text-[var(--muted)]">Fournisseur</dt><dd className="max-w-40 truncate text-right font-semibold">{catalog?.suppliers.find((item) => item.id === supplierId)?.name ?? "Non proposé"}</dd></div></dl>
+          <div className="my-4 h-px bg-[var(--separator)]/60" />
+          <p className="text-sm leading-6 text-[var(--muted)]">L’enregistrement crée un brouillon modifiable. La soumission l’envoie immédiatement au propriétaire.</p>
+          <div className="mt-5 grid gap-2">
             <Button disabled={pending || lines.length === 0 || comment.trim().length < 5} onClick={() => void save(false)}>{pending ? "Enregistrement…" : "Enregistrer le brouillon"}</Button>
             <Button variant="secondary" disabled={pending || lines.length === 0 || comment.trim().length < 5} onClick={() => void save(true)}>Soumettre au propriétaire</Button>
           </div>
@@ -222,41 +240,41 @@ export function ManagerRequestDetailPage() {
   if (!data) return <section className="space-y-4"><PageHeader title="Demande">Dossier introuvable.</PageHeader><Alert tone="error">{error}</Alert></section>;
   return (
     <section className="space-y-6 overflow-x-clip">
-      <PageHeader title="Détail de la demande" action={data.capabilities.canBuy ? <Button onClick={() => router.push(`${paths.managerPurchaseNew}?requestId=${data.id}`)}>Acheter selon l’accord</Button> : undefined}>
+      <PageHeader title="Détail de la demande">
         {data.shopName} · version {data.versions.at(-1)?.version ?? 1}
       </PageHeader>
       {error ? <Alert tone="error">{error}</Alert> : null}
-      <div className="flex flex-wrap gap-2"><Badge tone={requestStatus[data.status]?.tone ?? "neutral"}>{requestStatus[data.status]?.label ?? data.status}</Badge><Badge>{urgencyLabel[data.urgency]}</Badge></div>
-      <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]">
-        <h2 className="font-display font-semibold">Besoin</h2>
-        <p className="mt-2 text-sm leading-6">{data.comment}</p>
-        {data.suggestedSupplier ? <p className="mt-2 text-sm text-[var(--muted)]">Fournisseur envisagé : {data.suggestedSupplier.name}</p> : null}
+      <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)] sm:p-6">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0"><div className="flex flex-wrap gap-2"><Badge tone={requestStatus[data.status]?.tone ?? "neutral"}>{requestStatus[data.status]?.label ?? data.status}</Badge><Badge>{`Urgence ${urgencyLabel[data.urgency]?.toLowerCase()}`}</Badge></div><h2 className="mt-4 max-w-3xl font-display text-xl font-semibold leading-8">{data.comment}</h2>{data.suggestedSupplier ? <p className="mt-3 text-sm text-[var(--muted)]">Fournisseur envisagé : <span className="font-medium text-[var(--text)]">{data.suggestedSupplier.name}</span></p> : null}</div>
+          <dl className="grid shrink-0 gap-3 text-sm sm:grid-cols-2 lg:min-w-72 lg:grid-cols-1"><div className="flex items-center gap-3 rounded-lg bg-[var(--surface-subtle)] px-3 py-2"><Store className="size-4 text-[var(--primary)]" /><div><dt className="text-xs text-[var(--muted)]">Boutique</dt><dd className="font-semibold">{data.shopName}</dd></div></div><div className="flex items-center gap-3 rounded-lg bg-[var(--surface-subtle)] px-3 py-2"><UserRound className="size-4 text-[var(--primary)]" /><div><dt className="text-xs text-[var(--muted)]">Demandeur</dt><dd className="font-semibold">{data.actorName}</dd></div></div></dl>
+        </div>
       </article>
-      <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]">
-        <h2 className="font-display font-semibold">Lignes</h2>
-        <ul className="mt-3 divide-y divide-[var(--separator)]/60">{data.lines.map((line) => <li key={line.id} className="flex justify-between gap-3 py-3 text-sm"><span>{line.productName} · {line.variantName}</span><strong className="tabular-nums">{line.quantityBase} {line.unitName}</strong></li>)}</ul>
-      </article>
-      {data.approval ? (
-        <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]">
-          <h2 className="font-display font-semibold">Accord</h2>
-          <p className="mt-2 text-sm">Acheteur désigné : {buyerLabel[data.approval.buyer ?? ""] ?? "—"}</p>
-          <p className="mt-1 text-sm">Budget restant : {formatFcfa(data.approval.remainingBudgetMinor)}</p>
-          {data.approval.reason ? <p className="mt-2 text-sm text-[var(--muted)]">{data.approval.reason}</p> : null}
-        </article>
-      ) : null}
-      {data.capabilities.canRespond ? (
-        <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]">
-          <h2 className="font-display font-semibold">Répondre aux précisions</h2>
-          <Label htmlFor="response">Votre réponse</Label>
-          <Textarea id="response" className="mt-3" value={response} onChange={(event) => setResponse(event.target.value)} />
-          <Button className="mt-3" disabled={pending || response.trim().length < 5} onClick={() => { setPending(true); api(`/api/v1/requests/${data.id}/respond`, { method: "POST", body: JSON.stringify({ text: response }) }).then((result) => router.push(`${paths.managerRequests}/${(result as { id: string }).id}`)).catch((caught: RequestError) => setError(caught.message)).finally(() => setPending(false)); }}>Envoyer la réponse</Button>
-        </article>
-      ) : null}
-      {data.capabilities.canSubmit ? <Button onClick={() => { setPending(true); api(`/api/v1/requests/${data.id}/submit`, { method: "POST" }).then(() => load()).catch((caught: RequestError) => setError(caught.message)).finally(() => setPending(false)); }}>Soumettre</Button> : null}
-      <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]">
-        <h2 className="font-display font-semibold">Historique</h2>
-        <ol className="mt-3 space-y-3 text-sm">{data.actions.map((action) => <li key={action.id}><p className="font-medium">{action.actorName}</p><p className="text-[var(--muted)]">{action.text}</p><p className="text-xs text-[var(--muted)]">{formatWhen(action.createdAt)}</p></li>)}</ol>
-      </article>
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="space-y-6">
+          <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]">
+            <div className="flex items-center justify-between gap-3"><div><h2 className="font-display font-semibold">Produits demandés</h2><p className="mt-1 text-sm text-[var(--muted)]">Quantités exprimées dans l’unité sélectionnée.</p></div><Badge tone="info">{data.lines.length} ligne{data.lines.length > 1 ? "s" : ""}</Badge></div>
+            <ul className="mt-4 grid gap-2">{data.lines.map((line) => <li key={line.id} className="flex flex-col gap-2 rounded-lg bg-[var(--surface-subtle)] px-4 py-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-semibold">{line.productName}</p><p className="text-sm text-[var(--muted)]">{line.variantName} · {line.unitName}</p></div><strong className="tabular-nums">{line.quantityBase} {line.unitName}</strong></li>)}</ul>
+          </article>
+          {data.capabilities.canRespond ? (
+            <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]">
+              <h2 className="font-display font-semibold">Précisions demandées</h2><p className="mt-1 text-sm text-[var(--muted)]">Votre réponse sera ajoutée à l’historique et une nouvelle version sera soumise.</p>
+              <Label htmlFor="response">Votre réponse</Label>
+              <Textarea id="response" className="mt-3 min-h-28" value={response} onChange={(event) => setResponse(event.target.value)} />
+              <Button className="mt-3" disabled={pending || response.trim().length < 5} onClick={() => { setPending(true); api(`/api/v1/requests/${data.id}/respond`, { method: "POST", body: JSON.stringify({ text: response }) }).then((result) => router.push(`${paths.managerRequests}/${(result as { id: string }).id}`)).catch((caught: RequestError) => setError(caught.message)).finally(() => setPending(false)); }}>Envoyer la réponse</Button>
+            </article>
+          ) : null}
+          <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]">
+            <h2 className="font-display font-semibold">Historique du dossier</h2>
+            <ol className="mt-4 space-y-0">{data.actions.map((action, index) => <li key={action.id} className="relative grid grid-cols-[1.25rem_1fr] gap-3 pb-5 last:pb-0"><div className="relative flex justify-center"><span className="mt-1.5 size-2.5 rounded-full bg-[var(--primary)]" />{index < data.actions.length - 1 ? <span className="absolute top-4 h-[calc(100%-0.25rem)] w-px bg-[var(--separator)]" /> : null}</div><div><div className="flex flex-wrap items-baseline justify-between gap-2"><p className="font-medium">{action.actorName}</p><time className="text-xs text-[var(--muted)]">{formatWhen(action.createdAt)}</time></div><p className="mt-1 text-sm leading-6 text-[var(--muted)]">{action.text}</p></div></li>)}</ol>
+          </article>
+        </div>
+        <aside className="space-y-4 xl:sticky xl:top-4">
+          {data.approval ? <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]"><div className="flex items-center gap-2"><CheckCircle2 className="size-5 text-[var(--success)]" /><h2 className="font-display font-semibold">Décision propriétaire</h2></div><dl className="mt-4 grid gap-3 text-sm"><div><dt className="text-[var(--muted)]">Acheteur désigné</dt><dd className="font-semibold">{buyerLabel[data.approval.buyer ?? ""] ?? "—"}</dd></div><div><dt className="text-[var(--muted)]">Budget accordé</dt><dd className="font-semibold tabular-nums">{formatFcfa(data.approval.budgetMinor)}</dd></div><div><dt className="text-[var(--muted)]">Budget disponible</dt><dd className="font-semibold tabular-nums text-[var(--primary)]">{formatFcfa(data.approval.remainingBudgetMinor)}</dd></div></dl>{data.approval.reason ? <div className="mt-4 rounded-lg bg-[var(--surface-subtle)] p-3 text-sm leading-6">{data.approval.reason}</div> : null}</article> : <article className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]"><h2 className="font-display font-semibold">Prochaine étape</h2><p className="mt-2 text-sm leading-6 text-[var(--muted)]">{data.status === "DRAFT" ? "Soumettez le brouillon lorsqu’il est complet." : "La demande attend la décision du propriétaire."}</p></article>}
+          {data.capabilities.canBuy ? <Button className="w-full" onClick={() => router.push(`${paths.managerPurchaseNew}?requestId=${data.id}`)}>Acheter selon l’accord<ArrowRight className="size-4" /></Button> : null}
+          {data.capabilities.canSubmit ? <Button className="w-full" disabled={pending} onClick={() => { setPending(true); api(`/api/v1/requests/${data.id}/submit`, { method: "POST" }).then(() => load()).catch((caught: RequestError) => setError(caught.message)).finally(() => setPending(false)); }}>Soumettre au propriétaire</Button> : null}
+        </aside>
+      </div>
     </section>
   );
 }

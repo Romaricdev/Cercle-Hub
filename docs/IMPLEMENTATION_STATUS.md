@@ -628,3 +628,12 @@ Vérifications exécutées : `corepack pnpm lint` code 0 ; `corepack pnpm typech
 - `db:seed-local-full` enchaîne désormais les comptes, le socle P03 et le parcours complet. Chaque étape possède un marqueur métier stable afin qu’une seconde exécution n’ajoute pas de doublons.
 
 Vérifications exécutées : `corepack pnpm db:seed-local-full` code 0 sur `cercle_complet` local ; seconde exécution directe de `seed-local-demo.ts` code 0 sans nouvelle création ; `corepack pnpm lint` code 0 ; `corepack pnpm typecheck` code 0 ; `corepack pnpm test:unit` **39/39**.
+
+### Raffinement des interfaces gérant demandes et fonds — 2 octobre 2026
+
+- La liste des demandes d’achat présente désormais les volumes utiles, regroupe recherche et filtres, améliore la lecture des cartes tablette/téléphone et densifie le tableau ordinateur.
+- La création d’une demande suit visuellement les étapes décrire, soumettre et attendre la décision. Le contexte, le sélecteur de produits, les lignes ajoutées et la synthèse utilisent mieux l’espace et gardent les actions visibles sur ordinateur.
+- La fiche de demande regroupe le besoin, la boutique et le demandeur, présente chaque produit dans une ligne lisible, isole la décision propriétaire et transforme l’historique en chronologie. Les actions dépendent toujours des capacités renvoyées par le serveur.
+- Les mouvements de fonds affichent les totaux envoyé, réceptionné et encore en transit. Le formulaire matérialise l’itinéraire source-destination et chaque mouvement expose sa progression financière avant l’action de réception.
+
+Vérifications exécutées : `corepack pnpm lint` code 0 ; `corepack pnpm typecheck` code 0 ; `corepack pnpm test:unit` **39/39** ; `corepack pnpm --filter @cercle/web build` code 0, **44 pages**.
