@@ -1,6 +1,6 @@
 "use client";
 
-import { Building2, Mail, Search, Store, UserPlus, UsersRound } from "lucide-react";
+import { Building2, Clock3, Mail, Search, Store, UserCheck, UserPlus, UsersRound } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { api, RequestError } from "../../../lib/api";
 import { Alert } from "../../../components/ui/alert";
@@ -10,6 +10,7 @@ import { ConfirmDialog } from "../../../components/ui/confirm-dialog";
 import { afterDialogClose } from "../../../components/ui/dialog-message";
 import { EmptyState } from "../../../components/ui/empty-state";
 import { Input } from "../../../components/ui/input";
+import { KpiItem, KpiStrip } from "../../../components/ui/kpi-strip";
 import { Label } from "../../../components/ui/label";
 import { Modal } from "../../../components/ui/modal";
 import { PageHeader } from "../../../components/ui/page-header";
@@ -39,7 +40,7 @@ export default function UsersPage() {
     <PageHeader title="Équipe et accès" action={<div className="flex flex-wrap gap-2"><Button variant="secondary" disabled={!shops.length || !availableManagers.length} onClick={() => setAssignOpen(true)}><Building2 className="size-4" /> Affecter</Button><Button onClick={() => { setError(null); setInviteOpen(true); }}><UserPlus className="size-4" /> Inviter un gérant</Button></div>}>Gérez les accès nominatifs et le responsable de chaque boutique.</PageHeader>
     {success && !dialogOpen ? <Alert tone="success">{success}</Alert> : null}
     {error && !dialogOpen ? <Alert tone="error">{error}</Alert> : null}
-    <div className="grid overflow-hidden rounded-lg bg-[var(--surface)] shadow-[var(--shadow-card)] sm:grid-cols-3"><Metric value={managers.length} label={`gérant${managers.length > 1 ? "s" : ""}`} /><Metric value={assignedManagers} label={`affecté${assignedManagers > 1 ? "s" : ""} à une boutique`} bordered /><Metric value={pendingInvitations} label={`invitation${pendingInvitations > 1 ? "s" : ""} en attente`} bordered /></div>
+    <KpiStrip count={3}><KpiItem icon={<UsersRound />} value={managers.length} label={`gérant${managers.length > 1 ? "s" : ""}`} /><KpiItem icon={<UserCheck />} value={assignedManagers} label={`affecté${assignedManagers > 1 ? "s" : ""} à une boutique`} /><KpiItem icon={<Clock3 />} value={pendingInvitations} label={`invitation${pendingInvitations > 1 ? "s" : ""} en attente`} /></KpiStrip>
     <section><div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div><h2 className="font-display text-lg font-semibold">Membres</h2><p className="text-sm text-[var(--muted)]">{users.length} compte{users.length > 1 ? "s" : ""} dans votre organisation</p></div><label className="relative w-full sm:max-w-sm"><span className="sr-only">Rechercher un membre</span><Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--muted)]"/><Input className="pl-9" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Nom, e-mail ou boutique" /></label></div>
       {!visibleUsers.length ? <EmptyState icon={<UsersRound />} title="Aucun membre trouvé">{query ? "Modifiez votre recherche." : "Invitez un premier gérant pour préparer une boutique."}</EmptyState> : <div className="overflow-hidden rounded-lg bg-[var(--surface)] shadow-[var(--shadow-card)]"><div className="hidden grid-cols-[minmax(240px,1.4fr)_minmax(170px,0.8fr)_110px_150px] gap-4 bg-[var(--surface-subtle)] px-5 py-2.5 text-xs font-semibold uppercase tracking-wide text-[var(--muted)] md:grid"><span>Membre</span><span>Affectation</span><span>Statut</span><span className="text-right">Actions</span></div><ul className="divide-y divide-[var(--separator)]/60">{visibleUsers.map((user) => <MemberRow key={user.id} user={user} pending={pending} onReload={reload} onSuccess={setSuccess} onError={setError} onPending={setPending} onAssign={(current) => { setSelectedUser(user.id); setSelectedShop(current?.shopId ?? ""); setReason(current ? "Changement d’affectation" : "Responsable de boutique"); setAssignOpen(true); }} onDeactivate={() => { setTargetUser(user.id); setReason(""); setConfirm("deactivate"); }} />)}</ul></div>}
     </section>
@@ -50,7 +51,6 @@ export default function UsersPage() {
   </section>;
 }
 
-function Metric({ value, label, bordered = false }: { value: number; label: string; bordered?: boolean }) { return <div className={`${bordered ? "border-t border-[var(--separator)]/60 sm:border-l sm:border-t-0" : ""} p-4`}><p className="text-2xl font-semibold tabular-nums">{value}</p><p className="mt-1 text-sm text-[var(--muted)]">{label}</p></div>; }
 function Field({ id, label, value, onChange, type = "text", placeholder }: { id: string; label: string; value: string; onChange: (value: string) => void; type?: string; placeholder?: string }) { return <div className="space-y-1.5"><Label htmlFor={id}>{label}</Label><Input id={id} type={type} required minLength={type === "email" ? undefined : 2} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} /></div>; }
 function ModalActions({ cancel, pending, label }: { cancel: () => void; pending: boolean; label: string }) { return <div className="flex justify-end gap-2 pt-2"><Button type="button" variant="ghost" onClick={cancel}>Annuler</Button><Button type="submit" disabled={pending}>{pending ? "Traitement…" : label}</Button></div>; }
 

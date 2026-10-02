@@ -15,6 +15,7 @@ import { ConfirmDialog } from "../ui/confirm-dialog";
 import { EmptyState } from "../ui/empty-state";
 import { Field } from "../ui/field";
 import { Label } from "../ui/label";
+import { KpiItem, KpiStrip } from "../ui/kpi-strip";
 import { PageHeader } from "../ui/page-header";
 import { Skeleton } from "../ui/skeleton";
 import { Textarea } from "../ui/textarea";
@@ -107,11 +108,11 @@ export function ManagerRequestsPage() {
         Préparez le besoin de la boutique. L’achat et le stock n’avancent qu’après décision du propriétaire.
       </PageHeader>
       {error ? <Alert tone="error">{error}</Alert> : null}
-      <div className="grid gap-3 sm:grid-cols-3">
-        <div className="rounded-xl bg-[var(--surface)] p-4 shadow-[var(--shadow-card)]"><p className="text-sm text-[var(--muted)]">Toutes les demandes</p><p className="mt-1 font-display text-2xl font-semibold tabular-nums">{rows?.length ?? 0}</p></div>
-        <div className="rounded-xl bg-[var(--surface)] p-4 shadow-[var(--shadow-card)]"><p className="text-sm text-[var(--muted)]">À suivre</p><p className="mt-1 font-display text-2xl font-semibold tabular-nums">{pendingCount}</p></div>
-        <div className="rounded-xl bg-[var(--surface)] p-4 shadow-[var(--shadow-card)]"><p className="text-sm text-[var(--muted)]">Accords reçus</p><p className="mt-1 font-display text-2xl font-semibold tabular-nums">{approvedCount}</p></div>
-      </div>
+      <KpiStrip count={3}>
+        <KpiItem icon={<ClipboardList />} value={rows?.length ?? 0} label="demandes enregistrées" />
+        <KpiItem icon={<CalendarClock />} value={pendingCount} label="demandes à suivre" />
+        <KpiItem icon={<CheckCircle2 />} value={approvedCount} label="accords reçus" />
+      </KpiStrip>
       <div className="flex flex-col gap-3 rounded-xl bg-[var(--surface)] p-3 shadow-[var(--shadow-card)] lg:flex-row lg:items-center lg:justify-between">
         <label className="relative block min-w-0 flex-1 lg:max-w-md"><Search className="absolute left-3 top-3 size-4 text-[var(--muted)]" /><span className="sr-only">Rechercher</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher par motif ou état" className="h-11 w-full rounded-lg bg-[var(--surface-subtle)] pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-[var(--focus)]" /></label>
         <div className="flex flex-wrap gap-2" aria-label="Filtrer les demandes">
@@ -429,7 +430,7 @@ export function ManagerReceiptDetailPage() {
       <PageHeader title="Confirmer la réception">{data.sourceName} <ArrowRight className="mx-1 inline size-4" /> {data.destinationName}</PageHeader>
       {error && !confirm ? <Alert tone="error">{error}</Alert> : null}
       <Alert>Indiquez les quantités réellement constatées. Il n’existe pas d’action qui marque tout comme reçu sans contrôle.</Alert>
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{[["Attendu", totals.expected], ["Accepté", totals.accepted], ["Endommagé", totals.damaged], ["Surplus", totals.surplus]].map(([label, value]) => <article key={label} className="rounded-xl bg-[var(--surface)] p-4 shadow-[var(--shadow-card)]"><p className="text-sm text-[var(--muted)]">{label}</p><p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p></article>)}</div>
+      <KpiStrip><KpiItem icon={<PackageCheck />} value={totals.expected} label="quantité attendue" /><KpiItem icon={<CheckCircle2 />} value={totals.accepted} label="quantité acceptée" /><KpiItem icon={<Truck />} value={totals.damaged} label="quantité endommagée" /><KpiItem icon={<Plus />} value={totals.surplus} label="surplus constaté" /></KpiStrip>
       <ul className="grid gap-3">{data.lines.map((line) => (
         <li key={line.id} className="rounded-xl bg-[var(--surface)] p-4 shadow-[var(--shadow-card)]">
           <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="font-semibold">{line.productName} · {line.variantName}</p><p className="mt-1 text-sm text-[var(--muted)]">Comptez cette ligne séparément.</p></div><Badge>Attendu : {line.remainingQty}</Badge></div>

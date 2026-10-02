@@ -648,6 +648,15 @@ Vérifications exécutées : `corepack pnpm lint` code 0 ; `corepack pnpm typech
 
 Vérifications exécutées : `corepack pnpm lint` code 0 ; `corepack pnpm typecheck` code 0 ; `corepack pnpm test:unit` **39/39** ; `corepack pnpm --filter @cercle/web build` code 0, **44 pages**.
 
+### Uniformisation des bandeaux KPI — 2 octobre 2026
+
+- Le modèle validé sur l’état du stock devient un composant partagé : une surface unique, une icône bleue au-dessus de la valeur, un libellé secondaire et des séparateurs fonctionnels entre indicateurs.
+- Ce modèle est appliqué aux ventes propriétaire, au tableau de bord, aux utilisateurs, aux lieux, au stock, aux sources de fonds, aux achats et transferts propriétaire, ainsi qu’aux demandes, réceptions et mouvements de fonds gérant.
+- Sur téléphone, les indicateurs s’empilent avec des séparateurs horizontaux. Ils passent en bandeau horizontal à partir de la largeur adaptée au nombre d’indicateurs, sans produire de petites cartes indépendantes.
+- Les cartes de contenu, formulaires, statuts et raccourcis restent distincts : seules les zones qui synthétisent de vrais indicateurs chiffrés utilisent le bandeau KPI.
+
+Vérifications exécutées : `corepack pnpm lint` code 0 ; `corepack pnpm typecheck` code 0 ; `corepack pnpm test:unit` **39/39** ; `corepack pnpm --filter @cercle/web build` code 0, **44 pages**.
+
 ### Fiche et décision de demande propriétaire — 2 octobre 2026
 
 - La fiche propriétaire adopte une composition à deux colonnes sur ordinateur : besoin et historique à gauche, estimation et décision à droite. Elle revient en une colonne sur tablette et téléphone.

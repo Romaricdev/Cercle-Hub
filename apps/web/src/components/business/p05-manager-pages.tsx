@@ -15,6 +15,7 @@ import { ConfirmDialog } from "../ui/confirm-dialog";
 import { EmptyState } from "../ui/empty-state";
 import { Field } from "../ui/field";
 import { Label } from "../ui/label";
+import { KpiItem, KpiStrip } from "../ui/kpi-strip";
 import { PageHeader } from "../ui/page-header";
 import { Skeleton } from "../ui/skeleton";
 import { Textarea } from "../ui/textarea";
@@ -360,11 +361,11 @@ export function ManagerFundsPage() {
       {error && !receiveId ? <Alert tone="error">{error}</Alert> : null}
       {blocked ? <Alert><span className="inline-flex items-center gap-2"><LockKeyhole className="size-4" />Le comptage est en cours. Aucun fonds ne peut sortir ni être réceptionné avant sa fin.</span></Alert> : null}
       {!blocked && cash && !hasOpenSession ? <Alert>Ouvrez d’abord la caisse du jour pour effectuer un mouvement de fonds.</Alert> : null}
-      <div className="grid gap-3 sm:grid-cols-3">
-        <div className="rounded-xl bg-[var(--surface)] p-4 shadow-[var(--shadow-card)]"><p className="text-sm text-[var(--muted)]">Mouvements</p><p className="mt-1 font-display text-2xl font-semibold tabular-nums">{rows?.length ?? 0}</p></div>
-        <div className="rounded-xl bg-[var(--surface)] p-4 shadow-[var(--shadow-card)]"><p className="text-sm text-[var(--muted)]">Encore en transit</p><p className="mt-1 font-display text-xl font-semibold tabular-nums">{formatFcfa(inTransit.toString())}</p></div>
-        <div className="rounded-xl bg-[var(--surface)] p-4 shadow-[var(--shadow-card)]"><p className="text-sm text-[var(--muted)]">Déjà réceptionné</p><p className="mt-1 font-display text-xl font-semibold tabular-nums">{formatFcfa(received.toString())}</p></div>
-      </div>
+      <KpiStrip count={3}>
+        <KpiItem icon={<ArrowRight />} value={rows?.length ?? 0} label="mouvements enregistrés" />
+        <KpiItem icon={<MoveRight />} value={formatFcfa(inTransit.toString())} label="encore en transit" />
+        <KpiItem icon={<Landmark />} value={formatFcfa(received.toString())} label="déjà réceptionné" />
+      </KpiStrip>
       {!blocked && hasOpenSession ? <form className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)] sm:p-6" onSubmit={(event) => { event.preventDefault(); setPending(true); api<{ id: string }>("/api/v1/fund-transfers", { method: "POST", body: JSON.stringify({ ...form, purpose: "REMITTANCE" }) }).then((created) => api(`/api/v1/fund-transfers/${created.id}/send`, { method: "POST" })).then(() => { setForm({ sourceAccountId: "", destinationAccountId: "", amountMinor: "", reason: "" }); return load(); }).catch((caught: RequestError) => setError(caught.message)).finally(() => setPending(false)); }}>
         <div className="flex items-start gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-lg bg-[var(--surface-subtle)] text-[var(--primary)]"><Landmark className="size-5" /></span><div><h2 className="font-display font-semibold">Nouvelle remise</h2><p className="mt-1 text-sm text-[var(--muted)]">Déclarez la sortie physique des fonds et leur destination attendue.</p></div></div>
         <div className="mt-5 grid gap-4 md:grid-cols-[1fr_auto_1fr] md:items-end">
