@@ -645,6 +645,8 @@ Vérifications exécutées : `corepack pnpm lint` code 0 ; `corepack pnpm typech
 - La fiche gérant sépare le contexte du transfert, les indicateurs envoyés/reçus/en transit, la progression par produit et la prochaine action autorisée.
 - La fiche propriétaire reprend la même hiérarchie et enrichit les réceptions sous forme de blocs lisibles, tout en conservant les actions et droits existants.
 - La saisie de la péremption lors d’une réception utilise un champ date natif ; le navigateur contrôle le format transmis à l’API.
+- Une livraison au statut reçu ouvre désormais une fiche de consultation en lecture seule avec les quantités consolidées et l’historique des contrôles. Le formulaire de réception n’est rendu que lorsqu’une réception reste à effectuer.
+- Depuis la fiche d’achat gérant, l’action est libellée « Consulter la réception » pour une livraison terminée et « Traiter la réception » lorsqu’une action reste attendue.
 
 Vérifications exécutées : `corepack pnpm lint` code 0 ; `corepack pnpm typecheck` code 0 ; `corepack pnpm test:unit` **40/40** ; `corepack pnpm --filter @cercle/web build` code 0, **44 pages**.
 
