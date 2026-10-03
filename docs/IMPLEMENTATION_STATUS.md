@@ -657,6 +657,16 @@ Vérifications exécutées : `corepack pnpm lint` code 0 ; `corepack pnpm typech
 
 Vérifications exécutées : `corepack pnpm lint` code 0 ; `corepack pnpm typecheck` code 0 ; `corepack pnpm test:unit` **39/39** ; `corepack pnpm --filter @cercle/web build` code 0, **44 pages**.
 
+### Réorganisation de la page des dépenses propriétaire — 3 octobre 2026
+
+- Le formulaire permanent est remplacé par l’action « Nouvelle dépense » et une modale dédiée. Les erreurs de saisie ou de décaissement restent dans cette modale, au-dessus du formulaire concerné.
+- La page commence par un bandeau KPI cohérent avec le design validé : total décaissé, demandes à valider et dépenses à régulariser.
+- La recherche couvre le motif, la boutique, le gérant et la source débitée. Les dépenses peuvent aussi être filtrées par état et par catégorie.
+- Sur ordinateur, l’historique devient un tableau comparatif avec motif, catégorie, boutique, source, date, état et montant. Les cartes sont conservées sur téléphone et tablette avec les mêmes informations essentielles.
+- L’action de décision reste disponible uniquement pour les demandes en attente et continue d’utiliser la modale de décision existante.
+
+Vérifications exécutées : `corepack pnpm lint` code 0 ; `corepack pnpm typecheck` code 0 ; `corepack pnpm test:unit` **39/39** ; `corepack pnpm --filter @cercle/web build` code 0, **44 pages**.
+
 ### Fiche et décision de demande propriétaire — 2 octobre 2026
 
 - La fiche propriétaire adopte une composition à deux colonnes sur ordinateur : besoin et historique à gauche, estimation et décision à droite. Elle revient en une colonne sur tablette et téléphone.

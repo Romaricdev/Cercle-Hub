@@ -1,6 +1,6 @@
 "use client";
 
-import { FileUp, Search } from "lucide-react";
+import { CircleAlert, FileUp, Plus, ReceiptText, Search, WalletCards } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -14,6 +14,7 @@ import { ConfirmDialog } from "../ui/confirm-dialog";
 import { afterDialogClose } from "../ui/dialog-message";
 import { EmptyState } from "../ui/empty-state";
 import { Field } from "../ui/field";
+import { KpiItem, KpiStrip } from "../ui/kpi-strip";
 import { Modal } from "../ui/modal";
 import { PageHeader } from "../ui/page-header";
 import { Skeleton } from "../ui/skeleton";
@@ -36,6 +37,7 @@ type CaseDetail = CaseRow & { sessionId: string | null; ownerDecision: string | 
 const statusTone = (status: string) => status === "CLOSED" ? "neutral" : status === "COUNTING" ? "warning" : "success";
 const expenseTone = (status: string): "neutral" | "success" | "warning" | "danger" | "info" => ({ DRAFT: "neutral", REQUESTED: "warning", AUTHORIZED: "info", POSTED: "success", IRREGULAR: "danger", REJECTED: "danger" } as const)[status] ?? "neutral";
 const expenseLabel: Record<string, string> = { DRAFT: "Brouillon", REQUESTED: "À valider", AUTHORIZED: "Autorisée", POSTED: "Décaissée", IRREGULAR: "À régulariser", REJECTED: "Refusée" };
+const expenseCategory: Record<string, string> = { RENT: "Loyer", UTILITIES: "Charges", TRANSPORT: "Transport", SUPPLIES: "Fournitures", OTHER: "Autre" };
 const purposeLabel: Record<string, string> = { REMITTANCE: "Remise", FLOAT: "Fonds de caisse", OWNER_CONTRIBUTION: "Apport", WITHDRAWAL: "Retrait" };
 const caseState: Record<string, string> = { OPEN: "À examiner", NEEDS_INFO: "Information demandée", RESOLVED: "Résolu" };
 const actionLabel: Record<string, string> = {
@@ -121,6 +123,8 @@ export function OwnerExpensesPage() {
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("ALL");
+  const [category, setCategory] = useState("ALL");
+  const [createOpen, setCreateOpen] = useState(false);
   const [selected, setSelected] = useState<ExpenseRow | null>(null);
   const [reason, setReason] = useState("Demande examinée.");
   const [pending, setPending] = useState(false);
@@ -133,7 +137,10 @@ export function OwnerExpensesPage() {
       .catch((caught: RequestError) => setError(caught.message));
   };
   useEffect(() => { void load(); }, []);
-  const filtered = (rows ?? []).filter((row) => (status === "ALL" || row.status === status) && `${row.description} ${row.shopName} ${row.managerName}`.toLowerCase().includes(query.toLowerCase()));
+  const filtered = (rows ?? []).filter((row) => (status === "ALL" || row.status === status) && (category === "ALL" || row.category === category) && `${row.description} ${row.shopName} ${row.managerName} ${row.source}`.toLowerCase().includes(query.toLowerCase()));
+  const paidTotal = (rows ?? []).filter((row) => row.status === "POSTED").reduce((sum, row) => sum + BigInt(row.amountMinor), 0n);
+  const pendingDecision = (rows ?? []).filter((row) => row.status === "REQUESTED").length;
+  const irregularCount = (rows ?? []).filter((row) => row.status === "IRREGULAR").length;
   const submitOwnerExpense = async () => {
     setPending(true);
     setError(null);
@@ -150,6 +157,7 @@ export function OwnerExpensesPage() {
       setForm((current) => ({ ...current, description: "", amountMinor: "", receiptExceptionReason: "" }));
       setReceipt(null);
       setWithoutReceipt(false);
+      setCreateOpen(false);
       await load();
     } catch (caught) {
       setError(caught instanceof RequestError ? caught.message : "La dépense n’a pas pu être enregistrée.");
@@ -159,41 +167,40 @@ export function OwnerExpensesPage() {
   };
   return (
     <section className="space-y-6 overflow-x-clip">
-      <PageHeader title="Dépenses">Validez ou refusez les demandes, puis suivez le décaissement réel. L’autorisation ne diminue pas les fonds.</PageHeader>
-      {error && !selected ? <Alert tone="error">{error}</Alert> : null}
-      <form className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]" onSubmit={(event) => { event.preventDefault(); void submitOwnerExpense(); }}>
-        <h2 className="font-display font-semibold">Dépense d’organisation</h2>
-        <p className="mt-1 text-sm text-[var(--muted)]">Cette opération enregistre puis décaisse réellement la dépense. Utilisez une source de la boutique concernée ou une source commune de l’entreprise.</p>
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <label className="block text-sm font-medium">Boutique concernée<select required value={form.shopId} onChange={(event) => setForm((current) => ({ ...current, shopId: event.target.value, accountId: "" }))} className="mt-1.5 h-11 w-full rounded-md bg-[var(--surface-subtle)] px-3 outline-none focus:ring-2 focus:ring-[var(--focus)]"><option value="">Choisir</option>{shops.map((shop) => <option key={shop.id} value={shop.id}>{shop.name}</option>)}</select></label>
-          <label className="block text-sm font-medium">Source débitée<select required value={form.accountId} onChange={(event) => setForm((current) => ({ ...current, accountId: event.target.value }))} className="mt-1.5 h-11 w-full rounded-md bg-[var(--surface-subtle)] px-3 outline-none focus:ring-2 focus:ring-[var(--focus)]"><option value="">Choisir</option>{accounts.filter((account) => account.shopId === null || account.shopId === form.shopId).map((account) => <option key={account.id} value={account.id}>{account.name} · {account.shopName}{account.balanceMinor ? ` · ${formatFcfa(account.balanceMinor)}` : ""}</option>)}</select></label>
-          <label className="block text-sm font-medium">Catégorie<select value={form.category} onChange={(event) => setForm((current) => ({ ...current, category: event.target.value }))} className="mt-1.5 h-11 w-full rounded-md bg-[var(--surface-subtle)] px-3"><option value="RENT">Loyer</option><option value="UTILITIES">Charges</option><option value="TRANSPORT">Transport</option><option value="SUPPLIES">Fournitures</option><option value="OTHER">Autre</option></select></label>
-          <Field id="owner-expense-amount" label="Montant (FCFA)" inputMode="numeric" value={form.amountMinor} onChange={(event) => setForm((current) => ({ ...current, amountMinor: event.target.value.replace(/\D/g, "") }))} />
-          <Field id="owner-expense-description" label="Motif" value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} />
-          <div className="rounded-lg bg-[var(--surface-subtle)] p-4 md:col-span-2">
-            <label className="flex cursor-pointer items-center gap-3 font-medium"><FileUp className="size-5 text-[var(--primary)]" /><span>{receipt?.name ?? "Ajouter un justificatif (PDF ou image)"}</span><input className="sr-only" type="file" accept="application/pdf,image/jpeg,image/png,image/webp" onChange={(event) => { setReceipt(event.target.files?.[0] ?? null); setWithoutReceipt(false); }} /></label>
-            <label className="mt-3 flex items-center gap-2 text-sm"><input type="checkbox" checked={withoutReceipt} onChange={(event) => { setWithoutReceipt(event.target.checked); if (event.target.checked) setReceipt(null); }} /> Aucun justificatif disponible</label>
-            {withoutReceipt ? <div className="mt-3"><Field id="owner-expense-receipt-reason" label="Motif de l’absence de justificatif" value={form.receiptExceptionReason} onChange={(event) => setForm((current) => ({ ...current, receiptExceptionReason: event.target.value }))} /></div> : null}
-          </div>
-        </div>
-        <p className="mt-3 text-xs text-[var(--muted)]">La pièce jointe reste privée et soumise au contrôle de sécurité. Sans fichier, le motif d’absence est obligatoire et audité.</p>
-        <Button type="submit" className="mt-4" disabled={pending || !form.shopId || !form.accountId || !form.amountMinor || form.description.trim().length < 5 || (!receipt && (!withoutReceipt || form.receiptExceptionReason.trim().length < 5))}>{pending ? "Enregistrement…" : "Enregistrer et décaisser"}</Button>
-      </form>
-      <div className="flex flex-col gap-3 sm:flex-row">
+      <PageHeader title="Dépenses" action={<Button onClick={() => { setError(null); setCreateOpen(true); }}><Plus className="size-4" />Nouvelle dépense</Button>}>Validez les demandes et suivez les décaissements réels sans perdre leur justificatif.</PageHeader>
+      {error && !selected && !createOpen ? <Alert tone="error">{error}</Alert> : null}
+      <KpiStrip count={3}><KpiItem icon={<WalletCards />} value={formatFcfa(paidTotal.toString())} label="total décaissé" /><KpiItem icon={<ReceiptText />} value={pendingDecision} label="demandes à valider" /><KpiItem icon={<CircleAlert />} value={irregularCount} label="dépenses à régulariser" valueClassName={irregularCount ? "text-[var(--destructive)]" : ""} /></KpiStrip>
+      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_13rem_13rem]">
         <label className="relative block flex-1"><Search className="absolute left-3 top-3 size-4 text-[var(--muted)]" /><span className="sr-only">Rechercher</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Boutique, gérant ou motif" className="h-11 w-full rounded-lg bg-[var(--surface)] pl-10 pr-4 text-sm shadow-[var(--shadow-card)] outline-none focus:ring-2 focus:ring-[var(--focus)]" /></label>
         <select aria-label="Filtrer par état" value={status} onChange={(event) => setStatus(event.target.value)} className="h-11 rounded-lg bg-[var(--surface)] px-3 text-sm shadow-[var(--shadow-card)]"><option value="ALL">Tous les états</option>{Object.entries(expenseLabel).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
+        <select aria-label="Filtrer par catégorie" value={category} onChange={(event) => setCategory(event.target.value)} className="h-11 rounded-lg bg-[var(--surface)] px-3 text-sm shadow-[var(--shadow-card)]"><option value="ALL">Toutes les catégories</option>{Object.entries(expenseCategory).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
       </div>
-      {!rows ? <Skeleton className="h-48" /> : filtered.length === 0 ? <EmptyState title="Aucune dépense">Les demandes des boutiques apparaîtront ici.</EmptyState> : (
-        <ul className="grid gap-3">{filtered.map((row) => (
+      {!rows ? <Skeleton className="h-48" /> : filtered.length === 0 ? <EmptyState title="Aucune dépense">Aucune dépense ne correspond aux filtres actuels.</EmptyState> : (<>
+        <ul className="grid gap-3 lg:hidden">{filtered.map((row) => (
           <li key={row.id} className="rounded-xl bg-[var(--surface)] p-4 shadow-[var(--shadow-card)]">
             <div className="flex flex-wrap items-start justify-between gap-3">
-              <div><p className="font-semibold">{row.description}</p><p className="mt-1 text-sm text-[var(--muted)]">{row.shopName} · {row.managerName} · {row.source}</p></div>
+              <div><p className="font-semibold">{row.description}</p><p className="mt-1 text-sm text-[var(--muted)]">{expenseCategory[row.category] ?? row.category} · {row.shopName}</p><p className="mt-1 text-xs text-[var(--muted)]">{row.managerName} · {row.source} · {new Date(row.createdAt).toLocaleString("fr-FR")}</p></div>
               <div className="text-right"><p className="tabular-nums font-semibold">{formatFcfa(row.amountMinor)}</p><Badge tone={expenseTone(row.status)}>{expenseLabel[row.status]}</Badge></div>
             </div>
             {row.status === "REQUESTED" ? <div className="mt-3 flex flex-wrap gap-2"><Button onClick={() => setSelected(row)}>Décider</Button></div> : null}
           </li>
         ))}</ul>
-      )}
+        <div className="hidden overflow-x-auto rounded-xl bg-[var(--surface)] shadow-[var(--shadow-card)] lg:block"><table className="w-full text-sm"><thead className="text-left text-[var(--muted)]"><tr><th className="px-5 py-3 font-medium">Dépense</th><th className="px-5 py-3 font-medium">Boutique</th><th className="px-5 py-3 font-medium">Source</th><th className="px-5 py-3 font-medium">Date</th><th className="px-5 py-3 font-medium">État</th><th className="px-5 py-3 text-right font-medium">Montant</th><th className="px-5 py-3"><span className="sr-only">Action</span></th></tr></thead><tbody>{filtered.map((row) => <tr key={row.id} className="border-t border-[var(--separator)]/50"><td className="px-5 py-4"><p className="font-semibold">{row.description}</p><p className="mt-1 text-xs text-[var(--muted)]">{expenseCategory[row.category] ?? row.category} · {row.managerName}</p></td><td className="px-5 py-4">{row.shopName}</td><td className="px-5 py-4">{row.source}</td><td className="whitespace-nowrap px-5 py-4">{new Date(row.createdAt).toLocaleDateString("fr-FR")}</td><td className="px-5 py-4"><Badge tone={expenseTone(row.status)}>{expenseLabel[row.status]}</Badge></td><td className="px-5 py-4 text-right font-semibold tabular-nums">{formatFcfa(row.amountMinor)}</td><td className="px-5 py-4 text-right">{row.status === "REQUESTED" ? <Button className="h-8 px-3" onClick={() => setSelected(row)}>Décider</Button> : null}</td></tr>)}</tbody></table></div>
+      </>)}
+      <Modal open={createOpen} error={createOpen ? error : null} onOpenChange={(open) => { setCreateOpen(open); if (!open) setError(null); }} title="Nouvelle dépense" description="Cette opération enregistre et décaisse immédiatement la dépense depuis la source choisie." size="lg">
+        <form onSubmit={(event) => { event.preventDefault(); void submitOwnerExpense(); }}>
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="block text-sm font-medium">Boutique concernée<select required value={form.shopId} onChange={(event) => setForm((current) => ({ ...current, shopId: event.target.value, accountId: "" }))} className="mt-1.5 h-11 w-full rounded-md bg-[var(--surface-subtle)] px-3 outline-none focus:ring-2 focus:ring-[var(--focus)]"><option value="">Choisir</option>{shops.map((shop) => <option key={shop.id} value={shop.id}>{shop.name}</option>)}</select></label>
+            <label className="block text-sm font-medium">Source débitée<select required value={form.accountId} onChange={(event) => setForm((current) => ({ ...current, accountId: event.target.value }))} className="mt-1.5 h-11 w-full rounded-md bg-[var(--surface-subtle)] px-3 outline-none focus:ring-2 focus:ring-[var(--focus)]"><option value="">Choisir</option>{accounts.filter((account) => account.shopId === null || account.shopId === form.shopId).map((account) => <option key={account.id} value={account.id}>{account.name} · {account.shopName}{account.balanceMinor ? ` · ${formatFcfa(account.balanceMinor)}` : ""}</option>)}</select></label>
+            <label className="block text-sm font-medium">Catégorie<select value={form.category} onChange={(event) => setForm((current) => ({ ...current, category: event.target.value }))} className="mt-1.5 h-11 w-full rounded-md bg-[var(--surface-subtle)] px-3">{Object.entries(expenseCategory).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+            <Field id="owner-expense-amount" label="Montant (FCFA)" inputMode="numeric" value={form.amountMinor} onChange={(event) => setForm((current) => ({ ...current, amountMinor: event.target.value.replace(/\D/g, "") }))} />
+            <div className="md:col-span-2"><Field id="owner-expense-description" label="Motif" value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} /></div>
+            <div className="rounded-lg bg-[var(--surface-subtle)] p-4 md:col-span-2"><label className="flex cursor-pointer items-center gap-3 font-medium"><FileUp className="size-5 text-[var(--primary)]" /><span>{receipt?.name ?? "Ajouter un justificatif (PDF ou image)"}</span><input className="sr-only" type="file" accept="application/pdf,image/jpeg,image/png,image/webp" onChange={(event) => { setReceipt(event.target.files?.[0] ?? null); setWithoutReceipt(false); }} /></label><label className="mt-3 flex items-center gap-2 text-sm"><input type="checkbox" checked={withoutReceipt} onChange={(event) => { setWithoutReceipt(event.target.checked); if (event.target.checked) setReceipt(null); }} /> Aucun justificatif disponible</label>{withoutReceipt ? <div className="mt-3"><Field id="owner-expense-receipt-reason" label="Motif de l’absence de justificatif" value={form.receiptExceptionReason} onChange={(event) => setForm((current) => ({ ...current, receiptExceptionReason: event.target.value }))} /></div> : null}</div>
+          </div>
+          <p className="mt-3 text-xs leading-5 text-[var(--muted)]">La pièce reste privée et contrôlée. Sans fichier, le motif d’absence est obligatoire et audité.</p>
+          <div className="mt-5 flex justify-end gap-2"><Button type="button" variant="ghost" onClick={() => setCreateOpen(false)}>Annuler</Button><Button type="submit" disabled={pending || !form.shopId || !form.accountId || !form.amountMinor || form.description.trim().length < 5 || (!receipt && (!withoutReceipt || form.receiptExceptionReason.trim().length < 5))}>{pending ? "Enregistrement…" : "Enregistrer et décaisser"}</Button></div>
+        </form>
+      </Modal>
       <Modal open={Boolean(selected)} error={selected ? error : null} onOpenChange={(open) => { if (!open) { setSelected(null); setError(null); } }} title="Décision sur la dépense" {...(selected ? { description: `${selected.description} · ${formatFcfa(selected.amountMinor)}` } : {})}>
         <Field id="decide-reason" label="Motif de la décision" value={reason} onChange={(event) => setReason(event.target.value)} />
         <div className="mt-5 flex flex-wrap justify-end gap-2">
