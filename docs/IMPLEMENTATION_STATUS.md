@@ -638,6 +638,15 @@ Vérifications exécutées : `corepack pnpm db:seed-local-full` code 0 sur `cerc
 
 Vérifications exécutées : `corepack pnpm lint` code 0 ; `corepack pnpm typecheck` code 0 ; `corepack pnpm test:unit` **39/39** ; `corepack pnpm --filter @cercle/web build` code 0, **44 pages**.
 
+### Pagination configurable des tableaux — 3 octobre 2026
+
+- Un composant partagé affiche la plage visible, le total, la page courante et les actions précédente/suivante. L’utilisateur choisit directement 10, 20 ou 50 lignes par page.
+- La pagination couvre les ventes, sessions de caisse, dépenses, demandes d’achat, achats, fournisseurs, comparaison des boutiques et progression quotidienne des sources. Les variantes en cartes sur téléphone et tablette utilisent la même tranche de données que le tableau ordinateur.
+- Les recherches et filtres replacent la liste sur la première page afin d’éviter une page vide après réduction des résultats.
+- Le suivi des transferts conserve sa pagination serveur : la taille sélectionnée est envoyée à l’API et le total reste celui du jeu complet, pas seulement celui des lignes déjà chargées.
+
+Vérifications exécutées : `corepack pnpm lint` code 0 ; `corepack pnpm typecheck` code 0 ; `corepack pnpm test:unit` **40/40** ; `corepack pnpm --filter @cercle/web build` code 0, **44 pages**.
+
 ### Raffinement du parcours d’achat propriétaire — 2 octobre 2026
 
 - La liste des achats affiche des indicateurs de volume, les réceptions et paiements restant à traiter, une recherche par référence, fournisseur ou boutique et des filtres opérationnels. Les cartes mobiles reprennent les statuts, la date et le montant ; le tableau ordinateur ajoute la boutique et la date de création.

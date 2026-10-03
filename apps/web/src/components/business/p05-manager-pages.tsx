@@ -19,6 +19,7 @@ import { KpiItem, KpiStrip } from "../ui/kpi-strip";
 import { PageHeader } from "../ui/page-header";
 import { Skeleton } from "../ui/skeleton";
 import { Textarea } from "../ui/textarea";
+import { TablePagination, useTablePagination } from "../ui/table-pagination";
 
 type Source = { id: string; name: string; type: string; balanceMinor?: string };
 type SessionPayload = {
@@ -86,6 +87,7 @@ export function ManagerCashPage() {
   useEffect(() => { void load(); }, []);
   const session = data?.session;
   const filtered = (history ?? []).filter((row) => `${row.businessDate} ${row.status}`.toLowerCase().includes(query.toLowerCase()));
+  const pagination = useTablePagination(filtered);
   if (!data && !error) return <Skeleton className="h-[32rem]" />;
   if (!data && error) return <section className="space-y-6"><PageHeader title="Caisse du jour">Consultez la session et les opérations de la journée.</PageHeader><Alert tone="error">{error}</Alert><div className="rounded-xl bg-[var(--surface)] p-6 text-center shadow-[var(--shadow-card)]"><h2 className="font-display text-lg font-semibold">Impossible de charger la caisse</h2><p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-[var(--muted)]">Vérifiez la connexion au serveur, puis réessayez. Aucune information de session n’a été déduite de cet échec.</p><Button className="mt-4" onClick={load}>Réessayer</Button></div></section>;
   return (
@@ -140,19 +142,20 @@ export function ManagerCashPage() {
       <section className="space-y-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <h2 className="font-display text-lg font-semibold">Sessions récentes</h2>
-          <label className="relative block w-full sm:max-w-xs"><Search className="absolute left-3 top-3 size-4 text-[var(--muted)]" /><span className="sr-only">Rechercher une session</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Date ou état" className="h-11 w-full rounded-lg bg-[var(--surface)] pl-10 pr-4 text-sm shadow-[var(--shadow-card)] outline-none focus:ring-2 focus:ring-[var(--focus)]" /></label>
+          <label className="relative block w-full sm:max-w-xs"><Search className="absolute left-3 top-3 size-4 text-[var(--muted)]" /><span className="sr-only">Rechercher une session</span><input value={query} onChange={(event) => { setQuery(event.target.value); pagination.setPage(1); }} placeholder="Date ou état" className="h-11 w-full rounded-lg bg-[var(--surface)] pl-10 pr-4 text-sm shadow-[var(--shadow-card)] outline-none focus:ring-2 focus:ring-[var(--focus)]" /></label>
         </div>
         {!history ? <Skeleton className="h-40" /> : filtered.length === 0 ? <EmptyState title="Aucune session correspondante">Les sessions clôturées de cette boutique apparaîtront ici.</EmptyState> : (
-          <ul className="grid gap-3 xl:hidden">{filtered.map((row) => <li key={row.id} className="rounded-xl bg-[var(--surface)] p-4 shadow-[var(--shadow-card)]"><p className="font-semibold">{formatBusinessDate(row.businessDate)}</p><p className="mt-1 text-sm text-[var(--muted)]">{sessionStatus[row.status]?.label}</p>{row.status === "CLOSED" && row.declaredMinor ? <p className="mt-2 tabular-nums">{formatFcfa(row.declaredMinor)}</p> : null}</li>)}</ul>
+          <ul className="grid gap-3 xl:hidden">{pagination.pageItems.map((row) => <li key={row.id} className="rounded-xl bg-[var(--surface)] p-4 shadow-[var(--shadow-card)]"><p className="font-semibold">{formatBusinessDate(row.businessDate)}</p><p className="mt-1 text-sm text-[var(--muted)]">{sessionStatus[row.status]?.label}</p>{row.status === "CLOSED" && row.declaredMinor ? <p className="mt-2 tabular-nums">{formatFcfa(row.declaredMinor)}</p> : null}</li>)}</ul>
         )}
         {history && filtered.length > 0 ? (
           <div className="hidden overflow-x-auto rounded-xl bg-[var(--surface)] shadow-[var(--shadow-card)] xl:block">
             <table className="w-full text-sm">
               <thead className="sticky top-0 bg-[var(--surface)] text-left text-[var(--muted)]"><tr><th className="px-5 py-3 font-medium">Date</th><th className="px-5 py-3 font-medium">État</th><th className="px-5 py-3 font-medium">Ouverture</th><th className="px-5 py-3 text-right font-medium">Déclaré</th></tr></thead>
-              <tbody>{filtered.map((row) => <tr key={row.id} className="border-t border-[var(--separator)]/50"><td className="px-5 py-3">{formatBusinessDate(row.businessDate)}</td><td className="px-5 py-3"><Badge tone={sessionStatus[row.status]?.tone ?? "neutral"}>{sessionStatus[row.status]?.label ?? row.status}</Badge></td><td className="px-5 py-3 text-[var(--muted)]">{new Date(row.openedAt).toLocaleString("fr-FR")}</td><td className="px-5 py-3 text-right tabular-nums">{row.status === "CLOSED" && row.declaredMinor ? formatFcfa(row.declaredMinor) : "—"}</td></tr>)}</tbody>
+              <tbody>{pagination.pageItems.map((row) => <tr key={row.id} className="border-t border-[var(--separator)]/50"><td className="px-5 py-3">{formatBusinessDate(row.businessDate)}</td><td className="px-5 py-3"><Badge tone={sessionStatus[row.status]?.tone ?? "neutral"}>{sessionStatus[row.status]?.label ?? row.status}</Badge></td><td className="px-5 py-3 text-[var(--muted)]">{new Date(row.openedAt).toLocaleString("fr-FR")}</td><td className="px-5 py-3 text-right tabular-nums">{row.status === "CLOSED" && row.declaredMinor ? formatFcfa(row.declaredMinor) : "—"}</td></tr>)}</tbody>
             </table>
           </div>
         ) : null}
+        {history && filtered.length > 0 ? <TablePagination page={pagination.page} pageSize={pagination.pageSize} total={filtered.length} totalPages={pagination.totalPages} onPageChange={pagination.setPage} onPageSizeChange={pagination.setPageSize} itemLabel="session" /> : null}
       </section>
     </section>
   );
@@ -274,6 +277,7 @@ export function ManagerExpensesPage() {
   };
   useEffect(() => { void load(); }, []);
   const filtered = (rows ?? []).filter((row) => (status === "ALL" || row.status === status) && `${row.description} ${row.category}`.toLowerCase().includes(query.toLowerCase()));
+  const pagination = useTablePagination(filtered);
   const submit = async () => {
     setPending(true); setError(null);
     try {
@@ -318,11 +322,11 @@ export function ManagerExpensesPage() {
         <Button type="submit" className="mt-4" disabled={pending || !form.amountMinor || !form.description || !form.accountId || (!receipt && (!withoutReceipt || form.receiptExceptionReason.trim().length < 5))}>{pending ? "Envoi…" : "Enregistrer la demande"}</Button>
       </form> : null}
       <div className="flex flex-col gap-3 sm:flex-row">
-        <label className="relative block flex-1"><Search className="absolute left-3 top-3 size-4 text-[var(--muted)]" /><span className="sr-only">Rechercher une dépense</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher" className="h-11 w-full rounded-lg bg-[var(--surface)] pl-10 pr-4 text-sm shadow-[var(--shadow-card)] outline-none focus:ring-2 focus:ring-[var(--focus)]" /></label>
-        <select value={status} onChange={(event) => setStatus(event.target.value)} className="h-11 rounded-lg bg-[var(--surface)] px-3 text-sm shadow-[var(--shadow-card)] outline-none focus:ring-2 focus:ring-[var(--focus)]" aria-label="Filtrer par état"><option value="ALL">Tous les états</option>{Object.entries(expenseStatus).map(([value, item]) => <option key={value} value={value}>{item.label}</option>)}</select>
+        <label className="relative block flex-1"><Search className="absolute left-3 top-3 size-4 text-[var(--muted)]" /><span className="sr-only">Rechercher une dépense</span><input value={query} onChange={(event) => { setQuery(event.target.value); pagination.setPage(1); }} placeholder="Rechercher" className="h-11 w-full rounded-lg bg-[var(--surface)] pl-10 pr-4 text-sm shadow-[var(--shadow-card)] outline-none focus:ring-2 focus:ring-[var(--focus)]" /></label>
+        <select value={status} onChange={(event) => { setStatus(event.target.value); pagination.setPage(1); }} className="h-11 rounded-lg bg-[var(--surface)] px-3 text-sm shadow-[var(--shadow-card)] outline-none focus:ring-2 focus:ring-[var(--focus)]" aria-label="Filtrer par état"><option value="ALL">Tous les états</option>{Object.entries(expenseStatus).map(([value, item]) => <option key={value} value={value}>{item.label}</option>)}</select>
       </div>
       {!rows ? <Skeleton className="h-48" /> : filtered.length === 0 ? <EmptyState title="Aucune dépense" icon={<WalletCards className="size-5" />}>Les demandes de cette boutique apparaîtront ici.</EmptyState> : (
-        <ul className="grid gap-3">{filtered.map((row) => (
+        <ul className="grid gap-3">{pagination.pageItems.map((row) => (
           <li key={row.id} className="rounded-xl bg-[var(--surface)] p-4 shadow-[var(--shadow-card)]">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0"><p className="font-semibold">{row.description}</p><p className="mt-1 text-sm text-[var(--muted)]">{expenseLabels[row.category]} · {row.source}</p></div>
@@ -332,6 +336,7 @@ export function ManagerExpensesPage() {
           </li>
         ))}</ul>
       )}
+      {filtered.length > 0 ? <TablePagination page={pagination.page} pageSize={pagination.pageSize} total={filtered.length} totalPages={pagination.totalPages} onPageChange={pagination.setPage} onPageSizeChange={pagination.setPageSize} itemLabel="dépense" /> : null}
     </section>
   );
 }

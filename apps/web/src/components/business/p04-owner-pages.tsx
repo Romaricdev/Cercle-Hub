@@ -17,6 +17,7 @@ import { Label } from "../ui/label";
 import { KpiItem, KpiStrip } from "../ui/kpi-strip";
 import { PageHeader } from "../ui/page-header";
 import { Skeleton } from "../ui/skeleton";
+import { TablePagination, useTablePagination } from "../ui/table-pagination";
 
 const money = (value: string | bigint | null | undefined) =>
   value == null ? "—" : `${BigInt(value).toLocaleString("fr-FR")} FCFA`;
@@ -156,6 +157,7 @@ export function OwnerSalesPage() {
   }, []);
 
   const rows = [...(data?.sales ?? []), ...extra];
+  const pagination = useTablePagination(rows);
   const listQuery = queryString(searchParams);
   const selectedShop = shops.find((shop) => shop.id === filters.shopId);
   const advancedFilterCount = [filters.managerId, filters.status, filters.paymentSourceId, filters.query].filter(Boolean).length;
@@ -208,7 +210,7 @@ export function OwnerSalesPage() {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((sale) => (
+                {pagination.pageItems.map((sale) => (
                   <tr key={sale.id} className="border-t border-[var(--separator)]/60">
                     <td className="px-5 py-3 font-medium">{sale.reference}</td>
                     <td className="px-5 py-3 text-[var(--muted)]">{new Date(sale.postedAt).toLocaleString("fr-FR")}</td>
@@ -225,7 +227,7 @@ export function OwnerSalesPage() {
             </table>
           </div>
           <ul className="space-y-3 xl:hidden">
-            {rows.map((sale) => (
+            {pagination.pageItems.map((sale) => (
               <li key={sale.id} className="rounded-lg bg-[var(--surface)] p-4 shadow-[var(--shadow-card)]">
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -254,6 +256,7 @@ export function OwnerSalesPage() {
               });
             }}>Voir la suite</Button>
           ) : null}
+          <TablePagination page={pagination.page} pageSize={pagination.pageSize} total={rows.length} totalPages={pagination.totalPages} onPageChange={pagination.setPage} onPageSizeChange={pagination.setPageSize} itemLabel="vente" />
         </>
       )}
     </section>
@@ -380,6 +383,7 @@ export function OwnerDashboardPage() {
   const selectedShop = shops.find((shop) => shop.id === shopId);
   const sales = overview?.indicators.sales;
   const hasSales = Boolean(sales?.available && sales.count > 0);
+  const comparisonPagination = useTablePagination(overview?.shopComparisons ?? []);
 
   return <section className="min-w-0 max-w-full space-y-5 overflow-x-clip">
     <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -396,7 +400,7 @@ export function OwnerDashboardPage() {
       {hasSales ? <div className="flex flex-wrap gap-2 text-sm"><span className="rounded-full bg-[var(--surface)] px-3 py-1.5 shadow-[var(--shadow-card)]">{variationLabel(sales.variation)}</span><span className="rounded-full bg-[var(--surface)] px-3 py-1.5 shadow-[var(--shadow-card)]">{sales.shopsWithSales} boutique{sales.shopsWithSales > 1 ? "s" : ""} avec ventes</span></div> : null}
       {!hasSales ? <section className="rounded-lg bg-[var(--surface)] p-6 shadow-[var(--shadow-card)]"><div className="mx-auto max-w-xl text-center"><div className="mx-auto grid size-11 place-items-center rounded-lg bg-[var(--surface-subtle)] text-[var(--primary)]"><ReceiptText className="size-5" /></div><h2 className="mt-3 font-display text-lg font-semibold">Aucune vente sur cette période</h2><p className="mt-1 text-sm leading-6 text-[var(--muted)]">Aucune opération ne correspond à {selectedShop?.name ?? "l’ensemble des boutiques"} pour {periodLabel(overview.period.from, overview.period.to).toLowerCase()}. Modifiez la période ou consultez l’historique complet.</p><Link href={salesHref} className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-[var(--primary)]">Ouvrir l’historique <ArrowRight className="size-4" /></Link></div></section> : <>
         <section className="grid gap-5 xl:grid-cols-[1.15fr_.85fr]"><div className="rounded-lg bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]"><div className="flex items-center justify-between gap-4"><div><h2 className="font-display text-lg font-semibold">Ventes récentes</h2><p className="mt-1 text-sm text-[var(--muted)]">Dernières opérations de la période.</p></div><Link href={salesHref} className="inline-flex items-center gap-1 text-sm font-semibold text-[var(--primary)]">Tout voir <ArrowRight className="size-4" /></Link></div><ul className="mt-3 divide-y divide-[var(--separator)]/60">{overview.recentSales.map((sale) => <li key={sale.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between"><div><Link className="font-semibold hover:text-[var(--primary)]" href={`/owner/sales/${sale.id}`}>{sale.reference}</Link><p className="text-sm text-[var(--muted)]">{sale.shopName} · {sale.managerName} · {new Date(sale.postedAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</p></div><div className="flex items-center gap-3"><Badge>{statusLabel(sale.status)}</Badge><strong className="tabular-nums">{money(sale.netMinor)}</strong></div></li>)}</ul></div><div className="rounded-lg bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]"><div className="flex items-center justify-between gap-4"><div><h2 className="font-display text-lg font-semibold">Encaissements</h2><p className="mt-1 text-sm text-[var(--muted)]">Flux reçus par moyen de paiement.</p></div><Link href={paths.ownerSources} className="text-sm font-semibold text-[var(--primary)]">Détails</Link></div><ul className="mt-4 space-y-2 text-sm">{(["CASH", "MOBILE_MONEY", "BANK", "OTHER"] as const).filter((type) => BigInt(overview.collections[type]) !== 0n).map((type) => <li key={type} className="flex justify-between gap-4"><span>{modeLabel(type)}</span><strong className="tabular-nums">{money(overview.collections[type])}</strong></li>)}<li className="flex justify-between gap-4 border-t border-[var(--separator)]/60 pt-3"><span>Total encaissé</span><strong className="tabular-nums">{money(overview.collections.total)}</strong></li></ul></div></section>
-        {overview.shopComparisons.length > 1 ? <section className="rounded-lg bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]"><h2 className="font-display text-lg font-semibold">Comparaison des boutiques</h2><div className="mt-4 overflow-x-auto"><table className="w-full min-w-[42rem] text-sm"><thead className="text-left text-xs uppercase tracking-wide text-[var(--muted)]"><tr><th className="py-2 font-semibold">Boutique</th><th className="py-2 text-right font-semibold">Chiffre d’affaires</th><th className="py-2 text-right font-semibold">Ventes</th><th className="py-2 text-right font-semibold">Panier moyen</th><th className="py-2 pl-5 font-semibold">Dernière vente</th></tr></thead><tbody>{overview.shopComparisons.map((shop) => <tr key={shop.shopId} className="border-t border-[var(--separator)]/60"><td className="py-3 font-medium">{shop.name}</td><td className="py-3 text-right tabular-nums">{money(shop.revenueMinor)}</td><td className="py-3 text-right tabular-nums">{shop.count}</td><td className="py-3 text-right tabular-nums">{shop.averageBasketMinor ? money(shop.averageBasketMinor) : "—"}</td><td className="py-3 pl-5 text-[var(--muted)]">{shop.lastSaleAt ? new Date(shop.lastSaleAt).toLocaleString("fr-FR") : "—"}</td></tr>)}</tbody></table></div></section> : null}
+        {overview.shopComparisons.length > 1 ? <section className="rounded-lg bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]"><h2 className="font-display text-lg font-semibold">Comparaison des boutiques</h2><div className="mt-4 overflow-x-auto"><table className="w-full min-w-[42rem] text-sm"><thead className="text-left text-xs uppercase tracking-wide text-[var(--muted)]"><tr><th className="py-2 font-semibold">Boutique</th><th className="py-2 text-right font-semibold">Chiffre d’affaires</th><th className="py-2 text-right font-semibold">Ventes</th><th className="py-2 text-right font-semibold">Panier moyen</th><th className="py-2 pl-5 font-semibold">Dernière vente</th></tr></thead><tbody>{comparisonPagination.pageItems.map((shop) => <tr key={shop.shopId} className="border-t border-[var(--separator)]/60"><td className="py-3 font-medium">{shop.name}</td><td className="py-3 text-right tabular-nums">{money(shop.revenueMinor)}</td><td className="py-3 text-right tabular-nums">{shop.count}</td><td className="py-3 text-right tabular-nums">{shop.averageBasketMinor ? money(shop.averageBasketMinor) : "—"}</td><td className="py-3 pl-5 text-[var(--muted)]">{shop.lastSaleAt ? new Date(shop.lastSaleAt).toLocaleString("fr-FR") : "—"}</td></tr>)}</tbody></table></div><div className="mt-4"><TablePagination page={comparisonPagination.page} pageSize={comparisonPagination.pageSize} total={overview.shopComparisons.length} totalPages={comparisonPagination.totalPages} onPageChange={comparisonPagination.setPage} onPageSizeChange={comparisonPagination.setPageSize} itemLabel="boutique" /></div></section> : null}
         {overview.topProducts.length ? <section className="rounded-lg bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]"><h2 className="font-display text-lg font-semibold">Produits les plus vendus</h2><ul className="mt-3 grid gap-2 md:grid-cols-2">{overview.topProducts.map((product) => <li key={product.variantId} className="flex items-center justify-between gap-4 rounded-md bg-[var(--surface-subtle)] px-4 py-3 text-sm"><div><p className="font-medium">{product.product}</p><p className="text-[var(--muted)]">{product.variant} · {product.quantity}</p></div><strong className="tabular-nums">{money(product.revenueMinor)}</strong></li>)}</ul></section> : null}
       </>}
     </>}

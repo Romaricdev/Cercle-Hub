@@ -19,6 +19,7 @@ import { KpiItem, KpiStrip } from "../ui/kpi-strip";
 import { PageHeader } from "../ui/page-header";
 import { Skeleton } from "../ui/skeleton";
 import { Textarea } from "../ui/textarea";
+import { TablePagination, useTablePagination } from "../ui/table-pagination";
 import { buyerLabel, requestStatus, shipmentStatus, urgencyLabel } from "./p06-labels";
 
 type RequestRow = { id: string; status: string; urgency: string; comment: string; shopName: string; actorName: string; createdAt: string; version: number };
@@ -99,6 +100,7 @@ export function ManagerRequestsPage() {
     if (filter === "done") return ["APPROVED", "PARTIAL", "REJECTED", "CANCELLED", "CLOSED"].includes(row.status);
     return true;
   });
+  const pagination = useTablePagination(filtered);
   const pendingCount = (rows ?? []).filter((row) => ["SUBMITTED", "NEEDS_INFO"].includes(row.status)).length;
   const approvedCount = (rows ?? []).filter((row) => ["APPROVED", "PARTIAL"].includes(row.status)).length;
   if (!rows && !error) return <Skeleton className="h-[32rem]" />;
@@ -114,7 +116,7 @@ export function ManagerRequestsPage() {
         <KpiItem icon={<CheckCircle2 />} value={approvedCount} label="accords reçus" />
       </KpiStrip>
       <div className="flex flex-col gap-3 rounded-xl bg-[var(--surface)] p-3 shadow-[var(--shadow-card)] lg:flex-row lg:items-center lg:justify-between">
-        <label className="relative block min-w-0 flex-1 lg:max-w-md"><Search className="absolute left-3 top-3 size-4 text-[var(--muted)]" /><span className="sr-only">Rechercher</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher par motif ou état" className="h-11 w-full rounded-lg bg-[var(--surface-subtle)] pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-[var(--focus)]" /></label>
+        <label className="relative block min-w-0 flex-1 lg:max-w-md"><Search className="absolute left-3 top-3 size-4 text-[var(--muted)]" /><span className="sr-only">Rechercher</span><input value={query} onChange={(event) => { setQuery(event.target.value); pagination.setPage(1); }} placeholder="Rechercher par motif ou état" className="h-11 w-full rounded-lg bg-[var(--surface-subtle)] pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-[var(--focus)]" /></label>
         <div className="flex flex-wrap gap-2" aria-label="Filtrer les demandes">
           {([["all", "Toutes"], ["pending", "En attente"], ["done", "Terminées"]] as const).map(([value, label]) => (
             <Button key={value} variant={filter === value ? "primary" : "ghost"} onClick={() => setFilter(value)}>{label}</Button>
@@ -127,17 +129,18 @@ export function ManagerRequestsPage() {
         </EmptyState>
       ) : (
         <>
-          <ul className="grid gap-3 xl:hidden">{filtered.map((row) => (
+          <ul className="grid gap-3 xl:hidden">{pagination.pageItems.map((row) => (
             <li key={row.id}><Link href={`${paths.managerRequests}/${row.id}`} className="group block rounded-xl bg-[var(--surface)] p-4 shadow-[var(--shadow-card)] transition-transform hover:-translate-y-0.5"><div className="flex items-start justify-between gap-4"><div className="min-w-0"><p className="font-semibold leading-6">{row.comment}</p><p className="mt-2 flex items-center gap-1.5 text-sm text-[var(--muted)]"><CalendarClock className="size-4" />{formatWhen(row.createdAt)}</p></div><ArrowRight className="mt-1 size-4 shrink-0 text-[var(--muted)] transition-transform group-hover:translate-x-1" /></div><div className="mt-3 flex flex-wrap items-center gap-2"><Badge tone={requestStatus[row.status]?.tone ?? "neutral"}>{requestStatus[row.status]?.label ?? row.status}</Badge><span className="text-sm text-[var(--muted)]">Urgence {urgencyLabel[row.urgency]?.toLowerCase()}</span></div></Link></li>
           ))}</ul>
           <div className="hidden overflow-x-auto rounded-xl bg-[var(--surface)] shadow-[var(--shadow-card)] xl:block">
             <table className="w-full text-sm">
               <thead className="text-left text-[var(--muted)]"><tr><th className="px-5 py-3 font-medium">Motif</th><th className="px-5 py-3 font-medium">État</th><th className="px-5 py-3 font-medium">Urgence</th><th className="px-5 py-3 font-medium">Date</th></tr></thead>
-              <tbody>{filtered.map((row) => (
+              <tbody>{pagination.pageItems.map((row) => (
                 <tr key={row.id} className="border-t border-[var(--separator)]/50 transition-colors hover:bg-[var(--surface-subtle)]"><td className="px-5 py-4"><Link className="font-medium text-[var(--primary)]" href={`${paths.managerRequests}/${row.id}`}>{row.comment}</Link></td><td className="px-5 py-4"><Badge tone={requestStatus[row.status]?.tone ?? "neutral"}>{requestStatus[row.status]?.label ?? row.status}</Badge></td><td className="px-5 py-4">{urgencyLabel[row.urgency]}</td><td className="px-5 py-4 text-[var(--muted)]">{formatWhen(row.createdAt)}</td></tr>
               ))}</tbody>
             </table>
           </div>
+          <TablePagination page={pagination.page} pageSize={pagination.pageSize} total={filtered.length} totalPages={pagination.totalPages} onPageChange={pagination.setPage} onPageSizeChange={pagination.setPageSize} itemLabel="demande" />
         </>
       )}
     </section>
@@ -484,17 +487,18 @@ export function ManagerPurchasesPage() {
   useEffect(() => {
     api<{ purchases: NonNullable<typeof rows> }>("/api/v1/purchases").then((payload) => setRows(payload.purchases)).catch((caught: RequestError) => setError(caught.message));
   }, []);
-  if (!rows && !error) return <Skeleton className="h-80" />;
   const filtered = (rows ?? []).filter((row) => `${row.reference} ${row.supplierName}`.toLowerCase().includes(query.toLowerCase()));
+  const pagination = useTablePagination(filtered);
+  if (!rows && !error) return <Skeleton className="h-80" />;
   return (
     <section className="space-y-6 overflow-x-clip">
       <PageHeader title="Achats de la boutique">Suivez les achats autorisés et les livraisons destinées à votre boutique. Les coûts d’achat restent réservés au propriétaire.</PageHeader>
       {error ? <Alert tone="error">{error}</Alert> : null}
-      {(rows ?? []).length > 0 ? <label className="relative block max-w-md"><Search className="absolute left-3 top-3 size-4 text-[var(--muted)]" /><span className="sr-only">Rechercher un achat</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Référence ou fournisseur" className="h-11 w-full rounded-lg bg-[var(--surface)] pl-10 pr-4 text-sm shadow-[var(--shadow-card)] outline-none focus:ring-2 focus:ring-[var(--focus)]" /></label> : null}
+      {(rows ?? []).length > 0 ? <label className="relative block max-w-md"><Search className="absolute left-3 top-3 size-4 text-[var(--muted)]" /><span className="sr-only">Rechercher un achat</span><input value={query} onChange={(event) => { setQuery(event.target.value); pagination.setPage(1); }} placeholder="Référence ou fournisseur" className="h-11 w-full rounded-lg bg-[var(--surface)] pl-10 pr-4 text-sm shadow-[var(--shadow-card)] outline-none focus:ring-2 focus:ring-[var(--focus)]" /></label> : null}
       {filtered.length === 0 ? <EmptyState title={rows?.length ? "Aucun résultat" : "Aucun achat"} icon={<PackageCheck className="size-5" />}>{rows?.length ? "Modifiez votre recherche pour retrouver un achat." : "Les achats autorisés pour cette boutique apparaîtront ici."}</EmptyState> : (
-        <><ul className="grid gap-3 lg:hidden">{filtered.map((row) => (
+        <><ul className="grid gap-3 lg:hidden">{pagination.pageItems.map((row) => (
           <li key={row.id}><Link href={`${paths.managerPurchases}/${row.id}`} className="group block rounded-xl bg-[var(--surface)] p-4 shadow-[var(--shadow-card)]"><div className="flex flex-wrap items-center justify-between gap-2"><p className="font-semibold">{row.reference}</p><Badge>{receivedStatusLabel(row.receivedStatus)}</Badge></div><p className="mt-2 text-sm text-[var(--muted)]">{row.supplierName} · {formatWhen(row.createdAt)}</p></Link></li>
-        ))}</ul><div className="hidden overflow-x-auto rounded-xl bg-[var(--surface)] shadow-[var(--shadow-card)] lg:block"><table className="w-full text-sm"><thead className="text-left text-[var(--muted)]"><tr><th className="px-5 py-3 font-medium">Référence</th><th className="px-5 py-3 font-medium">Fournisseur</th><th className="px-5 py-3 font-medium">Réception</th><th className="px-5 py-3 font-medium">Date</th><th className="px-5 py-3"><span className="sr-only">Ouvrir</span></th></tr></thead><tbody>{filtered.map((row) => <tr key={row.id} className="border-t border-[var(--separator)]/50"><td className="px-5 py-4 font-medium">{row.reference}</td><td className="px-5 py-4">{row.supplierName}</td><td className="px-5 py-4"><Badge>{receivedStatusLabel(row.receivedStatus)}</Badge></td><td className="px-5 py-4">{formatWhen(row.createdAt)}</td><td className="px-5 py-4 text-right"><Link className="inline-flex items-center gap-2 font-medium text-[var(--primary)]" href={`${paths.managerPurchases}/${row.id}`}>Consulter <ArrowRight className="size-4" /></Link></td></tr>)}</tbody></table></div></>
+        ))}</ul><div className="hidden overflow-x-auto rounded-xl bg-[var(--surface)] shadow-[var(--shadow-card)] lg:block"><table className="w-full text-sm"><thead className="text-left text-[var(--muted)]"><tr><th className="px-5 py-3 font-medium">Référence</th><th className="px-5 py-3 font-medium">Fournisseur</th><th className="px-5 py-3 font-medium">Réception</th><th className="px-5 py-3 font-medium">Date</th><th className="px-5 py-3"><span className="sr-only">Ouvrir</span></th></tr></thead><tbody>{pagination.pageItems.map((row) => <tr key={row.id} className="border-t border-[var(--separator)]/50"><td className="px-5 py-4 font-medium">{row.reference}</td><td className="px-5 py-4">{row.supplierName}</td><td className="px-5 py-4"><Badge>{receivedStatusLabel(row.receivedStatus)}</Badge></td><td className="px-5 py-4">{formatWhen(row.createdAt)}</td><td className="px-5 py-4 text-right"><Link className="inline-flex items-center gap-2 font-medium text-[var(--primary)]" href={`${paths.managerPurchases}/${row.id}`}>Consulter <ArrowRight className="size-4" /></Link></td></tr>)}</tbody></table></div><TablePagination page={pagination.page} pageSize={pagination.pageSize} total={filtered.length} totalPages={pagination.totalPages} onPageChange={pagination.setPage} onPageSizeChange={pagination.setPageSize} itemLabel="achat" /></>
       )}
     </section>
   );
