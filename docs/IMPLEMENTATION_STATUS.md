@@ -644,6 +644,7 @@ Vérifications exécutées : `corepack pnpm lint` code 0 ; `corepack pnpm typech
 - Chaque ligne présente clairement l’itinéraire, la référence ou le contenu, la date, le statut et la quantité encore en transit.
 - La fiche gérant sépare le contexte du transfert, les indicateurs envoyés/reçus/en transit, la progression par produit et la prochaine action autorisée.
 - La fiche propriétaire reprend la même hiérarchie et enrichit les réceptions sous forme de blocs lisibles, tout en conservant les actions et droits existants.
+- La saisie de la péremption lors d’une réception utilise un champ date natif ; le navigateur contrôle le format transmis à l’API.
 
 Vérifications exécutées : `corepack pnpm lint` code 0 ; `corepack pnpm typecheck` code 0 ; `corepack pnpm test:unit` **40/40** ; `corepack pnpm --filter @cercle/web build` code 0, **44 pages**.
 
