@@ -647,6 +647,7 @@ Vérifications exécutées : `corepack pnpm lint` code 0 ; `corepack pnpm typech
 - La saisie de la péremption lors d’une réception utilise un champ date natif ; le navigateur contrôle le format transmis à l’API.
 - Une livraison au statut reçu ouvre désormais une fiche de consultation en lecture seule avec les quantités consolidées et l’historique des contrôles. Le formulaire de réception n’est rendu que lorsqu’une réception reste à effectuer.
 - Depuis la fiche d’achat gérant, l’action est libellée « Consulter la réception » pour une livraison terminée et « Traiter la réception » lorsqu’une action reste attendue.
+- La fiche d’achat gérant présente désormais la référence, le fournisseur et le rôle attendu, puis les états de réception, de paiement et d’avancement des livraisons dans le bandeau KPI. Chaque livraison devient une étape distincte avec une explication et une action adaptée à son état.
 
 Vérifications exécutées : `corepack pnpm lint` code 0 ; `corepack pnpm typecheck` code 0 ; `corepack pnpm test:unit` **40/40** ; `corepack pnpm --filter @cercle/web build` code 0, **44 pages**.
 
