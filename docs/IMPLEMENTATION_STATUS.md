@@ -638,6 +638,15 @@ Vérifications exécutées : `corepack pnpm db:seed-local-full` code 0 sur `cerc
 
 Vérifications exécutées : `corepack pnpm lint` code 0 ; `corepack pnpm typecheck` code 0 ; `corepack pnpm test:unit` **39/39** ; `corepack pnpm --filter @cercle/web build` code 0, **44 pages**.
 
+### Ergonomie du suivi des expéditions — 3 octobre 2026
+
+- La liste des expéditions gérant expose désormais les volumes à préparer, les mouvements en transit et les réceptions terminées, avec recherche, filtre d’état et pagination configurable.
+- Chaque ligne présente clairement l’itinéraire, la référence ou le contenu, la date, le statut et la quantité encore en transit.
+- La fiche gérant sépare le contexte du transfert, les indicateurs envoyés/reçus/en transit, la progression par produit et la prochaine action autorisée.
+- La fiche propriétaire reprend la même hiérarchie et enrichit les réceptions sous forme de blocs lisibles, tout en conservant les actions et droits existants.
+
+Vérifications exécutées : `corepack pnpm lint` code 0 ; `corepack pnpm typecheck` code 0 ; `corepack pnpm test:unit` **40/40** ; `corepack pnpm --filter @cercle/web build` code 0, **44 pages**.
+
 ### Pagination configurable des tableaux — 3 octobre 2026
 
 - Un composant partagé affiche la plage visible, le total, la page courante et les actions précédente/suivante. L’utilisateur choisit directement 10, 20 ou 50 lignes par page.
