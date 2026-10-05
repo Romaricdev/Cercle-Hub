@@ -223,6 +223,7 @@ export function OwnerFundsPage() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
   const [form, setForm] = useState({ sourceAccountId: "", destinationAccountId: "", amountMinor: "", purpose: "OWNER_CONTRIBUTION", reason: "" });
   const load = () => {
     Promise.all([api<{ transfers: TransferRow[] }>("/api/v1/fund-transfers"), api<{ accounts: Account[] }>("/api/v1/fund-accounts")])
@@ -233,12 +234,11 @@ export function OwnerFundsPage() {
   const transit = (rows ?? []).filter((row) => ["SENT", "PARTIAL"].includes(row.state));
   return (
     <section className="space-y-6 overflow-x-clip">
-      <PageHeader title="Mouvements de fonds">Apports, retraits et remises transitent par un compte identifiable. Une réception fractionnée conserve le reliquat.</PageHeader>
-      {error ? <Alert tone="error">{error}</Alert> : null}
-      <form className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]" onSubmit={(event) => { event.preventDefault(); setPending(true); api<{ id: string }>("/api/v1/fund-transfers", { method: "POST", body: JSON.stringify(form) }).then((created) => api(`/api/v1/fund-transfers/${created.id}/send`, { method: "POST" })).then(() => { setForm((current) => ({ ...current, amountMinor: "", reason: "" })); return load(); }).catch((caught: RequestError) => setError(caught.message)).finally(() => setPending(false)); }}>
-        <h2 className="font-display font-semibold">Nouveau mouvement</h2>
-        <p className="mt-1 text-sm text-[var(--muted)]">Choisissez la nature de l’opération, le compte qui remet les fonds et celui qui doit les recevoir. L’argent restera en transit jusqu’à confirmation de la réception.</p>
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
+      <PageHeader title="Mouvements de fonds" action={<Button onClick={() => { setError(null); setCreateOpen(true); }}><Plus className="size-4" />Nouveau mouvement</Button>}>Supervisez les apports, retraits et remises de toutes les boutiques, ainsi que les reliquats en transit.</PageHeader>
+      {error && !createOpen ? <Alert tone="error">{error}</Alert> : null}
+      <Modal open={createOpen} error={createOpen ? error : null} onOpenChange={(open) => { setCreateOpen(open); if (!open) setError(null); }} title="Nouveau mouvement de fonds" description="Choisissez l’opération et les comptes concernés. Le mouvement restera traçable jusqu’à sa réception complète." size="lg">
+      <form onSubmit={(event) => { event.preventDefault(); setPending(true); api<{ id: string }>("/api/v1/fund-transfers", { method: "POST", body: JSON.stringify(form) }).then((created) => api(`/api/v1/fund-transfers/${created.id}/send`, { method: "POST" })).then(() => { setForm((current) => ({ ...current, amountMinor: "", reason: "" })); setCreateOpen(false); return load(); }).catch((caught: RequestError) => setError(caught.message)).finally(() => setPending(false)); }}>
+        <div className="grid gap-4 md:grid-cols-2">
           <label className="block text-sm font-medium">Type de mouvement<select value={form.purpose} onChange={(event) => setForm((current) => ({ ...current, purpose: event.target.value }))} className="mt-1.5 h-11 w-full rounded-md bg-[var(--surface-subtle)] px-3">{Object.entries(purposeLabel).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
           <Field id="owner-fund-amount" label="Montant envoyé (FCFA)" inputMode="numeric" value={form.amountMinor} onChange={(event) => setForm((current) => ({ ...current, amountMinor: event.target.value.replace(/\D/g, "") }))} />
           <label className="block text-sm font-medium">Compte de départ<select required value={form.sourceAccountId} onChange={(event) => setForm((current) => ({ ...current, sourceAccountId: event.target.value, destinationAccountId: current.destinationAccountId === event.target.value ? "" : current.destinationAccountId }))} className="mt-1.5 h-11 w-full rounded-md bg-[var(--surface-subtle)] px-3"><option value="">Choisir</option>{accounts.map((account) => <option key={account.id} value={account.id}>{account.name} · {account.shopName} · {formatFcfa(account.balanceMinor)}</option>)}</select></label>
@@ -247,6 +247,8 @@ export function OwnerFundsPage() {
         </div>
         <Button type="submit" className="mt-4" disabled={pending || !form.sourceAccountId || !form.destinationAccountId || !form.amountMinor || form.reason.trim().length < 3}>{pending ? "Envoi…" : "Enregistrer et envoyer"}</Button>
       </form>
+      </Modal>
+      <div><h2 className="font-display text-lg font-semibold">Historique des mouvements</h2><p className="mt-1 text-sm text-[var(--muted)]">Contrôlez les montants envoyés, reçus et les reliquats à traiter.</p></div>
       {transit.length > 0 ? <Alert>{transit.length} mouvement{transit.length > 1 ? "s" : ""} encore en transit.</Alert> : null}
       {!rows ? <Skeleton className="h-48" /> : rows.length === 0 ? <EmptyState title="Aucun mouvement">Les mouvements apparaîtront ici après leur premier envoi.</EmptyState> : (
         <ul className="grid gap-3">{rows.map((row) => (

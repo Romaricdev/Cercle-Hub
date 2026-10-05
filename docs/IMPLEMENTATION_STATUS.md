@@ -697,3 +697,13 @@ Vérifications exécutées : `corepack pnpm lint` code 0 ; `corepack pnpm typech
 - Le plafond global est réparti entre les lignes selon leur poids estimé et le dernier reliquat est affecté exactement à la dernière ligne. Le budget total n’est donc plus recopié comme plafond sur chaque produit.
 
 Vérifications exécutées : `corepack pnpm lint` code 0 ; `corepack pnpm typecheck` code 0 ; `corepack pnpm test:unit` **39/39** ; `corepack pnpm --filter @cercle/web build` code 0, **44 pages**.
+
+
+### Hiérarchie des pages dépenses et mouvements de fonds — 5 octobre 2026
+
+- Les listes et indicateurs deviennent le contenu principal dès l’ouverture de la page ; les formulaires de création ne repoussent plus l’activité sous la ligne de flottaison.
+- Le gérant ouvre « Nouvelle demande » pour solliciter une dépense et « Nouvelle remise » pour déclarer une sortie de caisse. Les actions sont indisponibles sans session ouverte ou pendant le comptage.
+- Le propriétaire ouvre « Nouveau mouvement » depuis sa vue réseau. La formulation et l’aide de la modale reflètent son rôle de supervision multiboutique.
+- Les erreurs de création restent dans la modale concernée et les formulaires conservent leurs validations et effets métier existants.
+
+Vérifications exécutées : `corepack pnpm lint` code 0 ; `corepack pnpm --filter @cercle/web typecheck` code 0 ; `corepack pnpm --filter @cercle/web build` code 0, **44 pages**.

@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Banknote, CircleAlert, FileUp, Landmark, LockKeyhole, MoveRight, Search, WalletCards } from "lucide-react";
+import { ArrowRight, Banknote, CircleAlert, FileUp, Landmark, LockKeyhole, MoveRight, Plus, Search, WalletCards } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -16,6 +16,7 @@ import { EmptyState } from "../ui/empty-state";
 import { Field } from "../ui/field";
 import { Label } from "../ui/label";
 import { KpiItem, KpiStrip } from "../ui/kpi-strip";
+import { Modal } from "../ui/modal";
 import { PageHeader } from "../ui/page-header";
 import { Skeleton } from "../ui/skeleton";
 import { Textarea } from "../ui/textarea";
@@ -267,6 +268,7 @@ export function ManagerExpensesPage() {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("ALL");
   const [pending, setPending] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
   const [receipt, setReceipt] = useState<File | null>(null);
   const [withoutReceipt, setWithoutReceipt] = useState(false);
   const [form, setForm] = useState({ category: "SUPPLIES", description: "", amountMinor: "", accountId: "", beneficiary: "", receiptExceptionReason: "" });
@@ -292,7 +294,7 @@ export function ManagerExpensesPage() {
       const created = await api<{ id: string }>("/api/v1/expenses", { method: "POST", body: JSON.stringify(body) });
       await api(`/api/v1/expenses/${created.id}/submit`, { method: "POST" });
       setForm((current) => ({ ...current, description: "", amountMinor: "", beneficiary: "", receiptExceptionReason: "" }));
-      setReceipt(null); setWithoutReceipt(false); load();
+      setReceipt(null); setWithoutReceipt(false); setCreateOpen(false); load();
     } catch (caught) { setError(caught instanceof RequestError ? caught.message : "Le justificatif n’a pas pu être préparé."); }
     finally { setPending(false); }
   };
@@ -300,13 +302,13 @@ export function ManagerExpensesPage() {
   const hasOpenSession = cash?.session?.status === "OPEN";
   return (
     <section className="space-y-6 overflow-x-clip">
-      <PageHeader title="Dépenses">Créez une demande, suivez l’autorisation, puis décaissiez uniquement après accord. L’autorisation n’est pas un mouvement de fonds.</PageHeader>
-      {error ? <Alert tone="error">{error}</Alert> : null}
+      <PageHeader title="Dépenses" action={<Button disabled={!hasOpenSession || blocked} onClick={() => { setError(null); setCreateOpen(true); }}><Plus className="size-4" />Nouvelle demande</Button>}>Suivez vos demandes, les autorisations reçues et les dépenses réellement décaissées.</PageHeader>
+      {error && !createOpen ? <Alert tone="error">{error}</Alert> : null}
       {blocked ? <Alert><span className="inline-flex items-center gap-2"><LockKeyhole className="size-4" />Le comptage est en cours. Les nouvelles demandes et les décaissements reprendront après son enregistrement ou son annulation.</span></Alert> : null}
       {!blocked && cash && !hasOpenSession ? <Alert>Ouvrez d’abord la caisse du jour pour créer une demande de dépense.</Alert> : null}
-      {!blocked && hasOpenSession ? <form className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]" onSubmit={(event) => { event.preventDefault(); void submit(); }}>
-        <h2 className="font-display font-semibold">Nouvelle demande</h2>
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
+      <Modal open={createOpen} error={createOpen ? error : null} onOpenChange={(open) => { setCreateOpen(open); if (!open) setError(null); }} title="Nouvelle demande de dépense" description="La demande sera transmise au propriétaire. Aucun fonds ne sort avant son autorisation." size="lg">
+      <form onSubmit={(event) => { event.preventDefault(); void submit(); }}>
+        <div className="grid gap-4 md:grid-cols-2">
           <label className="block text-sm font-medium">Catégorie<select value={form.category} onChange={(event) => setForm((current) => ({ ...current, category: event.target.value }))} className="mt-1.5 h-11 w-full rounded-md bg-[var(--surface-subtle)] px-3 outline-none focus:ring-2 focus:ring-[var(--focus)]">{Object.entries(expenseLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
           <label className="block text-sm font-medium">Source de fonds<select value={form.accountId} onChange={(event) => setForm((current) => ({ ...current, accountId: event.target.value }))} className="mt-1.5 h-11 w-full rounded-md bg-[var(--surface-subtle)] px-3 outline-none focus:ring-2 focus:ring-[var(--focus)]">{accounts.map((account) => <option key={account.id} value={account.id}>{account.name}</option>)}</select></label>
           <Field id="expense-amount" label="Montant (FCFA)" inputMode="numeric" value={form.amountMinor} onChange={(event) => setForm((current) => ({ ...current, amountMinor: event.target.value.replace(/\D/g, "") }))} />
@@ -320,7 +322,9 @@ export function ManagerExpensesPage() {
         </div>
         <p className="mt-3 text-sm text-[var(--muted)]">Sera enregistré : {form.amountMinor ? formatFcfa(form.amountMinor) : "montant à préciser"} · {expenseLabels[form.category]}.</p>
         <Button type="submit" className="mt-4" disabled={pending || !form.amountMinor || !form.description || !form.accountId || (!receipt && (!withoutReceipt || form.receiptExceptionReason.trim().length < 5))}>{pending ? "Envoi…" : "Enregistrer la demande"}</Button>
-      </form> : null}
+      </form>
+      </Modal>
+      <div><h2 className="font-display text-lg font-semibold">Historique des dépenses</h2><p className="mt-1 text-sm text-[var(--muted)]">Retrouvez vos demandes et poursuivez les opérations autorisées.</p></div>
       <div className="flex flex-col gap-3 sm:flex-row">
         <label className="relative block flex-1"><Search className="absolute left-3 top-3 size-4 text-[var(--muted)]" /><span className="sr-only">Rechercher une dépense</span><input value={query} onChange={(event) => { setQuery(event.target.value); pagination.setPage(1); }} placeholder="Rechercher" className="h-11 w-full rounded-lg bg-[var(--surface)] pl-10 pr-4 text-sm shadow-[var(--shadow-card)] outline-none focus:ring-2 focus:ring-[var(--focus)]" /></label>
         <select value={status} onChange={(event) => { setStatus(event.target.value); pagination.setPage(1); }} className="h-11 rounded-lg bg-[var(--surface)] px-3 text-sm shadow-[var(--shadow-card)] outline-none focus:ring-2 focus:ring-[var(--focus)]" aria-label="Filtrer par état"><option value="ALL">Tous les états</option>{Object.entries(expenseStatus).map(([value, item]) => <option key={value} value={value}>{item.label}</option>)}</select>
@@ -347,6 +351,7 @@ export function ManagerFundsPage() {
   const [cash, setCash] = useState<SessionPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
   const [receiveId, setReceiveId] = useState<string | null>(null);
   const [receiveAmount, setReceiveAmount] = useState("");
   const [form, setForm] = useState({ sourceAccountId: "", destinationAccountId: "", amountMinor: "", reason: "" });
@@ -362,8 +367,8 @@ export function ManagerFundsPage() {
   const received = (rows ?? []).reduce((sum, row) => sum + BigInt(row.amountReceivedMinor), 0n);
   return (
     <section className="space-y-6 overflow-x-clip">
-      <PageHeader title="Mouvements de fonds">Une remise sort de la caisse vers le transit. La réception crédite la destination sans créer ni détruire d’argent.</PageHeader>
-      {error && !receiveId ? <Alert tone="error">{error}</Alert> : null}
+      <PageHeader title="Mouvements de fonds" action={<Button disabled={!hasOpenSession || blocked} onClick={() => { setError(null); setCreateOpen(true); }}><Plus className="size-4" />Nouvelle remise</Button>}>Consultez les fonds envoyés, reçus et encore en transit pour votre boutique.</PageHeader>
+      {error && !receiveId && !createOpen ? <Alert tone="error">{error}</Alert> : null}
       {blocked ? <Alert><span className="inline-flex items-center gap-2"><LockKeyhole className="size-4" />Le comptage est en cours. Aucun fonds ne peut sortir ni être réceptionné avant sa fin.</span></Alert> : null}
       {!blocked && cash && !hasOpenSession ? <Alert>Ouvrez d’abord la caisse du jour pour effectuer un mouvement de fonds.</Alert> : null}
       <KpiStrip count={3}>
@@ -371,7 +376,8 @@ export function ManagerFundsPage() {
         <KpiItem icon={<MoveRight />} value={formatFcfa(inTransit.toString())} label="encore en transit" />
         <KpiItem icon={<Landmark />} value={formatFcfa(received.toString())} label="déjà réceptionné" />
       </KpiStrip>
-      {!blocked && hasOpenSession ? <form className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)] sm:p-6" onSubmit={(event) => { event.preventDefault(); setPending(true); api<{ id: string }>("/api/v1/fund-transfers", { method: "POST", body: JSON.stringify({ ...form, purpose: "REMITTANCE" }) }).then((created) => api(`/api/v1/fund-transfers/${created.id}/send`, { method: "POST" })).then(() => { setForm({ sourceAccountId: "", destinationAccountId: "", amountMinor: "", reason: "" }); return load(); }).catch((caught: RequestError) => setError(caught.message)).finally(() => setPending(false)); }}>
+      <Modal open={createOpen} error={createOpen ? error : null} onOpenChange={(open) => { setCreateOpen(open); if (!open) setError(null); }} title="Nouvelle remise de fonds" description="Enregistrez une sortie physique de votre caisse vers un compte destinataire." size="lg">
+      <form onSubmit={(event) => { event.preventDefault(); setPending(true); api<{ id: string }>("/api/v1/fund-transfers", { method: "POST", body: JSON.stringify({ ...form, purpose: "REMITTANCE" }) }).then((created) => api(`/api/v1/fund-transfers/${created.id}/send`, { method: "POST" })).then(() => { setForm({ sourceAccountId: "", destinationAccountId: "", amountMinor: "", reason: "" }); setCreateOpen(false); return load(); }).catch((caught: RequestError) => setError(caught.message)).finally(() => setPending(false)); }}>
         <div className="flex items-start gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-lg bg-[var(--surface-subtle)] text-[var(--primary)]"><Landmark className="size-5" /></span><div><h2 className="font-display font-semibold">Nouvelle remise</h2><p className="mt-1 text-sm text-[var(--muted)]">Déclarez la sortie physique des fonds et leur destination attendue.</p></div></div>
         <div className="mt-5 grid gap-4 md:grid-cols-[1fr_auto_1fr] md:items-end">
           <label className="block text-sm font-medium">Source<select required value={form.sourceAccountId} onChange={(event) => setForm((current) => ({ ...current, sourceAccountId: event.target.value }))} className="mt-1.5 h-11 w-full rounded-md bg-[var(--surface-subtle)] px-3 outline-none focus:ring-2 focus:ring-[var(--focus)]"><option value="">Choisir</option>{accounts.map((account) => <option key={account.id} value={account.id}>{account.name}</option>)}</select></label>
@@ -381,7 +387,9 @@ export function ManagerFundsPage() {
           <Field id="fund-reason" label="Motif" value={form.reason} onChange={(event) => setForm((current) => ({ ...current, reason: event.target.value }))} />
         </div>
         <Button type="submit" className="mt-4" disabled={pending || !form.amountMinor || !form.reason}>{pending ? "Envoi…" : "Remettre les fonds"}</Button>
-      </form> : null}
+      </form>
+      </Modal>
+      <div><h2 className="font-display text-lg font-semibold">Historique des remises</h2><p className="mt-1 text-sm text-[var(--muted)]">Les réceptions à terminer restent accessibles directement dans chaque mouvement.</p></div>
       {!rows ? <Skeleton className="h-48" /> : rows.length === 0 ? <EmptyState title="Aucun mouvement" icon={<Banknote className="size-5" />}>Les remises et réceptions de cette boutique apparaîtront ici.</EmptyState> : (
         <ul className="grid gap-3">{rows.map((row) => (
           <li key={row.id} className="rounded-xl bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]">
