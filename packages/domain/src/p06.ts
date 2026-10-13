@@ -1,3 +1,4 @@
+import { canonicalJson, sha256Hex } from "@cercle/contracts";
 import type { Prisma, PrismaClient } from "@cercle/database";
 
 import { writeAudit } from "./audit.js";
@@ -908,21 +909,25 @@ export async function postPurchase(prisma: PrismaClient, context: RoleContext, i
   });
 }
 
-export async function payPurchase(prisma: PrismaClient, context: RoleContext, id: string, input: { accountId: string; amountMinor: string }) {
+export async function payPurchase(prisma: PrismaClient, context: RoleContext, id: string, input: { accountId: string; amountMinor: string; previewHash?: string | undefined }) {
   return effect(prisma, context, { action: "pay-purchase", id, ...input }, async (tx) => {
-    const purchase = await tx.purchase.findFirst({ where: { id, organizationId: context.organizationId } });
+    const locked = await tx.$queryRaw<Array<{ id: string; status: string; shop_id: string | null; goods_minor: bigint; supplier_fees_minor: bigint; paid_minor: bigint; reference: string }>>`
+      SELECT id, status, shop_id, goods_minor, supplier_fees_minor, paid_minor, reference FROM purchases WHERE id=${id}::uuid AND organization_id=${context.organizationId}::uuid FOR UPDATE`;
+    const purchase = locked[0];
     if (!purchase || purchase.status !== "POSTED") throw new DomainError("PURCHASE_NOT_FOUND", "Achat introuvable.", 404);
     if (!isOwner(context)) {
       const shop = await managerShop(tx, context.organizationId, context.actorId);
-      if (purchase.shopId !== shop.id) throw new DomainError("PURCHASE_NOT_FOUND", "Achat introuvable.", 404);
+      if (purchase.shop_id !== shop.id) throw new DomainError("PURCHASE_NOT_FOUND", "Achat introuvable.", 404);
     }
     const amount = money(input.amountMinor, "Le paiement");
-    const due = purchase.goodsMinor + purchase.supplierFeesMinor - purchase.paidMinor;
+    const due = purchase.goods_minor + purchase.supplier_fees_minor - purchase.paid_minor;
     if (amount > due) throw new DomainError("PAYMENT_EXCEEDS_DUE", "Le paiement dépasse le montant encore dû.", 422);
-    const debited = await debitAccount(tx, context, input.accountId, amount, "PURCHASE_PAYMENT", `Paiement ${purchase.reference}`, purchase.shopId);
+    const previewHash = await sha256Hex(canonicalJson({ purchaseId: id, due: due.toString(), amount: amount.toString() }));
+    if (input.previewHash && input.previewHash !== previewHash) throw new DomainError("ALLOCATION_CHANGED", "Les soldes ont changé. Demandez un nouvel aperçu.", 409);
+    const debited = await debitAccount(tx, context, input.accountId, amount, "PURCHASE_PAYMENT", `Paiement ${purchase.reference}`, purchase.shop_id);
     await tx.purchasePayment.create({ data: { purchaseId: id, accountId: input.accountId, actorId: context.actorId, sessionId: debited.sessionId, amountMinor: amount } });
-    const paidMinor = purchase.paidMinor + amount;
-    const charged = purchase.goodsMinor + purchase.supplierFeesMinor;
+    const paidMinor = purchase.paid_minor + amount;
+    const charged = purchase.goods_minor + purchase.supplier_fees_minor;
     await tx.purchase.update({ where: { id }, data: { paidMinor, paymentStatus: paidMinor === charged ? "PAID" : "PARTIAL" } });
     await postJournal(tx, {
       organizationId: context.organizationId,

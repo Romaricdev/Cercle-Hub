@@ -136,6 +136,44 @@ describe("Better Auth, cookies et MFA", () => {
     expect(session.statusCode).toBe(200);
     expect(session.body).toContain("OWNER");
     expect(session.body).not.toContain(password);
+    const csrf = await inject({
+      method: "GET",
+      url: "/api/v1/csrf",
+      headers: { cookie, origin: "http://127.0.0.1:3001" },
+    });
+    expect(csrf.statusCode).toBe(200);
+    const csrfBody = csrf.json() as { csrfToken: string };
+    const csrfCookie = cookieHeader(csrf.headers["set-cookie"]);
+    const mutationCookie = [cookie, csrfCookie].filter(Boolean).join("; ");
+
+    const rejectedReauthentication = await inject({
+      method: "POST",
+      url: "/api/v1/session/reauthenticate",
+      headers: {
+        "content-type": "application/json",
+        cookie: mutationCookie,
+        origin: "http://127.0.0.1:3001",
+        "x-csrf-token": csrfBody.csrfToken,
+      },
+      payload: { password: "mot-de-passe-invalide" },
+    });
+    expect(rejectedReauthentication.statusCode).toBe(401);
+    expect(rejectedReauthentication.body).toContain("INVALID_PASSWORD");
+
+    const reauthenticated = await inject({
+      method: "POST",
+      url: "/api/v1/session/reauthenticate",
+      headers: {
+        "content-type": "application/json",
+        cookie: mutationCookie,
+        origin: "http://127.0.0.1:3001",
+        "x-csrf-token": csrfBody.csrfToken,
+      },
+      payload: { password },
+    });
+    expect(reauthenticated.statusCode).toBe(200);
+    expect(reauthenticated.body).toContain("FRESH");
+    expect(reauthenticated.body).not.toContain("twoFactor");
 
     const signOut = await inject({
       method: "POST",

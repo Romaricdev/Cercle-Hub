@@ -12,8 +12,12 @@ type RequestWithActor = { actor?: Actor; id?: string };
 const lineSchema = z.object({ saleUnitId: z.uuid(), quantity: z.string().regex(/^\d+(?:\.\d{1,6})?$/), discountMinor: z.string().regex(/^\d+$/).optional() }).strict();
 const quoteSchema = z.object({ lines: z.array(lineSchema).min(1).max(100) }).strict();
 const saleSchema = z.object({
-  authorizationId: z.uuid(), lines: z.array(lineSchema).min(1).max(100),
-  payments: z.array(z.object({ accountId: z.uuid(), amountMinor: z.string().regex(/^\d+$/), cashReceivedMinor: z.string().regex(/^\d+$/).optional(), changeGivenMinor: z.string().regex(/^\d+$/).optional(), externalReference: z.string().trim().max(120).optional() }).strict()).min(1).max(10),
+  authorizationId: z.uuid(),
+  lines: z.array(lineSchema).min(1).max(100),
+  payments: z.array(z.object({ accountId: z.uuid(), amountMinor: z.string().regex(/^\d+$/), cashReceivedMinor: z.string().regex(/^\d+$/).optional(), changeGivenMinor: z.string().regex(/^\d+$/).optional(), externalReference: z.string().trim().max(120).optional() }).strict()).min(0).max(10),
+  customerId: z.uuid().optional(),
+  dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  creditAuthorizationId: z.uuid().optional(),
 }).strict();
 
 @Controller("api/v1")

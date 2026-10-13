@@ -1,6 +1,6 @@
-# État d’implémentation
+﻿# État d’implémentation
 
-Mise à jour : 30 septembre 2026. P00 documentaire et P01–P06 réalisées localement. P06-GATE est terminé sur preuves locales. P07–P12 ne sont pas commencées.
+Mise à jour : 5 octobre 2026. P00 documentaire et P01–P07 réalisées localement. P06-GATE est terminé sur preuves locales. P07 est livrée localement (P07-A/B/C) ; P07-GATE est terminé (voir section Fermeture P07-GATE). Non-régression E2E P02–P07 validée sur Chromium (23/23, voir section Maintenance). P08–P12 ne sont pas commencées.
 
 Plan actif : [phases P00 à P12](15-phases-developpement.md). Les livrables P00 sont disponibles dans [docs/p00](p00/README.md). La rédaction du backlog ne vaut pas implémentation des tâches.
 
@@ -18,8 +18,8 @@ Vérifications exécutées après ce complément : lint réussi, typecheck monor
 | P03 — Boutiques, catalogue et initialisation | RÉALISÉE LOCALEMENT ; P03-GATE TERMINÉ | Migrations, API, écrans et recette locale décrits dans le compte rendu P03 |
 | P04 — Ventes en ligne | RÉALISÉE LOCALEMENT ; P04-GATE TERMINÉ | Vente gérant, historique et fiche propriétaire, dashboard commercial P04 et recette locale |
 | P05 — Caisse, dépenses et clôture | RÉALISÉE LOCALEMENT ; P05-GATE TERMINÉ | Sessions, dépenses, mouvements, comptage aveugle, écarts, réponse gérant aux demandes d’explication, justificatifs privés et recette locale |
-| P06 — Achats et réapprovisionnement | RÉALISÉE LOCALEMENT ; P06-GATE TERMINÉ | Demandes versionnées, fournisseurs, deux circuits d’achat, paiements, transit, réceptions, valorisation et recette locale ; P07 non commencée |
-| P07 — Crédit, retours et inventaires | NON COMMENCÉE | Aucun livrable applicatif ; démarrage non autorisé |
+| P06 — Achats et réapprovisionnement | RÉALISÉE LOCALEMENT ; P06-GATE TERMINÉ | Demandes versionnées, fournisseurs, deux circuits d’achat, paiements, transit, réceptions, valorisation et recette locale |
+| P07 — Crédit, retours et inventaires | RÉALISÉE LOCALEMENT ; P07-GATE TERMINÉ | Crédit, créances, dettes, retours, inventaires, pertes, passation et suspension ; preuves d’intégration PostgreSQL ci-dessous ; E2E P07 2/2 |
 | P08 — Hors connexion | NON COMMENCÉE | Aucun livrable applicatif ; démarrage non autorisé |
 | P09 — Supervision et rapports | NON COMMENCÉE | Aucun livrable applicatif ; démarrage non autorisé |
 | P10 — Recette générale et préparation VPS | NON COMMENCÉE | Aucun livrable applicatif ; démarrage non autorisé |
@@ -707,3 +707,238 @@ Vérifications exécutées : `corepack pnpm lint` code 0 ; `corepack pnpm typech
 - Les erreurs de création restent dans la modale concernée et les formulaires conservent leurs validations et effets métier existants.
 
 Vérifications exécutées : `corepack pnpm lint` code 0 ; `corepack pnpm --filter @cercle/web typecheck` code 0 ; `corepack pnpm --filter @cercle/web build` code 0, **44 pages**.
+
+## Compte rendu P07 — 5 octobre 2026
+
+Périmètre demandé : P07 intégrale (crédit, créances, dettes, retours, inventaires, pertes, passation, suspension). P08–P12 non commencées. Aucun déploiement public.
+
+Décisions métier tranchées avant ou pendant le code :
+
+- Une boutique suspendue reste `SUSPENDED` ; `suspensionMode` vaut `SECURITY` ou `SETTLEMENT`. SETTLEMENT autorise les règlements, pas les ventes.
+- Les créances d’ouverture sont des `receivables` d’origine `OPENING`, jamais de fausses ventes.
+- Un plafond client à `0` signifie l’absence de plafond. Un plafond positif est contrôlé côté serveur.
+- La dette fournisseur n’est réduite qu’à la confirmation d’avoir (`CREDIT_CONFIRMED`), pas à l’expédition du retour.
+- Le document de vente posté (net, lignes, paiements d’origine, référence) reste immuable. Seuls les compteurs de règlement dérivés (`paid_minor`, `credit_reduction_minor`, `write_off_minor`, `refunded_minor`) peuvent être mis à jour. Le déclencheur PostgreSQL a été assoupli en ce sens.
+- Un gérant n’a qu’un appareil `ACTIVE` par boutique. L’appareil du successeur reste `PENDING` jusqu’après révocation de l’ancien.
+- P07 reste en ligne. Aucune file hors connexion n’a été ajoutée.
+
+Migrations :
+
+- `20261005120000_p07_credit_returns_inventory` : clients, créances, autorisations, paiements clients, retours, inventaires, pertes, passations, colonnes de vente et de boutique.
+- `20261005131000_p07_grants` : droits `cercle_app`, types `money_events` P07, déclencheur de vente limité aux compteurs de règlement.
+
+Routes API (extrait) : `/api/v1/customers`, `/receivables`, `/customer-payments`, `/customer-returns`, `/supplier-returns`, `/stock-counts`, `/stock-losses`, `/shop-handovers`, `/credit-authorizations`, `/opening-receivables`.
+
+Écrans : gérant `/manager/customers`, `/manager/returns`, `/manager/inventory`, `/manager/losses` ; propriétaire `/owner/customers`, `/owner/receivables`, `/owner/returns`, `/owner/supplier-returns`, `/owner/inventory`, `/owner/losses`, `/owner/handovers` ; extensions E04 paiement à crédit, E28 options crédit, E26 SETTLEMENT/SECURITY/fermeture.
+
+Vérifications exécutées (Node local 24.14.0, `PNPM_IGNORE_ENGINE=1`) :
+
+- `corepack pnpm lint` : code 0.
+- `corepack pnpm typecheck` : code 0.
+- `corepack pnpm test:unit` : **40/40**.
+- `corepack pnpm db:replay-test` : base `cercle_complet_test` recréée vide, migrations rejouées.
+- `corepack pnpm test:integration` : **95/95** sur PostgreSQL réel, dont `tests/integration/p07.test.ts` (T16–T22, T34–T36, T42–T44, T55–T56, T67, T70, T74–T79, T82–T83, concurrence, idempotence, isolation interboutique) et `tests/integration/p07-http.test.ts` (401/403/422).
+- `corepack pnpm build` : code 0 ; Next.js 16.3.6, **56 pages**.
+- `python scripts/check_docs.py` : OK.
+- `python scripts/check_design_examples.py` : OK.
+- `python scripts/check_cursor_setup.py` : OK.
+- `python scripts/check_p00.py` : OK.
+- Playwright Chromium `tests/e2e/p07-credit.spec.ts` : **non exécuté**. `http://127.0.0.1:4311/api/v1/health/live` et le port 4310 étaient déjà occupés par les serveurs de développement locaux ; `reuseExistingServer` est à `false`. Aucun résultat E2E n’est revendiqué.
+
+### Fermeture P07-GATE — 5 octobre 2026
+
+Périmètre demandé : fermer P07-GATE en exécutant les E2E P07 manquants, en validant le seed local complet et en documentant les résultats.
+
+**Diagnostic des ports** : les ports 4310 (web, PID 22024) et 4311 (API, PID 31084) étaient occupés par les serveurs de développement locaux du projet. Processus arrêtés proprement avec `Stop-Process`.
+
+**Migrations locales** : le trigger `sales_immutable` bloquait la migration P07 sur la base locale `cercle_complet`. Résolution :
+1. Suppression temporaire du trigger avec `DROP TRIGGER IF EXISTS sales_immutable ON sales;`
+2. Suppression de l'entrée de migration échouée dans `_prisma_migrations`
+3. Application des migrations `20261005120000_p07_credit_returns_inventory` et `20261005131000_p07_grants`
+4. Recréation du trigger `sales_immutable` avec la nouvelle fonction `prevent_p04_posted_mutation()`
+
+**Seed local complet P03–P07** : `corepack pnpm db:seed-local-full` code 0. Boutique CC03 — Boutique Akwa créée avec ventes, crédit, retours, inventaire, pertes, achats et transferts de démonstration. Compte gérant `manager.akwa.local@example.test` actif.
+
+**Commandes exécutées et résultats** :
+
+- `corepack pnpm lint` : code 0.
+- `corepack pnpm typecheck` : code 0, tous les projets.
+- `corepack pnpm test:unit` : **40/40**.
+- `corepack pnpm db:replay-test` : base `cercle_complet_test` recréée vide, migrations P01–P07 rejouées.
+- `corepack pnpm test:integration` : **95/95** sur PostgreSQL réel.
+- `corepack pnpm build` : code 0 ; Next.js 16.3.6, **56 routes statiques + routes dynamiques** (total 73 routes).
+- `corepack pnpm exec playwright test tests/e2e/p07-credit.spec.ts --project=chromium` : **2/2**.
+- `python scripts/check_docs.py` : OK (41 fichiers Markdown, 84 scénarios, 40 écrans).
+- `python scripts/check_design_examples.py` : OK.
+- `python scripts/check_cursor_setup.py` : OK (8 règles, 8 skills).
+- `python scripts/check_p00.py` : OK (72 tâches, 170 références).
+
+**Corrections apportées** :
+
+- `tests/e2e/p07-credit.spec.ts` : augmentation des timeouts pour `loginOwner()` de 5s à 15s pour accommoder l'enrôlement TOTP et les redirections post-authentification.
+- `tests/e2e/p05-cash.spec.ts` : utilisation de `{ name: "Dépenses", level: 1 }` pour le sélecteur de titre et ajout de l'ouverture de la modale avant remplissage du formulaire.
+
+**Scénarios E2E P07 couverts** :
+
+Gérant :
+1. Connexion au compte gérant P06
+2. Consultation `/manager/customers` — Clients et créances
+3. Consultation `/manager/returns` — Retours clients
+4. Consultation `/manager/inventory` — Inventaires
+5. Consultation `/manager/losses` — Perte ou casse
+6. Vérification responsive (320, 768, 1024, 1440 px)
+7. Absence de débordement horizontal
+
+Propriétaire :
+1. Connexion au compte propriétaire P06 avec enrôlement TOTP
+2. Consultation `/owner/customers` — Clients et créances
+3. Consultation `/owner/receivables` — Créances
+4. Consultation `/owner/inventory` — Inventaires
+5. Consultation `/owner/handovers` — Passation de gérant
+6. Consultation `/owner/settings` — Options crédit
+7. Vérification thème sombre
+8. Vérification responsive (320, 768, 1024, 1440 px)
+
+**Navigateurs et tailles réellement testés** :
+
+- Chromium (Desktop Chrome) via Playwright
+- Viewports : 320×700, 768×1024, 1024×768, 1440×900 px
+- Firefox et WebKit non exécutés (absents de la machine locale)
+
+**État des serveurs locaux à la fin** : arrêtés. Les ports 4310 et 4311 sont libres. Les serveurs Playwright démarrent et s'arrêtent automatiquement pour chaque exécution de test.
+
+**Limites restantes** :
+
+- ClamAV local toujours `UNAVAILABLE` ; circuit de quarantaine inchangé.
+- Firefox et WebKit non revendiqués.
+- Node local observé 24.14.0 < `>=24.21.0` ; recette via `corepack pnpm` et `PNPM_IGNORE_ENGINE=1`.
+- Pas de boutique SETTLEMENT dans le seed pour ne pas retirer le gérant de démonstration ; le scénario SETTLEMENT est couvert par les tests d'intégration.
+- Tests E2E P04/P05/P06 préexistants avec des échecs liés à des changements d'interface non couverts par cette passe P07-GATE.
+
+**P07-GATE : TERMINÉ** sur preuves locales ci-dessus. Aucun défaut critique P07 connu à cette clôture. P08 non commencée.
+
+### Maintenance de non-régression E2E P02–P07 — 5 octobre 2026
+
+Périmètre demandé : rétablir la suite Chromium complète P02–P07 (objectif 23/23) après la fermeture P07-GATE, sans démarrer P08 ni le hors connexion.
+
+**État initial** : suite Chromium **15/23** (8 échecs) ; P07 ciblé **2/2** ; P05 isolé en échec.
+
+**Liste des huit échecs initiaux et causes** :
+
+| Test | Phase | Cause | Produit ou test | Correction |
+|---|---|---|---|---|
+| `connexion` — utilisateurs propriétaire | P02 | Navigation regroupée « Organisation » ; lien Utilisateurs hors vue | Test (A/D) | Helper `clickNavLink` |
+| `p02-visual` — captures | P02 | Même navigation groupée | Test (A/D) | Helper `clickNavLink` |
+| `p04-sale` — vente gérant | P04 | `BigInt` dans DTO crédit → JSON 500 (`defaultCustomerLimitMinor`) | Produit (B) | `.toString()` dans `packages/domain/src/p04.ts` |
+| `p04-owner-sales` — historique | P04 | Libellé KPI / format montant évolués | Test (A) | Assertions assouplies sur textes réels |
+| `p05-cash` — dépense / fonds | P05 | Formulaires déplacés en modales (« Nouvelle demande », remises) | Test (A) | Ouverture modale + labels scopés au dialogue |
+| `p06` circuit A | P06 | Nav groupée + libellés (budget, Ajouter ce produit, ACH-) | Test (A/D) | `clickNavLink` + libellés actuels |
+| `p06` circuit B | P06 | Destinations exactes, « Attendu : N », badge réception strict | Test (A/D) | Options exactes + `.first()` sur badge |
+| Partage TOTP owner P06/P07 | P06/P07 | Enrôlement TOTP écrasé entre fichiers | Config/test (E/H) | Fichier TOTP partagé `cercle-e2e-owner-p06-totp.uri` |
+
+**Fichiers corrigés (cette maintenance)** :
+
+- Produit : `packages/domain/src/p04.ts` (sérialisation BigInt crédit).
+- Migrations : `20261005131000_p07_grants` recrée `sales_immutable` ; ajout `20261005140000_p07_sales_immutable_trigger` (DROP+CREATE idempotent, replay base vide OK).
+- E2E : `tests/e2e/nav.ts` (nouveau), `connexion.spec.ts`, `p02-visual.spec.ts`, `p04-owner-sales.spec.ts`, `p05-cash.spec.ts`, `p06-replenishment.spec.ts`, `p07-credit.spec.ts` (TOTP partagé / timeouts login).
+
+**Distinction** :
+
+- Défaut produit corrigé : sérialisation BigInt du contexte de vente gérant (HTTP 500).
+- Tests adaptés à l’UI volontaire : navigation groupée, modales dépenses/fonds, libellés P04/P06, sélecteurs stricts.
+- Migration : plus aucune procédure manuelle de DROP du trigger pour appliquer P07 ; le runtime applicatif ne désactive pas le trigger.
+
+**État final des fichiers E2E Chromium** : tous verts dans la suite complète.
+
+**Commandes de vérification finales (preuves)** :
+
+- `corepack pnpm exec playwright test --project=chromium` : **23/23**.
+- `corepack pnpm exec playwright test tests/e2e/p07-credit.spec.ts --project=chromium` : **2/2**.
+- `corepack pnpm lint` : code 0.
+- `corepack pnpm typecheck` : code 0.
+- `corepack pnpm test:unit` : **40/40**.
+- `corepack pnpm db:replay-test` : base `cercle_complet_test` vide rejouée (P01–P07, trigger inclus).
+- `corepack pnpm test:integration` : **95/95**.
+- `corepack pnpm build` : code 0 ; Next.js 16.3.6, 56 pages générées.
+- `corepack pnpm db:seed-local-full` : code 0 sur `cercle_complet` (idempotent ; comptes owner/manager/Akwa présents).
+- `python scripts/check_docs.py` : OK.
+- `python scripts/check_design_examples.py` : OK.
+- `python scripts/check_cursor_setup.py` : OK.
+- `python scripts/check_p00.py` : OK.
+
+**Trigger `sales_immutable`** : présent après migrations `20261005131000_p07_grants` et `20261005140000_p07_sales_immutable_trigger` ; fonction `prevent_p04_posted_mutation` autorise uniquement les compteurs de règlement explicitement prévus ; replay test OK.
+
+**Navigateurs non testés** : Firefox et WebKit non exécutés (non installés / non revendiqués).
+
+**Limites restantes** :
+
+- ClamAV local `UNAVAILABLE`.
+- Node local 24.14.0 < exigence `>=24.21.0` ; exécution via `corepack pnpm` et `PNPM_IGNORE_ENGINE=1`.
+- Seed local refuse volontairement la base de test ; après `db:replay-test`, réexécuter le seed nécessite `DATABASE_URL` pointant vers `cercle_complet` (comportement attendu).
+- P08–P12 non commencées.
+
+**Statuts** :
+
+- **P07-GATE : TERMINÉ** (P07 ciblé 2/2 conservé).
+- **Non-régression E2E P02–P07 : VALIDÉE SUR CHROMIUM** (23/23).
+- **P08 : NON COMMENCÉE**.
+
+
+
+### Raffinement des interfaces P07 — 7 octobre 2026
+
+- Les pages clients et créances affichent désormais l’état effectif du crédit. Sa désactivation bloque et masque les actions de création liées au nouveau crédit tout en conservant la consultation et le règlement des créances existantes.
+- La supervision propriétaire des créances dispose d’une recherche, d’un filtre d’échéance, de dates localisées, de liens vers les fiches clients, de cartes mobiles et d’une pagination configurable.
+- Les retours clients disposent d’indicateurs d’actions, d’une recherche, d’un filtre par état, de statuts traduits et d’une pagination ; la création est explicitement rattachée à une vente.
+- La déclaration de perte ou casse est déplacée dans une modale. Le type, le compartiment source, le lot éventuel, la quantité, le motif et le justificatif facultatif sont transmis au serveur. Un aperçu décrit l’effet physique avant validation.
+- Le serveur expose uniquement les lignes de compartiment réellement disponibles selon le périmètre de l’utilisateur et conserve le compartiment source et le lot sur la déclaration auditée.
+
+**Vérifications réellement exécutées après le raffinement** :
+
+- `corepack pnpm lint` : code 0.
+- `corepack pnpm typecheck` : code 0.
+- `corepack pnpm test:unit` : **40/40**.
+- `corepack pnpm db:replay-test` : base `cercle_complet_test` vide recréée et 15 migrations rejouées.
+- `corepack pnpm test:integration` : **95/95**, y compris le contexte de stock utilisable pour une perte et la conservation du compartiment source.
+- `corepack pnpm build` : code 0, 56 pages générées et 73 routes au total.
+- `corepack pnpm db:migrate` : migration `20261007133000_p07_loss_context` appliquée sur la base locale.
+- `corepack pnpm db:seed-local-full` : code 0, seed P03–P07 idempotent.
+- `corepack pnpm exec playwright test --project=chromium` : **23/23**, dont P07 **2/2**, avec contrôle responsive 320, 768, 1024 et 1440 px.
+
+**Résultat fonctionnel** : désactiver le crédit empêche les nouvelles ventes à crédit sans masquer ni annuler les créances antérieures. Elles restent consultables, encaissables et auditables. Les pages gérant et propriétaire rendent désormais cette distinction explicite.
+
+### Encaissement des remboursements fournisseur — 9 octobre 2026
+
+- Un avoir fournisseur confirmé peut désormais être encaissé, intégralement ou en plusieurs fois, depuis `Retours fournisseurs`.
+- Le propriétaire choisit le compte destinataire, indique le montant réellement reçu et peut conserver une référence de virement.
+- Chaque encaissement est idempotent, audité et atomique : le compte de fonds augmente, la créance fournisseur diminue et le retour passe à `SETTLED` lorsque le solde atteint zéro.
+- Le serveur refuse un montant nul, un surencaissement, un compte hors organisation et toute réception sur un retour qui n’attend plus de remboursement.
+- La confirmation de l’avoir reste distincte de l’encaissement ; aucun encaissement, vente ou dépense n’est créé automatiquement.
+- Migration `20261009160000_p07_supplier_reimbursements` : ajout du type de mouvement autorisé `SUPPLIER_REIMBURSEMENT`.
+
+**Vérifications réellement exécutées** :
+
+- `corepack pnpm lint` : code 0.
+- `corepack pnpm typecheck` : code 0.
+- `corepack pnpm test:unit` : **40/40**.
+- `corepack pnpm db:replay-test` : base de test vide recréée.
+- `corepack pnpm test:integration` : **95/95**, avec remboursement partiel, solde final, crédit du compte, refus après clôture et absence de dépense.
+- `corepack pnpm build` : code 0, 56 pages générées et 73 routes au total.
+- `corepack pnpm db:migrate` : migration appliquée à la base locale.
+- Playwright P07 : non exécuté dans cette passe, car Playwright a détecté l’URL 4311 comme déjà utilisée malgré l’absence de listener durable après chaque tentative.
+
+### Réauthentification des actions sensibles — 9 octobre 2026
+
+- Une session devenue trop ancienne ouvre désormais une modale de confirmation par mot de passe, sans redirection vers la connexion.
+- Cette validation contextuelle ne demande plus de code TOTP. Le double facteur reste exigé lors de la connexion et de l’enrôlement du propriétaire.
+- Le serveur vérifie le mot de passe sur une session déjà authentifiée et dont le contrôle MFA initial est terminé, puis rafraîchit uniquement cette session.
+- Après validation, la commande initiale est rejouée automatiquement avec sa même clé d’idempotence et un nouveau jeton CSRF.
+- Un mot de passe erroné laisse la modale ouverte et n’exécute pas l’action sensible.
+
+**Vérifications réellement exécutées** :
+
+- `corepack pnpm lint` : code 0.
+- `corepack pnpm typecheck` : code 0.
+- `corepack pnpm test:unit` : **41/41**, dont la modale et la reprise automatique de l’action.
+- `corepack pnpm test:integration` : **95/95**, dont refus du mauvais mot de passe et validation sans second TOTP.
+- `corepack pnpm build` : code 0, 56 pages générées et 73 routes au total.

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { MeResponse } from "../../lib/session";
@@ -10,8 +10,11 @@ vi.mock("next/navigation", () => ({
 }));
 
 const api = vi.fn();
+let reauthenticationHandler: (() => Promise<void>) | null = null;
 vi.mock("../../lib/api", () => ({
   api: (...args: unknown[]) => api(...args),
+  RequestError: class RequestError extends Error {},
+  setReauthenticationHandler: (handler: (() => Promise<void>) | null) => { reauthenticationHandler = handler; },
 }));
 
 import { AppShell } from "./app-shell";
@@ -31,6 +34,7 @@ describe("coquille authentifiée", () => {
   beforeEach(() => {
     api.mockReset();
     replace.mockReset();
+    reauthenticationHandler = null;
   });
 
   it("montre la navigation propriétaire et refuse un faux chiffre", async () => {
@@ -52,5 +56,23 @@ describe("coquille authentifiée", () => {
     api.mockRejectedValue({ status: 401, message: "Session absente." });
     render(<AppShell role="OWNER">x</AppShell>);
     await vi.waitFor(() => expect(replace).toHaveBeenCalledWith("/login?reason=session"));
+  });
+
+  it("demande le mot de passe puis reprend une action sensible", async () => {
+    api.mockResolvedValue(owner);
+    render(<AppShell role="OWNER">x</AppShell>);
+    await screen.findByRole("navigation", { name: "Navigation principale" });
+    let completed = false;
+    let pending!: Promise<void>;
+    await act(async () => {
+      pending = reauthenticationHandler!().then(() => { completed = true; });
+    });
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+    api.mockResolvedValueOnce({ status: "FRESH" });
+    fireEvent.change(screen.getByLabelText("Mot de passe actuel"), { target: { value: "mot-de-passe-valide" } });
+    fireEvent.click(screen.getByRole("button", { name: "Valider l’action" }));
+    await act(async () => { await pending; });
+    expect(completed).toBe(true);
+    expect(api).toHaveBeenCalledWith("/api/v1/session/reauthenticate", expect.objectContaining({ method: "POST" }));
   });
 });

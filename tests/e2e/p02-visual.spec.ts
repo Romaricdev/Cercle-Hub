@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 
 import { currentTotp } from "../../apps/api/src/auth/totp.ts";
 import { e2eManager, e2eOwnerVisual } from "./global-setup";
+import { clickNavLink } from "./nav";
 
 const out = resolve(process.cwd(), "test-results/p02-visual");
 mkdirSync(out, { recursive: true });
@@ -49,7 +50,7 @@ test("captures visuelles P02 clair, sombre et formats", async ({ page }) => {
   }
   await expect(page.getByRole("heading", { name: /Vue générale/ })).toBeVisible();
   await page.screenshot({ path: resolve(out, "proprietaire-1440.png"), fullPage: true });
-  await page.getByRole("link", { name: "Utilisateurs" }).click();
+  await clickNavLink(page, "Organisation", "Utilisateurs");
   await expect(page.getByRole("heading", { name: "Équipe et accès" })).toBeVisible();
   await page.screenshot({ path: resolve(out, "utilisateurs-1440-vide.png"), fullPage: true });
   await page.setViewportSize({ width: 1920, height: 1080 });

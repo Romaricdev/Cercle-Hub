@@ -32,7 +32,7 @@ async function main(): Promise<void> {
   const auth = createAuth(prisma, {
     allowSignUp: true,
     secret,
-    baseURL: process.env.PUBLIC_ORIGIN ?? "http://127.0.0.1:8080",
+    baseURL: process.env.PUBLIC_ORIGIN ?? "http://127.0.0.1:4320",
     secureCookies: false,
   });
   const organization =
@@ -59,7 +59,7 @@ async function main(): Promise<void> {
   }
   await prisma.$disconnect();
   console.log("");
-  console.log("http://127.0.0.1:8080/login");
+  console.log("http://127.0.0.1:4320/login");
   console.log(`Propriétaire  ${accounts[0]?.email}  ${password}`);
   console.log(`Gérant        ${accounts[1]?.email}  ${password}`);
   console.log(`Gérante Akwa  ${accounts[2]?.email}  ${password}`);

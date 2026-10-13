@@ -1,9 +1,15 @@
 import { createPrismaClient, loadRootEnv } from "@cercle/database";
 import {
+  approveStockCount,
   assignManager,
+  authorizeCreditException,
   createExpense,
   createFundTransfer,
   createPaymentSource,
+  collectCustomerPayment,
+  createCustomer,
+  createOpeningReceivable,
+  createPolicy,
   createPrice,
   createProduct,
   createRequest,
@@ -12,11 +18,25 @@ import {
   createSupplier,
   createUnit,
   createVariant,
+  decideCustomerReturn,
   decideExpense,
   decideRequest,
   decideShipment,
   dispatchShipment,
+  declareCountLines,
+  declareStockLoss,
   openCashSession,
+  openStockCount,
+  payCustomerRefund,
+  previewCustomerPayment,
+  receiveCustomerReturn,
+  requestCustomerReturn,
+  requestRecount,
+  requestSupplierReturn,
+  dispatchSupplierReturn,
+  confirmSupplierCredit,
+  submitStockCount,
+  writeOffReceivable,
   payExpense,
   postOwnerFund,
   postPurchase,
@@ -252,12 +272,82 @@ async function main(): Promise<void> {
       await openCashSession(prisma, managerCtx("next-session"));
     }
 
+    if (!(await prisma.cashSession.findFirst({ where: { shopId: shop.id, status: { in: ["OPEN", "COUNTING"] } } }))) {
+      await openCashSession(prisma, managerCtx("p07-session"));
+    }
+    await createPolicy(prisma, ownerCtx("p07-credit-policy"), { values: { creditEnabled: true, supplierCreditEnabled: true, customerDueDays: 14 }, reason: "Crédit local de démonstration" });
+    if (!(await prisma.customer.findFirst({ where: { shopId: shop.id, phone: "690070100" } }))) {
+      const clean = await createCustomer(prisma, managerCtx("customer-clean"), { name: "Client sans dette", phone: "690070100" });
+      const partial = await createCustomer(prisma, managerCtx("customer-partial"), { name: "Client partiellement réglé", phone: "690070101" });
+      const late = await createCustomer(prisma, managerCtx("customer-late"), { name: "Client en retard", phone: "690070102" });
+      await prisma.customer.updateMany({ where: { id: { in: [partial.id, late.id] } }, data: { creditLimitMinor: 50_000n } });
+      void clean;
+      const lines = [{ saleUnitId: unit.id, quantity: "4" }];
+      const quote = await quoteSale(prisma, organizationId, demoManager.id, lines);
+      await postSale(prisma, managerCtx("credit-sale"), {
+        authorizationId: quote.authorizationId,
+        lines,
+        payments: [{ accountId: cash.id, amountMinor: "2000", cashReceivedMinor: "2000", changeGivenMinor: "0" }],
+        customerId: partial.id,
+        dueDate: "2099-12-31",
+      });
+      const preview = await previewCustomerPayment(prisma, organizationId, demoManager.id, "MANAGER", { customerId: partial.id, amountMinor: "1000" });
+      await collectCustomerPayment(prisma, managerCtx("collect-partial"), { customerId: partial.id, accountId: cash.id, amountMinor: "1000", previewHash: preview.previewHash });
+      const lateQuote = await quoteSale(prisma, organizationId, demoManager.id, [{ saleUnitId: unit.id, quantity: "2" }]);
+      const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
+      await postSale(prisma, managerCtx("late-sale"), {
+        authorizationId: lateQuote.authorizationId,
+        lines: [{ saleUnitId: unit.id, quantity: "2" }],
+        payments: [],
+        customerId: late.id,
+        dueDate: yesterday,
+      });
+      await createOpeningReceivable(prisma, ownerCtx("opening-ar"), { shopId: shop.id, customerId: late.id, amountMinor: "500", reason: "Créance d’ouverture de démonstration" });
+      const writeOffCustomer = await prisma.receivable.findFirst({ where: { customerId: late.id, remainingMinor: { gt: 0 } } });
+      if (writeOffCustomer) await writeOffReceivable(prisma, ownerCtx("write-off"), { receivableId: writeOffCustomer.id, amountMinor: "500", reason: "Abandon partiel de démonstration" });
+      const sale = await prisma.sale.findFirstOrThrow({ where: { customerId: partial.id }, include: { lines: true } });
+      const requested = await requestCustomerReturn(prisma, managerCtx("return-request"), { saleId: sale.id, reason: "Démonstration de retour client", lines: [{ saleLineId: sale.lines[0]!.id, quantity: "1" }] });
+      await decideCustomerReturn(prisma, ownerCtx("return-approve"), requested.id, { outcome: "APPROVED" });
+      await receiveCustomerReturn(prisma, managerCtx("return-receive"), requested.id, { lines: [{ returnLineId: (await prisma.customerReturnLine.findFirstOrThrow({ where: { returnId: requested.id } })).id, quantity: "1", disposition: "AVAILABLE" }] });
+      const pendingRefund = await prisma.customerReturn.findUniqueOrThrow({ where: { id: requested.id } });
+      if (pendingRefund.refundDueMinor > pendingRefund.refundedMinor) {
+        await payCustomerRefund(prisma, managerCtx("return-refund"), requested.id, { accountId: cash.id, amountMinor: (pendingRefund.refundDueMinor - pendingRefund.refundedMinor).toString() });
+      }
+      const requestedOnly = await requestCustomerReturn(prisma, managerCtx("return-requested"), { saleId: sale.id, reason: "Retour encore en attente de décision", lines: [{ saleLineId: sale.lines[0]!.id, quantity: "1" }] });
+      void requestedOnly;
+      const waitingReceive = await requestCustomerReturn(prisma, managerCtx("return-approved-wait"), { saleId: (await prisma.sale.findFirstOrThrow({ where: { customerId: late.id }, include: { lines: true } })).id, reason: "Retour approuvé en attente de réception", lines: [{ saleLineId: (await prisma.sale.findFirstOrThrow({ where: { customerId: late.id }, include: { lines: true } })).lines[0]!.id, quantity: "1" }] });
+      await decideCustomerReturn(prisma, ownerCtx("return-approve-wait"), waitingReceive.id, { outcome: "APPROVED" });
+      await authorizeCreditException(prisma, ownerCtx("credit-auth"), { shopId: shop.id, customerId: partial.id, payloadHash: "seed-demo-authorization-hash-not-consumed", maxDueMinor: "5000", reason: "Autorisation ponctuelle de démonstration", expiresInSeconds: 600 });
+    }
+    if (!(await prisma.supplierReturn.findFirst({ where: { shopId: shop.id } }))) {
+      const purchase = await prisma.purchase.findFirst({ where: { shopId: shop.id, status: "POSTED" }, include: { lines: true } });
+      if (purchase?.lines[0]) {
+        const created = await requestSupplierReturn(prisma, ownerCtx("supplier-return"), { purchaseId: purchase.id, reason: "Lots de démonstration à renvoyer", lines: [{ purchaseLineId: purchase.lines[0].id, quantity: "1" }] });
+        await dispatchSupplierReturn(prisma, ownerCtx("supplier-return-dispatch"), created.id, location.id);
+        await confirmSupplierCredit(prisma, ownerCtx("supplier-return-credit"), created.id, { amountMinor: "720" });
+      }
+    }
+    if (!(await prisma.stockCount.findFirst({ where: { shopId: shop.id } }))) {
+      const opened = await openStockCount(prisma, ownerCtx("count-open"), { shopId: shop.id, locationId: location.id, reason: "Inventaire de démonstration" });
+      const lines = await prisma.stockCountLine.findMany({ where: { countId: opened.id } });
+      await declareCountLines(prisma, managerCtx("count-declare"), opened.id, { lines: lines.filter((line) => line.compartment !== "MISSING_PENDING").map((line) => ({ variantId: line.variantId, compartment: line.compartment, quantity: line.expectedQty.toString() })) });
+      await submitStockCount(prisma, managerCtx("count-submit-stock"), opened.id);
+      const recount = await requestRecount(prisma, ownerCtx("count-recount"), opened.id, "Recomptage de démonstration");
+      const recountLines = await prisma.stockCountLine.findMany({ where: { countId: recount.id } });
+      await declareCountLines(prisma, managerCtx("count-declare-recount"), recount.id, { lines: recountLines.filter((line) => line.compartment !== "MISSING_PENDING").map((line) => ({ variantId: line.variantId, compartment: line.compartment, quantity: line.expectedQty.toString() })) });
+      await submitStockCount(prisma, managerCtx("count-submit-recount"), recount.id);
+      await approveStockCount(prisma, ownerCtx("count-approve"), recount.id, {});
+    }
+    if (!(await prisma.stockLoss.findFirst({ where: { shopId: shop.id } }))) {
+      await declareStockLoss(prisma, managerCtx("loss"), { locationId: location.id, variantId: variant.id, quantity: "1", compartment: "AVAILABLE", reason: "Casse de démonstration", physicalState: "DAMAGED" });
+    }
+
     console.log("");
-    console.log("Seed local complet terminé (P03 à P06). ");
+    console.log("Seed local complet terminé (P03 à P07).");
     console.log("  Boutique        CC03 — Boutique Akwa");
     console.log(`  Nouveau gérant  ${DEMO_MANAGER_EMAIL}`);
     console.log("  Mot de passe    local-dev-password-15");
-    console.log("  Parcours        ventes, caisse, dépense, fonds, écart, demande, achat, réception et transfert");
+    console.log("  Parcours        ventes, crédit, retours, inventaire, pertes, achats et transferts");
   } finally {
     await prisma.$disconnect();
   }

@@ -3,12 +3,15 @@ import type { Prisma, PrismaClient } from "@cercle/database";
 
 import { writeAudit } from "./audit.js";
 import { DomainError, withDeadlockRetry } from "./errors.js";
+import { enforceCreditOnSale, postSaleReceivable } from "./p07-credit.js";
+import { assertNoInventoryLock, policyValues } from "./p07-common.js";
 
 type Tx = Prisma.TransactionClient;
 type JsonResult = Prisma.InputJsonObject;
 export type SaleContext = { organizationId: string; actorId: string; key: string; requestId: string };
 export type SaleLineInput = { saleUnitId: string; quantity: string; discountMinor?: string | undefined };
 export type PaymentInput = { accountId: string; amountMinor: string; cashReceivedMinor?: string | undefined; changeGivenMinor?: string | undefined; externalReference?: string | undefined };
+export type PostSaleInput = { authorizationId: string; lines: SaleLineInput[]; payments: PaymentInput[]; customerId?: string | undefined; dueDate?: string | undefined; creditAuthorizationId?: string | undefined };
 
 const SCALE = 1_000_000n;
 
@@ -53,12 +56,17 @@ async function effect<T extends JsonResult>(prisma: PrismaClient, context: SaleC
   }));
 }
 
-async function managerScope(tx: Tx, organizationId: string, actorId: string) {
+async function managerScope(tx: Tx, organizationId: string, actorId: string, opts?: { allowSettlement?: boolean }) {
   const assignment = await tx.managerAssignment.findFirst({ where: { userId: actorId, endedAt: null, user: { organizationId, status: "ACTIVE" } }, include: { shop: true } });
-  if (!assignment || assignment.shop.status !== "ACTIVE") throw new DomainError("SHOP_NOT_ACTIVE", "Votre boutique doit être active pour vendre.", 409);
+  if (!assignment) throw new DomainError("SHOP_NOT_ACTIVE", "Votre boutique doit être active pour vendre.", 409);
+  const shop = assignment.shop;
+  const settlement = shop.status === "SUSPENDED" && shop.suspensionMode === "SETTLEMENT";
+  if (shop.status !== "ACTIVE" && !(opts?.allowSettlement && settlement)) {
+    throw new DomainError("SHOP_NOT_ACTIVE", "Votre boutique doit être active pour vendre.", 409);
+  }
   const device = await tx.device.findFirst({ where: { userId: actorId, shopId: assignment.shopId, status: "ACTIVE" }, orderBy: { registeredAt: "desc" } });
   if (!device) throw new DomainError("PRIMARY_DEVICE_REQUIRED", "Cet appareil doit être approuvé avant toute vente.", 403);
-  return { shop: assignment.shop, device };
+  return { shop, device };
 }
 
 function businessDate(now: Date, timezone: string): string {
@@ -67,19 +75,21 @@ function businessDate(now: Date, timezone: string): string {
 
 export async function openCashSession(prisma: PrismaClient, context: SaleContext) {
   return effect(prisma, context, { action: "open-cash-session" }, async (tx) => {
-    const { shop, device } = await managerScope(tx, context.organizationId, context.actorId);
+    const { shop, device } = await managerScope(tx, context.organizationId, context.actorId, { allowSettlement: true });
+    const purpose = shop.status === "SUSPENDED" && shop.suspensionMode === "SETTLEMENT" ? "SETTLEMENT" : shop.status === "SUSPENDED" && shop.suspensionMode === "SECURITY" ? "RECOVERY" : "TRADING";
+    if (purpose === "RECOVERY") throw new DomainError("SHOP_SECURITY_HOLD", "La boutique est bloquée pour reprise propriétaire.", 409);
     const existing = await tx.cashSession.findFirst({ where: { shopId: shop.id, status: { in: ["OPEN", "COUNTING"] } } });
     if (existing) {
       if (existing.managerId !== context.actorId) throw new DomainError("CASH_SESSION_BUSY", "Une session est déjà ouverte pour cette boutique.", 409);
-      return { id: existing.id, status: existing.status, businessDate: existing.businessDate.toISOString().slice(0, 10) };
+      return { id: existing.id, status: existing.status, businessDate: existing.businessDate.toISOString().slice(0, 10), purpose: existing.purpose };
     }
     const location = await tx.location.findFirst({ where: { shopId: shop.id, type: "SHOP", status: "ACTIVE" } });
     if (!location) throw new DomainError("STOCK_LOCATION_REQUIRED", "Aucun lieu de stock actif n’est configuré.", 409);
     const date = businessDate(new Date(), shop.timezone);
-    const session = await tx.cashSession.create({ data: { organizationId: context.organizationId, shopId: shop.id, managerId: context.actorId, deviceId: device.id, locationId: location.id, businessDate: new Date(`${date}T00:00:00.000Z`) } });
-    await writeAudit(tx, { actorId: context.actorId, action: "CASH_SESSION_OPENED", entityType: "cash_sessions", entityId: session.id, requestId: context.requestId, afterJson: { shopId: shop.id, businessDate: date } });
-    await tx.outboxEvent.create({ data: { id: crypto.randomUUID(), topic: "business.cash_session_opened", aggregateId: session.id, payload: { shopId: shop.id, businessDate: date } } });
-    return { id: session.id, status: session.status, businessDate: date };
+    const session = await tx.cashSession.create({ data: { organizationId: context.organizationId, shopId: shop.id, managerId: context.actorId, deviceId: device.id, locationId: location.id, purpose, businessDate: new Date(`${date}T00:00:00.000Z`) } });
+    await writeAudit(tx, { actorId: context.actorId, action: "CASH_SESSION_OPENED", entityType: "cash_sessions", entityId: session.id, requestId: context.requestId, afterJson: { shopId: shop.id, businessDate: date, purpose } });
+    await tx.outboxEvent.create({ data: { id: crypto.randomUUID(), topic: "business.cash_session_opened", aggregateId: session.id, payload: { shopId: shop.id, businessDate: date, purpose } } });
+    return { id: session.id, status: session.status, businessDate: date, purpose };
   });
 }
 
@@ -108,11 +118,19 @@ export async function managerSaleContext(prisma: PrismaClient, organizationId: s
       orderBy: { product: { name: "asc" } },
     });
     const accounts = await tx.moneyAccount.findMany({ where: { organizationId, shopId: shop.id, paymentSource: { status: "ACTIVE" } }, include: { paymentSource: true }, orderBy: { name: "asc" } });
+    const credit = await policyValues(tx, organizationId, shop.id);
     return {
       shop: { id: shop.id, name: shop.name, code: shop.code, currency: shop.currency }, device: { id: device.id, name: device.name },
       session: session ? { id: session.id, status: session.status, businessDate: session.businessDate.toISOString().slice(0, 10) } : null,
       products: products.map(({ product }) => ({ id: product.id, name: product.name, sku: product.sku, imageKey: product.imageKey, variants: product.variants.map((variant) => ({ id: variant.id, name: variant.name, barcode: variant.barcode, available: variant.stockBalances.reduce((sum, item) => sum + Number(item.quantity), 0).toString(), units: variant.units.flatMap((unit) => unit.prices[0] ? [{ id: unit.id, name: unit.name, symbol: unit.symbol, factor: unit.factor.toString(), precision: unit.precision, priceMinor: unit.prices[0].amountMinor.toString() }] : []) })) })),
       accounts: accounts.map((account) => ({ id: account.id, name: account.name, type: account.paymentSource.type })),
+      credit: {
+        creditEnabled: credit.creditEnabled,
+        supplierCreditEnabled: credit.supplierCreditEnabled,
+        customerDueDays: credit.customerDueDays,
+        defaultCustomerLimitMinor: credit.defaultCustomerLimitMinor.toString(),
+      },
+      customers: (await tx.customer.findMany({ where: { shopId: shop.id, status: "ACTIVE" }, orderBy: { name: "asc" }, take: 100 })).map((row) => ({ id: row.id, name: row.name, phone: row.phone, creditLimitMinor: row.creditLimitMinor.toString() })),
     };
   });
 }
@@ -152,20 +170,32 @@ export async function quoteSale(prisma: PrismaClient, organizationId: string, ac
   });
 }
 
-export async function postSale(prisma: PrismaClient, context: SaleContext, input: { authorizationId: string; lines: SaleLineInput[]; payments: PaymentInput[] }) {
+export async function postSale(prisma: PrismaClient, context: SaleContext, input: PostSaleInput) {
   return effect(prisma, context, input, async (tx) => {
     const { shop, device } = await managerScope(tx, context.organizationId, context.actorId);
     const sessionRows = await tx.$queryRaw<Array<{ id: string; location_id: string; business_date: Date; status: string }>>`SELECT id,location_id,business_date,status FROM cash_sessions WHERE shop_id=${shop.id}::uuid AND manager_id=${context.actorId}::uuid AND device_id=${device.id}::uuid AND status IN ('OPEN','COUNTING') FOR UPDATE`;
     const session = sessionRows[0]; if (!session) throw new DomainError("CASH_SESSION_REQUIRED", "La session de caisse n’est pas ouverte.", 409);
     if (session.status === "COUNTING") throw new DomainError("COUNT_IN_PROGRESS", "Terminez ou annulez le comptage avant de vendre.", 409);
+    const sessionRow = await tx.cashSession.findUniqueOrThrow({ where: { id: session.id } });
+    if (sessionRow.purpose !== "TRADING") throw new DomainError("SHOP_SETTLEMENT_ONLY", "Cette session ne permet pas de vendre.", 409);
+    await assertNoInventoryLock(tx, shop.id);
     const quote = await calculateQuote(tx, context.organizationId, shop.id, input.lines);
     const payloadHash = await sha256Hex(canonicalJson({ lines: quote.lines.map(({ saleUnitId, quantity, discountMinor }) => ({ saleUnitId, quantity, discountMinor })) }));
     const authorization = await tx.onlineAuthorization.findFirst({ where: { id: input.authorizationId, deviceId: device.id, sessionId: session.id } });
     if (!authorization || authorization.expiresAt <= new Date() || authorization.payloadHash !== payloadHash || authorization.consumedOperationId) throw new DomainError("ONLINE_AUTHORIZATION_INVALID", "Le devis a expiré ou ne correspond plus au panier.", 409);
     const net = BigInt(quote.netMinor); const paymentTotal = input.payments.reduce((sum, item) => sum + money(item.amountMinor), 0n);
-    if (input.payments.length < 1 || input.payments.length > 10 || paymentTotal !== net) throw new DomainError("PAYMENT_TOTAL_MISMATCH", "La somme des paiements doit être égale au total de la vente.", 422);
+    if (input.payments.length > 10 || paymentTotal > net) throw new DomainError("PAYMENT_TOTAL_MISMATCH", "La somme des paiements ne peut pas dépasser le total de la vente.", 422);
+    const credit = await enforceCreditOnSale(tx, context, {
+      shopId: shop.id,
+      net,
+      paid: paymentTotal,
+      customerId: input.customerId,
+      dueDate: input.dueDate,
+      creditAuthorizationId: input.creditAuthorizationId,
+      quoteHash: payloadHash,
+    });
     const saleId = crypto.randomUUID(); const reference = `V-${session.business_date.toISOString().slice(0,10).replaceAll("-","")}-${saleId.slice(0,8).toUpperCase()}`;
-    const sale = await tx.sale.create({ data: { id: saleId, organizationId: context.organizationId, shopId: shop.id, sessionId: session.id, actorId: context.actorId, deviceId: device.id, reference, status: "DRAFT", grossMinor: BigInt(quote.grossMinor), discountMinor: BigInt(quote.discountMinor), netMinor: net, costMinor: 0n, businessDate: session.business_date } });
+    const sale = await tx.sale.create({ data: { id: saleId, organizationId: context.organizationId, shopId: shop.id, sessionId: session.id, actorId: context.actorId, deviceId: device.id, reference, status: "DRAFT", grossMinor: BigInt(quote.grossMinor), discountMinor: BigInt(quote.discountMinor), netMinor: net, paidMinor: paymentTotal, costMinor: 0n, customerId: credit.customerId, dueDate: credit.dueDate, creditAuthorizationId: credit.authorizationId, businessDate: session.business_date } });
     let totalCost = 0n;
     for (const quoted of quote.lines) {
       await tx.$queryRaw`SELECT id FROM stock_balances WHERE variant_id=${quoted.variantId}::uuid AND location_id=${session.location_id}::uuid FOR UPDATE`;
@@ -209,12 +239,26 @@ export async function postSale(prisma: PrismaClient, context: SaleContext, input
       paymentRows.push({ id: paymentRow.id, mode: account.type, amountMinor: amount.toString(), cashReceivedMinor: cashReceived?.toString() ?? null, changeDueMinor: changeDue?.toString() ?? null, changeGivenMinor: changeGiven?.toString() ?? null }); void event;
     }
     await tx.sale.update({ where: { id: saleId }, data: { costMinor: totalCost, status: "POSTED" } });
-    const journal = await tx.journalEntry.create({ data: { organizationId: context.organizationId, actorId: context.actorId, type: "SALE", status: "DRAFT", referenceType: "sales", referenceId: saleId, lines: { create: [{ accountCode: "ASSET:FUNDS", amountMinor: net }, { accountCode: "INCOME:SALES", amountMinor: -net }, { accountCode: "EXPENSE:COGS", amountMinor: totalCost }, { accountCode: "ASSET:STOCK", amountMinor: -totalCost }] } } });
+    const due = net - paymentTotal;
+    if (due > 0n && credit.customerId && credit.dueDate) {
+      await postSaleReceivable(tx, { organizationId: context.organizationId, shopId: shop.id, saleId, customerId: credit.customerId, due, dueDate: credit.dueDate });
+    }
+    if (credit.authorizationId) {
+      await tx.creditAuthorization.update({ where: { id: credit.authorizationId }, data: { consumedSaleId: saleId } });
+    }
+    const journalLines = [
+      ...(paymentTotal > 0n ? [{ accountCode: "ASSET:FUNDS", amountMinor: paymentTotal }] : []),
+      ...(due > 0n ? [{ accountCode: "ASSET:RECEIVABLE", amountMinor: due }] : []),
+      { accountCode: "INCOME:SALES", amountMinor: -net },
+      { accountCode: "EXPENSE:COGS", amountMinor: totalCost },
+      { accountCode: "ASSET:STOCK", amountMinor: -totalCost },
+    ];
+    const journal = await tx.journalEntry.create({ data: { organizationId: context.organizationId, actorId: context.actorId, type: "SALE", status: "DRAFT", referenceType: "sales", referenceId: saleId, lines: { create: journalLines } } });
     await tx.journalEntry.update({ where: { id: journal.id }, data: { status: "POSTED", postedAt: new Date() } });
     await tx.onlineAuthorization.update({ where: { id: authorization.id }, data: { consumedOperationId: saleId } });
     await writeAudit(tx, { actorId: context.actorId, action: "SALE_POSTED", entityType: "sales", entityId: saleId, requestId: context.requestId, afterJson: { reference, netMinor: net.toString(), costMinor: totalCost.toString() } });
-    await tx.outboxEvent.create({ data: { id: crypto.randomUUID(), topic: "business.sale_posted", aggregateId: saleId, payload: { shopId: shop.id, reference, netMinor: net.toString() } } }); void journal;
-    return { id: sale.id, reference, status: "POSTED", grossMinor: quote.grossMinor, discountMinor: quote.discountMinor, netMinor: quote.netMinor, costMinor: totalCost.toString(), businessDate: session.business_date.toISOString().slice(0,10), payments: paymentRows };
+    await tx.outboxEvent.create({ data: { id: crypto.randomUUID(), topic: "business.sale_posted", aggregateId: saleId, payload: { shopId: shop.id, reference, netMinor: net.toString() } } }); void journal; void sale;
+    return { id: saleId, reference, status: "POSTED", grossMinor: quote.grossMinor, discountMinor: quote.discountMinor, netMinor: quote.netMinor, paidMinor: paymentTotal.toString(), dueMinor: due.toString(), costMinor: totalCost.toString(), businessDate: session.business_date.toISOString().slice(0,10), payments: paymentRows };
   });
 }
 
@@ -225,5 +269,6 @@ export async function listSales(prisma: PrismaClient, organizationId: string, sh
 export async function getSale(prisma: PrismaClient, organizationId: string, shopId: string, id: string) {
   const sale = await prisma.sale.findFirst({ where: { id, organizationId, shopId }, include: { shop: true, actor: true, lines: true, payments: { include: { account: true } } } });
   if (!sale) throw new DomainError("SALE_NOT_FOUND", "Vente introuvable.", 404);
-  return { id: sale.id, reference: sale.reference, status: sale.status, shop: sale.shop.name, manager: sale.actor.displayName, grossMinor: sale.grossMinor.toString(), discountMinor: sale.discountMinor.toString(), netMinor: sale.netMinor.toString(), businessDate: sale.businessDate.toISOString().slice(0,10), postedAt: sale.postedAt.toISOString(), lines: sale.lines.map((line) => ({ id: line.id, product: line.productName, variant: line.variantName, unit: line.unitName, symbol: line.unitSymbol, quantity: line.quantity.toString(), unitPriceMinor: line.unitPriceMinor.toString(), discountMinor: line.discountMinor.toString(), netMinor: line.netMinor.toString() })), payments: sale.payments.map((payment) => ({ id: payment.id, source: payment.account.name, mode: payment.mode, amountMinor: payment.amountMinor.toString(), cashReceivedMinor: payment.cashReceivedMinor?.toString() ?? null, changeDueMinor: payment.changeDueMinor?.toString() ?? null, changeGivenMinor: payment.changeGivenMinor?.toString() ?? null, externalReference: payment.externalReference })) };
+  const due = sale.netMinor - sale.paidMinor - sale.creditReductionMinor - sale.writeOffMinor;
+  return { id: sale.id, reference: sale.reference, status: sale.status, shop: sale.shop.name, manager: sale.actor.displayName, customerId: sale.customerId, dueDate: sale.dueDate?.toISOString().slice(0, 10) ?? null, grossMinor: sale.grossMinor.toString(), discountMinor: sale.discountMinor.toString(), netMinor: sale.netMinor.toString(), paidMinor: sale.paidMinor.toString(), dueMinor: due.toString(), businessDate: sale.businessDate.toISOString().slice(0,10), postedAt: sale.postedAt.toISOString(), lines: sale.lines.map((line) => ({ id: line.id, product: line.productName, variant: line.variantName, unit: line.unitName, symbol: line.unitSymbol, quantity: line.quantity.toString(), unitPriceMinor: line.unitPriceMinor.toString(), discountMinor: line.discountMinor.toString(), netMinor: line.netMinor.toString() })), payments: sale.payments.map((payment) => ({ id: payment.id, source: payment.account.name, mode: payment.mode, amountMinor: payment.amountMinor.toString(), cashReceivedMinor: payment.cashReceivedMinor?.toString() ?? null, changeDueMinor: payment.changeDueMinor?.toString() ?? null, changeGivenMinor: payment.changeGivenMinor?.toString() ?? null, externalReference: payment.externalReference })) };
 }

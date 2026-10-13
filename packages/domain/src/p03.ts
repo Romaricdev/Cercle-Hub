@@ -108,7 +108,7 @@ export async function listShops(prisma: PrismaClient, organizationId: string) {
   const shops = await prisma.shop.findMany({
     where: { organizationId },
     include: {
-      assignments: { where: { endedAt: null }, include: { user: { select: { displayName: true } } } },
+      assignments: { where: { endedAt: null }, include: { user: { select: { id: true, displayName: true } } } },
       openingDrafts: { orderBy: { version: "desc" }, take: 1, select: { status: true, step: true, version: true } },
     },
     orderBy: { createdAt: "asc" },
@@ -121,6 +121,7 @@ export async function listShops(prisma: PrismaClient, organizationId: string) {
     currency: shop.currency,
     timezone: shop.timezone,
     manager: shop.assignments[0]?.user.displayName ?? null,
+    managerId: shop.assignments[0]?.user.id ?? null,
     opening: shop.openingDrafts[0] ?? null,
     updatedAt: shop.updatedAt.toISOString(),
   }));
@@ -174,8 +175,9 @@ export async function transitionShop(
   id: string,
   target: "ACTIVE" | "SUSPENDED" | "CLOSED",
   reason: string,
+  options?: { suspensionMode?: "SECURITY" | "SETTLEMENT" },
 ) {
-  return effect(prisma, context, { id, target, reason }, async (tx) => {
+  return effect(prisma, context, { id, target, reason, suspensionMode: options?.suspensionMode ?? null }, async (tx) => {
     const rows = await tx.$queryRaw<Array<{ id: string; status: string }>>`
       SELECT id, status FROM shops WHERE id = ${id}::uuid AND organization_id = ${context.organizationId}::uuid FOR UPDATE
     `;
@@ -197,17 +199,22 @@ export async function transitionShop(
         throw new DomainError("SHOP_NOT_READY", "Validez l’initialisation et affectez un gérant avant l’activation.", 409);
       }
     }
+    if (target === "CLOSED") {
+      const { assertShopCloseable } = await import("./p07-control.js");
+      await assertShopCloseable(tx, id);
+    }
+    const suspensionMode = target === "SUSPENDED" ? (options?.suspensionMode ?? "SECURITY") : null;
     await tx.shop.update({
       where: { id },
       data: {
         status: target,
-        ...(target === "ACTIVE" ? { activatedAt: new Date(), suspendedAt: null } : {}),
-        ...(target === "SUSPENDED" ? { suspendedAt: new Date() } : {}),
-        ...(target === "CLOSED" ? { closedAt: new Date() } : {}),
+        ...(target === "ACTIVE" ? { activatedAt: new Date(), suspendedAt: null, suspensionMode: null } : {}),
+        ...(target === "SUSPENDED" ? { suspendedAt: new Date(), suspensionMode } : {}),
+        ...(target === "CLOSED" ? { closedAt: new Date(), suspensionMode: null } : {}),
       },
     });
-    await auditAndOutbox(tx, context, `SHOP_${target}`, "shops", id, { reason: requiredText(reason, "Le motif"), status: target });
-    return { id, status: target };
+    await auditAndOutbox(tx, context, `SHOP_${target}`, "shops", id, { reason: requiredText(reason, "Le motif"), status: target, suspensionMode });
+    return { id, status: target, suspensionMode };
   });
 }
 

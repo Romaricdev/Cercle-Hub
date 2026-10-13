@@ -53,6 +53,17 @@ export const paths = {
   managerSale: "/manager/sale",
   managerSalePayment: "/manager/sale/payment",
   managerSales: "/manager/sales",
+  ownerCustomers: "/owner/customers",
+  ownerReceivables: "/owner/receivables",
+  ownerReturns: "/owner/returns",
+  ownerSupplierReturns: "/owner/supplier-returns",
+  ownerInventory: "/owner/inventory",
+  ownerLosses: "/owner/losses",
+  ownerHandovers: "/owner/handovers",
+  managerCustomers: "/manager/customers",
+  managerReturns: "/manager/returns",
+  managerInventory: "/manager/inventory",
+  managerLosses: "/manager/losses",
 } as const;
 
 export function homePath(me: MeResponse): string {

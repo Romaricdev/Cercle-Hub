@@ -14,7 +14,7 @@ export default defineConfig({
   workers: 1,
   globalSetup: "./tests/e2e/global-setup.ts",
   use: {
-    baseURL: "http://127.0.0.1:8080",
+    baseURL: "http://127.0.0.1:4320",
     trace: "retain-on-failure",
   },
   webServer: [
@@ -27,8 +27,8 @@ export default defineConfig({
         ...process.env,
         NODE_ENV: "test",
         DATABASE_URL: testDatabaseUrl,
-        PUBLIC_ORIGIN: "http://127.0.0.1:8080",
-        WEB_ORIGIN: "http://127.0.0.1:8080",
+        PUBLIC_ORIGIN: "http://127.0.0.1:4320",
+        WEB_ORIGIN: "http://127.0.0.1:4320",
         API_PORT: "4311",
         PNPM_IGNORE_ENGINE: "1",
       },

@@ -9,7 +9,8 @@ services:
       POSTGRES_PASSWORD: local-dev-only
       POSTGRES_DB: cercle_complet
     ports:
-      - "127.0.0.1:5432:5432"
+      # Sous Windows, Hyper-V peut réserver 5407–5506 (inclut 5432). Contournement : POSTGRES_HOST_PORT=15432
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql
       - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
@@ -85,7 +86,7 @@ services:
     image: caddy:2.10.2@sha256:c3d7ee5d2b11f9dc54f947f68a734c84e9c9666c92c88a7f30b9cba5da182adb
     container_name: cercle-caddy
     ports:
-      - "127.0.0.1:8080:8080"
+      - "127.0.0.1:4320:8080"
     volumes:
       - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
     extra_hosts:

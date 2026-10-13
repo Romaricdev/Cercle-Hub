@@ -46,7 +46,7 @@ const shopSchema = z.object({
   timezone: z.string().min(3).max(80).optional(),
 }).strict();
 const shopPatchSchema = shopSchema.omit({ code: true }).partial().strict();
-const reasonSchema = z.object({ reason: z.string().trim().min(2).max(240) }).strict();
+const reasonSchema = z.object({ reason: z.string().trim().min(2).max(240), suspensionMode: z.enum(["SECURITY", "SETTLEMENT"]).optional() }).strict();
 const productSchema = z.object({
   name: z.string().min(2).max(160),
   sku: z.string().max(80).optional(),
@@ -194,7 +194,7 @@ export class P03Controller {
   private async transition(request: RequestWithActor, key: string | undefined, id: string, target: "ACTIVE" | "SUSPENDED" | "CLOSED", body: unknown) {
     try {
       const input = reasonSchema.parse(body);
-      return { protocolVersion: PROTOCOL_VERSION, ...(await transitionShop(this.prisma, this.context(request, key), z.uuid().parse(id), target, input.reason)) };
+      return { protocolVersion: PROTOCOL_VERSION, ...(await transitionShop(this.prisma, this.context(request, key), z.uuid().parse(id), target, input.reason, target === "SUSPENDED" ? (input.suspensionMode ? { suspensionMode: input.suspensionMode } : {}) : undefined)) };
     } catch (error) { throw DomainHttpError.from(error); }
   }
 

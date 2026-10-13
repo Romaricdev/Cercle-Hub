@@ -58,14 +58,14 @@ corepack pnpm --filter @cercle/web start
 | API live | http://127.0.0.1:4311/api/v1/health/live |
 | API ready | http://127.0.0.1:4311/api/v1/health/ready |
 | Worker | http://127.0.0.1:4312/ |
-| Même origine via Caddy | http://127.0.0.1:8080 |
-| Connexion | http://127.0.0.1:8080/login |
-| Propriétaire | http://127.0.0.1:8080/owner |
-| Ventes propriétaire | http://127.0.0.1:8080/owner/sales |
-| Initialisation | http://127.0.0.1:8080/setup |
-| Stock gérant | http://127.0.0.1:8080/manager/stock |
+| Même origine via Caddy | http://127.0.0.1:4320 |
+| Connexion | http://127.0.0.1:4320/login |
+| Propriétaire | http://127.0.0.1:4320/owner |
+| Ventes propriétaire | http://127.0.0.1:4320/owner/sales |
+| Initialisation | http://127.0.0.1:4320/setup |
+| Stock gérant | http://127.0.0.1:4320/manager/stock |
 
-Sur Windows, les ports 3000–3002 peuvent être réservés par Hyper-V. Les valeurs par défaut évitent la plage observée. Le détail est dans [docs/p01/README.md](docs/p01/README.md).
+Sur Windows, Hyper-V réserve parfois 3000–3002 et 8080. Les valeurs par défaut évitent les plages observées. Le détail est dans [docs/p01/README.md](docs/p01/README.md).
 
 ## Vérifications
 

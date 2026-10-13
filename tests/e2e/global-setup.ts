@@ -36,7 +36,7 @@ export default async function globalSetup(): Promise<void> {
   const auth = createAuth(prisma, {
     allowSignUp: true,
     secret,
-    baseURL: "http://127.0.0.1:8080",
+    baseURL: "http://127.0.0.1:4320",
     secureCookies: false,
   });
   const manager = await prisma.user.findUnique({ where: { email: managerEmail } });

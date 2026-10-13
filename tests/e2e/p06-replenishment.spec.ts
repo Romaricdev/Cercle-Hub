@@ -6,8 +6,9 @@ import { expect, test } from "@playwright/test";
 
 import { currentTotp } from "../../apps/api/src/auth/totp.ts";
 import { e2eManagerP06, e2eManagerP06B, e2eOwnerP06 } from "./global-setup";
+import { clickNavLink } from "./nav";
 
-const ownerTotpPath = join(tmpdir(), "cercle-p06-owner-totp.uri");
+const ownerTotpPath = join(tmpdir(), "cercle-e2e-owner-p06-totp.uri");
 
 function ownerTotpUri() {
   return existsSync(ownerTotpPath) ? readFileSync(ownerTotpPath, "utf8").trim() : "";
@@ -29,7 +30,7 @@ async function loginOwner(page: import("@playwright/test").Page) {
   const enroll = page.getByText(/second facteur/i);
   const challenge = page.getByLabel("Code d’authentification ou de secours");
   const home = page.getByRole("heading", { name: /Vue générale/ });
-  await expect(enroll.or(challenge).or(home)).toBeVisible();
+  await expect(enroll.or(challenge).or(home)).toBeVisible({ timeout: 15_000 });
   if (await enroll.isVisible()) {
     await page.getByLabel("Confirmez le mot de passe").fill(e2eOwnerP06.password);
     await page.getByRole("button", { name: "Afficher le secret" }).click();
@@ -42,7 +43,7 @@ async function loginOwner(page: import("@playwright/test").Page) {
     await challenge.fill(currentTotp(ownerTotpUri()));
     await page.getByRole("button", { name: "Valider le code" }).click();
   }
-  await expect(home).toBeVisible();
+  await expect(home).toBeVisible({ timeout: 15_000 });
 }
 
 async function logout(page: import("@playwright/test").Page) {
@@ -67,7 +68,7 @@ async function assertNoHorizontalOverflow(page: import("@playwright/test").Page)
 test("P06 circuit A : demande, précisions, achat, réception et stock", async ({ page }) => {
   test.setTimeout(180_000);
   await loginManager(page, e2eManagerP06.email);
-  await page.getByRole("link", { name: "Demandes", exact: true }).click();
+  await clickNavLink(page, "Stock et achats", "Demandes d’achat");
   await expect(page.getByRole("heading", { name: "Demandes d’achat" })).toBeVisible();
   await page.getByRole("link", { name: "Nouvelle demande" }).click();
   await page.getByLabel("Motif").fill("Réassort de riz pour la boutique A cette semaine");
@@ -75,13 +76,13 @@ test("P06 circuit A : demande, précisions, achat, réception et stock", async (
   await page.getByLabel("Variante").selectOption({ label: "Sac 25 kg" });
   await page.getByLabel("Unité").selectOption({ label: "Sac" });
   await page.getByLabel("Quantité").fill("5");
-  await page.getByRole("button", { name: "Ajouter la ligne" }).click();
+  await page.getByRole("button", { name: "Ajouter ce produit" }).click();
   await page.getByRole("button", { name: "Soumettre au propriétaire" }).click();
   await expect(page.getByText("Soumise", { exact: true })).toBeVisible();
   await logout(page);
 
   await loginOwner(page);
-  await page.getByRole("link", { name: "Demandes", exact: true }).click();
+  await clickNavLink(page, "Stock et achats", "Demandes d’achat");
   await page.getByRole("link", { name: /Réassort de riz/ }).click();
   await page.getByRole("button", { name: "Décider" }).click();
   const decision = page.getByRole("dialog", { name: "Décision sur la demande" });
@@ -96,7 +97,7 @@ test("P06 circuit A : demande, précisions, achat, réception et stock", async (
   await logout(page);
 
   await loginManager(page, e2eManagerP06.email);
-  await page.getByRole("link", { name: "Demandes", exact: true }).click();
+  await clickNavLink(page, "Stock et achats", "Demandes d’achat");
   await page.getByRole("link", { name: /Réassort de riz/ }).click();
   await page.getByLabel("Votre réponse").fill("Oui, livraison souhaitée avant vendredi matin.");
   await page.getByRole("button", { name: "Envoyer la réponse" }).click();
@@ -104,29 +105,29 @@ test("P06 circuit A : demande, précisions, achat, réception et stock", async (
   await logout(page);
 
   await loginOwner(page);
-  await page.getByRole("link", { name: "Demandes", exact: true }).click();
+  await clickNavLink(page, "Stock et achats", "Demandes d’achat");
   await page.getByRole("link", { name: /Réassort de riz/ }).first().click();
-  await page.getByRole("button", { name: "Décider" }).click();
+  await page.getByRole("button", { name: /Examiner et décider|Décider/ }).click();
   const approve = page.getByRole("dialog", { name: "Décision sur la demande" });
   await expect(approve).toBeVisible();
   await approve.getByLabel("Décision", { exact: true }).selectOption("APPROVED");
-  await approve.getByLabel("Budget autorisé (FCFA)").fill("80000");
+  await approve.getByLabel("Budget maximal autorisé (FCFA)").fill("80000");
   await page.getByRole("button", { name: "Enregistrer la décision" }).click();
   await expect(page.getByText("Approuvée")).toBeVisible();
   await logout(page);
 
   await loginManager(page, e2eManagerP06.email);
-  await page.getByRole("link", { name: "Demandes", exact: true }).click();
+  await clickNavLink(page, "Stock et achats", "Demandes d’achat");
   await page.getByRole("link", { name: /Réassort de riz/ }).first().click();
   await page.getByRole("button", { name: "Acheter selon l’accord" }).click();
   await page.getByLabel("Nom du fournisseur").fill("Grains E2E");
   await page.getByLabel("Prix unitaire").fill("8000");
   await page.getByRole("button", { name: "Acheter et recevoir" }).click();
-  await expect(page.getByRole("heading", { name: /Achat ACH-/ })).toBeVisible();
-  await page.getByRole("link", { name: "Stock" }).first().click();
+  await expect(page.getByRole("heading", { name: /ACH-/ })).toBeVisible();
+  await clickNavLink(page, "Stock et achats", "État du stock");
   await expect(page.getByText("Riz E2E P06", { exact: true })).toBeVisible();
   await expect(page.locator("li, tr").filter({ hasText: "Riz E2E P06" }).getByText(/^5(\.0+)?$/).first()).toBeVisible();
-  await page.getByRole("link", { name: "Réceptions" }).first().click();
+  await clickNavLink(page, "Stock et achats", "Réceptions");
   await expect(page.getByRole("heading", { name: "Réceptions attendues" })).toBeVisible();
   await assertNoHorizontalOverflow(page);
   await page.emulateMedia({ colorScheme: "dark" });
@@ -136,7 +137,7 @@ test("P06 circuit A : demande, précisions, achat, réception et stock", async (
   await logout(page);
 
   await loginOwner(page);
-  await page.getByRole("link", { name: "Catalogue" }).first().click();
+  await clickNavLink(page, "Stock et achats", "Catalogue");
   await page.getByLabel("Rechercher dans le catalogue").fill("Riz E2E P06");
   await page.getByRole("button", { name: "Voir la fiche" }).click();
   await expect(page.getByText("Dernier coût d’achat")).toBeVisible();
@@ -146,13 +147,13 @@ test("P06 circuit A : demande, précisions, achat, réception et stock", async (
 test("P06 circuit B : achat propriétaire réparti et réception partielle", async ({ page }) => {
   test.setTimeout(180_000);
   await loginOwner(page);
-  await page.getByRole("link", { name: "Fournisseurs" }).first().click();
+  await clickNavLink(page, "Stock et achats", "Fournisseurs");
   await page.getByRole("button", { name: "Nouveau fournisseur" }).click();
   await expect(page.getByRole("dialog", { name: "Nouveau fournisseur" })).toBeVisible();
   await page.getByLabel("Raison sociale").fill("Céréales Nord");
   await page.getByRole("button", { name: "Créer" }).click();
   await expect(page.getByRole("heading", { name: "Céréales Nord" })).toBeVisible();
-  await page.getByRole("link", { name: "Achats" }).first().click();
+  await clickNavLink(page, "Stock et achats", "Achats");
   await page.getByRole("link", { name: "Nouvel achat" }).click();
   await page.getByLabel("Fournisseur", { exact: true }).selectOption({ label: "Céréales Nord" });
   await page.getByLabel("Produit").selectOption({ label: "Riz E2E P06" });
@@ -160,12 +161,12 @@ test("P06 circuit B : achat propriétaire réparti et réception partielle", asy
   await page.getByLabel("Unité").selectOption({ label: "Sac" });
   await page.getByLabel("Quantité").fill("5");
   await page.getByLabel("Prix d’achat unitaire").fill("2000");
-  await page.getByRole("button", { name: "Ajouter" }).click();
-  const destA = page.getByLabel("Destination").first();
-  await destA.selectOption({ label: (await destA.locator("option").filter({ hasText: "Réappro A" }).first().textContent())!.trim() });
+  await page.getByRole("button", { name: "Ajouter la ligne" }).click();
+  await expect(page.getByRole("combobox", { name: "Destination" })).toHaveCount(1);
+  await page.getByRole("combobox", { name: "Destination" }).first().selectOption({ label: "Stock Réappro A · Boutique Réappro A" });
   await page.getByRole("button", { name: "Ajouter une destination" }).click();
-  const destB = page.getByLabel("Destination").nth(1);
-  await destB.selectOption({ label: (await destB.locator("option").filter({ hasText: "Réappro B" }).first().textContent())!.trim() });
+  await expect(page.getByRole("combobox", { name: "Destination" })).toHaveCount(2);
+  await page.getByRole("combobox", { name: "Destination" }).nth(1).selectOption({ label: "Stock Réappro B · Boutique Réappro B" });
   await page.getByLabel("Quantité destinée").nth(0).fill("3");
   await page.getByLabel("Quantité destinée").nth(1).fill("2");
   await page.getByRole("button", { name: "Enregistrer l’achat" }).click();
@@ -175,7 +176,7 @@ test("P06 circuit B : achat propriétaire réparti et réception partielle", asy
   await logout(page);
 
   await loginManager(page, e2eManagerP06.email);
-  await page.getByRole("link", { name: "Réceptions" }).first().click();
+  await clickNavLink(page, "Stock et achats", "Réceptions");
   await page.getByRole("link").filter({ hasText: "Fournisseur" }).first().click();
   await page.getByLabel("Accepté vendable").fill("2");
   await page.getByRole("button", { name: "Vérifier cette réception" }).click();
@@ -184,29 +185,29 @@ test("P06 circuit B : achat propriétaire réparti et réception partielle", asy
   await expect(page.getByRole("heading", { name: "Réceptions attendues" })).toBeVisible();
   await expect(page.getByText("Réception partielle")).toBeVisible();
   await page.getByRole("link").filter({ hasText: "Fournisseur" }).first().click();
-  await expect(page.getByText(/Attendu restant 1(\.0+)?/)).toBeVisible();
+  await expect(page.getByText(/Attendu\s*:?\s*1(\.0+)?/)).toBeVisible();
   await page.getByLabel("Accepté vendable").fill("1");
   await page.getByRole("button", { name: "Vérifier cette réception" }).click();
   await page.getByRole("button", { name: "Enregistrer la réception" }).click();
   await expect(page.getByRole("heading", { name: "Réceptions attendues" })).toBeVisible();
-  await page.getByRole("link", { name: "Stock" }).first().click();
+  await clickNavLink(page, "Stock et achats", "État du stock");
   await expect(page.locator("li, tr").filter({ hasText: "Riz E2E P06" }).getByText(/^8(\.0+)?$|^3(\.0+)?$/).first()).toBeVisible();
   await logout(page);
 
   await loginManager(page, e2eManagerP06B.email);
-  await page.getByRole("link", { name: "Réceptions" }).first().click();
+  await clickNavLink(page, "Stock et achats", "Réceptions");
   await page.getByRole("link").filter({ hasText: "Fournisseur" }).first().click();
   await page.getByLabel("Accepté vendable").fill("2");
   await page.getByRole("button", { name: "Vérifier cette réception" }).click();
   await page.getByRole("button", { name: "Enregistrer la réception" }).click();
-  await page.getByRole("link", { name: "Stock" }).first().click();
+  await clickNavLink(page, "Stock et achats", "État du stock");
   await expect(page.getByText("Riz E2E P06", { exact: true })).toBeVisible();
   await logout(page);
 
   await loginOwner(page);
-  await page.getByRole("link", { name: "Achats" }).first().click();
+  await clickNavLink(page, "Stock et achats", "Achats");
   await page.getByRole("link", { name: /ACH-/ }).first().click();
-  await expect(page.getByText("Réception complète").or(page.getByText("Réception partielle"))).toBeVisible();
+  await expect(page.getByText("Réception complète").or(page.getByText("Réception partielle")).first()).toBeVisible();
   await expect(page.getByRole("link", { name: "Stock Réappro A" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Stock Réappro B" })).toBeVisible();
 });

@@ -16,4 +16,4 @@ Les réglages pnpm 12 sont dans `pnpm-workspace.yaml` (`catalog`, `overrides`, `
 
 ## Ports locaux
 
-Les ports 3000, 3001 et 3002 tombent dans une plage d’exclusion Windows Hyper-V observée sur la machine de développement (2913–3012). Le socle écoute donc en local sur 4310 (web), 4311 (API) et 4312 (worker). Caddy reste sur `127.0.0.1:8080` et proxy vers ces ports. PostgreSQL, Redis et SeaweedFS restent liés à `127.0.0.1` uniquement.
+Les ports 3000, 3001 et 3002 tombent dans une plage d’exclusion Windows Hyper-V observée sur la machine de développement (2913–3012). Le socle écoute donc en local sur 4310 (web), 4311 (API) et 4312 (worker). Le 2 octobre 2026, `8080` est entré dans une nouvelle plage d’exclusion (7981–8080) : Caddy est publié sur `127.0.0.1:4320` et proxy vers 4310/4311. PostgreSQL, Redis et SeaweedFS restent liés à `127.0.0.1` uniquement.

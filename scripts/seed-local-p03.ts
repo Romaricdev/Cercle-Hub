@@ -209,7 +209,7 @@ async function main(): Promise<void> {
     console.log("Seed P03 terminé sur cercle_complet.");
     console.log(`  Boutique active   ${SHOP_ACTIVE_CODE} — dashboard EMPTY après connexion owner + MFA`);
     console.log(`  Boutique brouillon ${SHOP_PREP_CODE} — parcours /setup`);
-    console.log("  Connexion : http://127.0.0.1:8080/login");
+    console.log("  Connexion : http://127.0.0.1:4320/login");
     console.log(`  Propriétaire      ${OWNER_EMAIL}`);
     console.log(`  Gérant            ${MANAGER_EMAIL}`);
   } finally {

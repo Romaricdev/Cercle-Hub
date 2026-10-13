@@ -5,7 +5,7 @@ import { ArrowRight, CheckCircle2, LockKeyhole, Mail, ShieldCheck, Sparkles } fr
 import { AnimatePresence, motion } from "motion/react";
 import { Suspense, useState } from "react";
 
-import { api, loadCsrf } from "../../lib/api";
+import { api, loadCsrf, RequestError } from "../../lib/api";
 import { homePath, type MeResponse } from "../../lib/session";
 import { BrandLogo } from "../../components/brand/logo";
 import { Alert } from "../../components/ui/alert";
@@ -59,8 +59,14 @@ function ConnexionForm() {
         return;
       }
       await afterSession();
-    } catch {
-      setMessage("Identifiants incorrects.");
+    } catch (error) {
+      if (error instanceof RequestError && (error.status === 404 || error.code === "NETWORK")) {
+        setMessage("L’API n’est pas joignable sur cette adresse. Ouvrez http://127.0.0.1:4320/login.");
+      } else if (error instanceof RequestError && (error.status === 403 || error.status === 429)) {
+        setMessage(error.message);
+      } else {
+        setMessage("Identifiants incorrects.");
+      }
     } finally {
       setPending(false);
     }

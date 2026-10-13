@@ -135,7 +135,7 @@ const purchaseSchema = z.object({
     remarks: z.string().trim().max(500).optional(),
   }).strict()).max(100).optional(),
 }).strict();
-const paySchema = z.object({ accountId: z.uuid(), amountMinor: money }).strict();
+const paySchema = z.object({ accountId: z.uuid(), amountMinor: money, previewHash: z.string().min(16).max(128).optional() }).strict();
 const receiptSchema = z.object({
   shipmentId: z.uuid(),
   deliveryComplete: z.boolean().optional(),

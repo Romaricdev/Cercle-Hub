@@ -41,8 +41,8 @@ test("P04 propriétaire consulte les ventes réelles et conserve les filtres", a
   await page.getByRole("button", { name: "Confirmer" }).click();
   await expect(page.getByRole("heading", { name: /Vue générale/ })).toBeVisible();
   await page.getByLabel("Boutique").selectOption({ label: "Boutique Pilotage E2E" });
-  await expect(page.getByRole("paragraph").filter({ hasText: /^Chiffre d’affaires$/ })).toBeVisible();
-  await expect(page.getByText("1 500 FCFA").first()).toBeVisible();
+  await expect(page.getByText("chiffre d’affaires", { exact: true })).toBeVisible();
+  await expect(page.getByText(/1[\s\u00a0\u202f]?500\s*FCFA/).first()).toBeVisible();
   for (const viewport of [{ width: 320, height: 700 }, { width: 768, height: 1024 }, { width: 1024, height: 768 }, { width: 1440, height: 900 }]) {
     await page.setViewportSize(viewport);
     await expect(page.getByRole("heading", { name: "Vue générale" })).toBeVisible();

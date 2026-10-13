@@ -15,6 +15,7 @@ export interface Actor {
   displayName: string;
   status: string;
   sessionFresh: boolean;
+  sessionId: string;
 }
 
 interface RequestWithActor {
@@ -52,6 +53,7 @@ export class AuthenticatedGuard implements CanActivate {
       displayName: appUser.displayName,
       status: appUser.status,
       sessionFresh: Date.now() - updatedAt < 30 * 60_000,
+      sessionId: session.session.id,
     };
     return true;
   }

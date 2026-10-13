@@ -25,17 +25,22 @@ import {
   UsersRound,
   WalletCards,
   Warehouse,
+  RotateCcw,
+  ClipboardCheck,
   type LucideIcon,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import { api } from "../../lib/api";
+import { api, RequestError, setReauthenticationHandler } from "../../lib/api";
 import { paths, type MeResponse } from "../../lib/session";
 import { BrandLogo } from "../brand/logo";
 import { Button } from "../ui/button";
+import { Alert } from "../ui/alert";
+import { Field } from "../ui/field";
+import { Modal } from "../ui/modal";
 import { Sheet } from "../ui/sheet";
 import { Skeleton } from "../ui/skeleton";
 import { ThemeSwitcher } from "./theme-switcher";
@@ -51,6 +56,8 @@ const ownerLinks: NavigationItem[] = [
     icon: Banknote,
     children: [
       { href: paths.ownerSales, label: "Ventes", icon: ReceiptText },
+      { href: paths.ownerCustomers, label: "Clients et créances", icon: UsersRound },
+      { href: paths.ownerReceivables, label: "Créances ouvertes", icon: WalletCards },
       { href: paths.ownerSessions, label: "Sessions de caisse", icon: Banknote },
       { href: paths.ownerExpenses, label: "Dépenses", icon: WalletCards },
       { href: paths.ownerFunds, label: "Mouvements de fonds", icon: WalletCards },
@@ -62,11 +69,15 @@ const ownerLinks: NavigationItem[] = [
     icon: Package,
     children: [
       { href: paths.ownerStock, label: "État du stock", icon: Warehouse },
+      { href: paths.ownerInventory, label: "Inventaires", icon: ClipboardCheck },
+      { href: paths.ownerLosses, label: "Pertes et casse", icon: CircleAlert },
+      { href: paths.ownerReturns, label: "Retours clients", icon: RotateCcw },
       { href: paths.ownerProducts, label: "Catalogue", icon: Boxes },
       { href: paths.ownerPurchases, label: "Achats", icon: Package },
       { href: paths.ownerRequests, label: "Demandes d’achat", icon: ClipboardList },
       { href: paths.ownerTransfers, label: "Transferts", icon: PackageCheck },
       { href: paths.ownerSuppliers, label: "Fournisseurs", icon: Warehouse },
+      { href: paths.ownerSupplierReturns, label: "Retours fournisseurs", icon: RotateCcw },
     ],
   },
   {
@@ -74,6 +85,7 @@ const ownerLinks: NavigationItem[] = [
     icon: Settings2,
     children: [
       { href: paths.ownerShops, label: "Boutiques", icon: Building2 },
+      { href: paths.ownerHandovers, label: "Passations", icon: UsersRound },
       { href: paths.ownerUsers, label: "Utilisateurs", icon: UsersRound },
       { href: paths.ownerDevices, label: "Appareils", icon: TabletSmartphone },
       { href: paths.ownerSources, label: "Sources de fonds", icon: WalletCards },
@@ -90,12 +102,16 @@ const managerLinks: NavigationItem[] = [
   { label: "Ventes et caisse", icon: Banknote, children: [
     { href: paths.managerCash, label: "Caisse du jour", icon: Banknote },
     { href: paths.managerSales, label: "Historique des ventes", icon: ReceiptText },
+    { href: paths.managerCustomers, label: "Clients et créances", icon: UsersRound },
+    { href: paths.managerReturns, label: "Retours", icon: RotateCcw },
     { href: paths.managerExpenses, label: "Dépenses", icon: WalletCards },
     { href: paths.managerFunds, label: "Mouvements de fonds", icon: WalletCards },
     { href: paths.managerDiscrepancies, label: "Demandes d’explication", icon: CircleAlert },
   ] },
   { label: "Stock et achats", icon: Package, children: [
     { href: paths.managerStock, label: "État du stock", icon: Warehouse },
+    { href: paths.managerInventory, label: "Inventaire", icon: ClipboardCheck },
+    { href: paths.managerLosses, label: "Perte ou casse", icon: CircleAlert },
     { href: paths.managerRequests, label: "Demandes d’achat", icon: ClipboardList },
     { href: paths.managerPurchases, label: "Achats autorisés", icon: Package },
     { href: paths.managerReceipts, label: "Réceptions", icon: PackageCheck },
@@ -113,6 +129,11 @@ export function AppShell({ role, children }: { role: "OWNER" | "MANAGER"; childr
   const [collapsed, setCollapsed] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({ "Ventes et caisse": true });
+  const [reauthOpen, setReauthOpen] = useState(false);
+  const [reauthPassword, setReauthPassword] = useState("");
+  const [reauthError, setReauthError] = useState<string | null>(null);
+  const [reauthPending, setReauthPending] = useState(false);
+  const reauthPromise = useRef<{ resolve: () => void; reject: (error: Error) => void } | null>(null);
 
   useEffect(() => {
     api<MeResponse>("/api/v1/me")
@@ -145,6 +166,41 @@ export function AppShell({ role, children }: { role: "OWNER" | "MANAGER"; childr
     return () => window.removeEventListener("cercle:session-expired", redirectToLogin);
   }, [router]);
 
+  useEffect(() => {
+    if (!me) return;
+    setReauthenticationHandler(() => new Promise<void>((resolve, reject) => {
+      reauthPromise.current = { resolve, reject };
+      setReauthPassword("");
+      setReauthError(null);
+      setReauthOpen(true);
+    }));
+    return () => setReauthenticationHandler(null);
+  }, [me]);
+
+  const cancelReauthentication = () => {
+    setReauthOpen(false);
+    reauthPromise.current?.reject(new RequestError(403, "REAUTH_CANCELLED", "Validation de l’action annulée."));
+    reauthPromise.current = null;
+  };
+
+  const finishReauthentication = () => {
+    setReauthOpen(false);
+    setReauthPassword("");
+    reauthPromise.current?.resolve();
+    reauthPromise.current = null;
+  };
+
+  async function confirmReauthenticationPassword() {
+    if (!me || reauthPending) return;
+    setReauthPending(true); setReauthError(null);
+    try {
+      await api("/api/v1/session/reauthenticate", { method: "POST", body: JSON.stringify({ password: reauthPassword }) });
+      finishReauthentication();
+    } catch { setReauthError("Le mot de passe est incorrect."); }
+    finally { setReauthPending(false); }
+  }
+
+
   const links = role === "OWNER" ? ownerLinks : managerLinks;
   useEffect(() => {
     const activeGroup = links.find((item): item is NavigationGroup => "children" in item && item.children.some((child) => pathname === child.href));
@@ -152,6 +208,9 @@ export function AppShell({ role, children }: { role: "OWNER" | "MANAGER"; childr
   }, [links, pathname]);
   const pageLabel =
     pathname.startsWith("/owner/sales/") ? "Détail de vente" :
+    pathname.startsWith("/owner/customers/") ? "Fiche client" :
+    pathname.startsWith("/owner/returns/") ? "Retour client" :
+    pathname.startsWith("/owner/inventory/") ? "Inventaire" :
     pathname.startsWith("/owner/sessions/") ? "Fiche de session" :
     pathname.startsWith("/owner/discrepancies/") ? "Dossier d’écart" :
     pathname === paths.ownerPurchaseNew ? "Nouvel achat" :
@@ -163,9 +222,19 @@ export function AppShell({ role, children }: { role: "OWNER" | "MANAGER"; childr
     pathname.startsWith("/manager/receipts/") ? "Réception" :
     pathname.startsWith("/manager/transfers/") ? "Expédition" :
     pathname.startsWith("/manager/purchases/") ? "Achat autorisé" :
+    pathname.startsWith("/manager/customers/") ? "Fiche client" :
+    pathname.startsWith("/manager/returns/") ? "Retour" :
+    pathname.startsWith("/manager/inventory/") ? "Comptage" :
     ({
       [paths.ownerHome]: "Vue générale",
       [paths.ownerSales]: "Ventes",
+      [paths.ownerCustomers]: "Clients et créances",
+      [paths.ownerReceivables]: "Créances",
+      [paths.ownerReturns]: "Retours clients",
+      [paths.ownerSupplierReturns]: "Retours fournisseurs",
+      [paths.ownerInventory]: "Inventaires",
+      [paths.ownerLosses]: "Pertes et casse",
+      [paths.ownerHandovers]: "Passations",
       [paths.ownerSessions]: "Sessions de caisse",
       [paths.ownerExpenses]: "Dépenses",
       [paths.ownerFunds]: "Mouvements de fonds",
@@ -192,6 +261,10 @@ export function AppShell({ role, children }: { role: "OWNER" | "MANAGER"; childr
       [paths.managerSale]: "Nouvelle vente",
       [paths.managerSalePayment]: "Paiement",
       [paths.managerSales]: "Historique des ventes",
+      [paths.managerCustomers]: "Clients et créances",
+      [paths.managerReturns]: "Retours",
+      [paths.managerInventory]: "Inventaire",
+      [paths.managerLosses]: "Perte ou casse",
       [paths.managerCash]: "Caisse du jour",
       [paths.managerCashCount]: "Comptage",
       [paths.managerExpenses]: "Dépenses",
@@ -389,6 +462,14 @@ export function AppShell({ role, children }: { role: "OWNER" | "MANAGER"; childr
         <div className="mb-7"><BrandLogo official /></div>
         {navigation(true)}
       </Sheet>
+      <Modal open={reauthOpen} onOpenChange={(open) => { if (!open) cancelReauthentication(); }} title="Confirmer votre identité" description="Pour protéger cette action sensible, saisissez à nouveau vos identifiants. L’action reprendra automatiquement après validation." size="sm">
+        <form className="space-y-4" onSubmit={(event) => { event.preventDefault(); void confirmReauthenticationPassword(); }}>
+          {reauthError ? <Alert tone="error">{reauthError}</Alert> : null}
+          <div className="rounded-md bg-[var(--surface-subtle)] px-4 py-3 text-sm"><p className="font-medium">{me.actor.displayName}</p><p className="mt-0.5 text-[var(--muted)]">{me.actor.email}</p></div>
+          <Field id="global-reauth-password" label="Mot de passe actuel" type="password" autoComplete="current-password" required autoFocus value={reauthPassword} onChange={(event) => setReauthPassword(event.target.value)} />
+          <div className="flex justify-end gap-2"><Button type="button" variant="ghost" onClick={cancelReauthentication}>Annuler</Button><Button type="submit" disabled={reauthPending || !reauthPassword}>{reauthPending ? "Vérification…" : "Valider l’action"}</Button></div>
+        </form>
+      </Modal>
     </div>
   );
 }

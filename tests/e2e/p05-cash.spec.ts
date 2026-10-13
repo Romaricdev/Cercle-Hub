@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 
 import { currentTotp } from "../../apps/api/src/auth/totp.ts";
 import { e2eManagerP05, e2eOwnerP05 } from "./global-setup";
+import { clickNavLink } from "./nav";
 
 test("P05 clôture aveugle, dépense, explication gérant et consultation propriétaire", async ({ page }) => {
   test.setTimeout(180_000);
@@ -17,15 +18,20 @@ test("P05 clôture aveugle, dépense, explication gérant et consultation propri
   const beforeCount = await page.content();
   expect(beforeCount).not.toMatch(/expectedMinor|balanceMinor|Attendu/);
   await page.getByRole("link", { name: "Demander une dépense" }).click();
-  await expect(page.getByRole("heading", { name: "Dépenses" })).toBeVisible();
-  await page.getByLabel("Montant").fill("1000");
-  await page.getByLabel("Motif de la dépense").fill("Achat de sacs pour la caisse");
-  await page.getByLabel("Je n’ai pas de justificatif").check();
-  await page.getByLabel("Motif de l’absence de justificatif").fill("Justificatif indisponible auprès du fournisseur");
-  await page.getByRole("button", { name: "Enregistrer la demande" }).click();
+  await expect(page.getByRole("heading", { name: "Dépenses", level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Historique des dépenses" })).toBeVisible();
+  await page.getByRole("button", { name: "Nouvelle demande" }).click();
+  const expenseDialog = page.getByRole("dialog", { name: "Nouvelle demande de dépense" });
+  await expect(expenseDialog).toBeVisible();
+  await expenseDialog.getByLabel("Montant (FCFA)").fill("1000");
+  await expenseDialog.getByLabel("Motif de la dépense").fill("Achat de sacs pour la caisse");
+  await expenseDialog.getByLabel("Je n’ai pas de justificatif").check();
+  await expenseDialog.getByLabel("Motif de l’absence de justificatif").fill("Justificatif indisponible auprès du fournisseur");
+  await expenseDialog.getByRole("button", { name: "Enregistrer la demande" }).click();
+  await expect(expenseDialog).toBeHidden();
   await expect(page.getByRole("heading", { name: "Aucune dépense" })).toHaveCount(0);
   await expect(page.getByText("Achat de sacs pour la caisse")).toBeVisible();
-  await page.getByRole("link", { name: "Caisse" }).first().click();
+  await page.getByRole("link", { name: "Caisse du jour" }).click();
   await page.getByRole("button", { name: "Commencer le comptage" }).click();
   await expect(page.getByRole("heading", { name: "Comptage de fin de journée" })).toBeVisible();
   await expect(page.getByText(/première déclaration est définitive/i)).toBeVisible();
@@ -68,14 +74,14 @@ test("P05 clôture aveugle, dépense, explication gérant et consultation propri
   await page.getByLabel("Code TOTP").fill(currentTotp(uri));
   await page.getByRole("button", { name: "Confirmer" }).click();
   await expect(page.getByRole("heading", { name: /Vue générale/ })).toBeVisible();
-  await page.getByRole("link", { name: "Caisse" }).first().click();
+  await clickNavLink(page, "Ventes et caisse", "Sessions de caisse");
   await expect(page.getByRole("heading", { name: "Sessions de caisse" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Boutique Caisse E2E" }).first()).toBeVisible();
   await page.getByRole("link", { name: "Boutique Caisse E2E" }).first().click();
   await expect(page.getByText("Attendu").first()).toBeVisible();
   await expect(page.getByText("Déclaré").first()).toBeVisible();
 
-  await page.getByRole("link", { name: "Écarts" }).first().click();
+  await clickNavLink(page, "Ventes et caisse", "Écarts de caisse");
   await expect(page.getByRole("heading", { name: "Écarts de caisse" })).toBeVisible();
   await page.getByRole("link", { name: "Boutique Caisse E2E" }).first().click();
   await expect(page.getByRole("heading", { name: "Dossier d’écart" })).toBeVisible();
@@ -106,7 +112,7 @@ test("P05 clôture aveugle, dépense, explication gérant et consultation propri
   await page.getByLabel("Mot de passe").fill(e2eManagerP05.password);
   await page.getByRole("button", { name: "Se connecter" }).click();
   await expect(page.getByRole("heading", { name: "Accueil" })).toBeVisible();
-  await page.getByRole("link", { name: "Demandes d’explication" }).first().click();
+  await clickNavLink(page, "Ventes et caisse", "Demandes d’explication");
   await expect(page.getByRole("heading", { name: "Demandes d’explication" })).toBeVisible();
   const managerList = await page.content();
   expect(managerList).not.toMatch(/expectedMinor|balanceMinor|Attendu/);
@@ -130,7 +136,7 @@ test("P05 clôture aveugle, dépense, explication gérant et consultation propri
   await page.getByLabel("Code d’authentification ou de secours").fill(currentTotp(uri));
   await page.getByRole("button", { name: "Valider le code" }).click();
   await expect(page.getByRole("heading", { name: /Vue générale/ })).toBeVisible();
-  await page.getByRole("link", { name: "Écarts" }).first().click();
+  await clickNavLink(page, "Ventes et caisse", "Écarts de caisse");
   await page.getByRole("link", { name: "Boutique Caisse E2E" }).first().click();
   await expect(page.getByText("Réponse du gérant")).toBeVisible();
   await expect(page.getByText("Le fonds de caisse du week-end")).toBeVisible();

@@ -32,6 +32,12 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async rewrites() {
+    if (!isDevelopment) {
+      return [];
+    }
+    return [{ source: "/api/:path*", destination: "http://127.0.0.1:4311/api/:path*" }];
+  },
 };
 
 export default nextConfig;

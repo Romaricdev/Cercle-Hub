@@ -2,7 +2,7 @@ import { z } from "zod";
 
 const schema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
-  PUBLIC_ORIGIN: z.url().default("http://127.0.0.1:8080"),
+  PUBLIC_ORIGIN: z.url().default("http://127.0.0.1:4320"),
   WEB_ORIGIN: z.url().default("http://127.0.0.1:4310"),
   API_PORT: z.coerce.number().int().positive().default(4311),
   TRUST_PROXY: z.enum(["0", "1"]).default("0"),
@@ -39,7 +39,8 @@ export interface ApiEnv {
 
 export function readApiEnv(source: NodeJS.ProcessEnv = process.env): ApiEnv {
   const parsed = schema.parse(source);
-  const localOrigins = ["http://127.0.0.1:8080", "http://127.0.0.1:4310", "http://127.0.0.1:4311"];
+  const localPorts = ["4320", "8080", "4310", "4311"];
+  const localOrigins = localPorts.flatMap((port) => [`http://127.0.0.1:${port}`, `http://localhost:${port}`]);
   const trustedOrigins = [...new Set([parsed.PUBLIC_ORIGIN, parsed.WEB_ORIGIN, ...(parsed.NODE_ENV === "production" ? [] : localOrigins)])];
   return {
     nodeEnv: parsed.NODE_ENV,

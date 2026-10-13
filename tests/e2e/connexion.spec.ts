@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 
 import { currentTotp } from "../../apps/api/src/auth/totp.ts";
 import { e2eManager, e2eOwnerTotp } from "./global-setup";
+import { clickNavLink } from "./nav";
 
 test("le gérant se connecte et atteint son accueil", async ({ page }) => {
   await page.goto("/login");
@@ -46,7 +47,7 @@ test("le propriétaire active le TOTP puis ouvre son espace", async ({ page }) =
   await page.getByRole("button", { name: "Confirmer" }).click();
   await expect(page.getByRole("heading", { name: /Vue générale/ })).toBeVisible();
   await expect(page.getByText("Propriétaire", { exact: true })).toBeVisible();
-  await page.getByRole("link", { name: "Utilisateurs" }).click();
+  await clickNavLink(page, "Organisation", "Utilisateurs");
   await expect(page.getByRole("heading", { name: "Équipe et accès" })).toBeVisible();
   await page.getByRole("button", { name: "Inviter un gérant" }).click();
   await expect(page.getByRole("heading", { name: "Inviter un gérant" })).toBeVisible();
